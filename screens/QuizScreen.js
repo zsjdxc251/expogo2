@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { C, SHADOW, SUBJECTS, DIFFICULTIES, OP_SYMBOL, poolSize } from '../lib/theme';
-import { generateQuestions } from '../lib/questions';
+import { C, SHADOW, SUBJECTS, DIFFICULTIES, OP_SYMBOL } from '../lib/theme';
+import { generateQuestions, getMaxQuestions } from '../lib/questions';
 import NumberPad from '../components/NumberPad';
 import Feedback from '../components/Feedback';
 
@@ -15,7 +15,7 @@ function SetupPhase({ subject, onStart, onBack }) {
   const sub = SUBJECTS[subject];
   const [diff, setDiff] = useState('normal');
   const [count, setCount] = useState(20);
-  const max = poolSize(...DIFFICULTIES[diff].range);
+  const max = getMaxQuestions(subject, DIFFICULTIES[diff].range);
   const clamped = Math.min(count, max);
 
   useEffect(() => { if (count > max) setCount(max); }, [diff]);
@@ -150,14 +150,16 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
     [fb, answered],
   );
 
-  // Auto-submit
+  // Auto-submit: wait until input length matches expected digit count
   useEffect(() => {
-    if (!settings?.autoSubmit || !input || fb || answered) return;
+    if (!settings?.autoSubmit || !input || fb || answered || !q) return;
+    const digits = String(q.answer).length;
+    if (input.length < digits) return;
     autoRef.current = setTimeout(() => {
       doSubmit(parseInt(input, 10));
     }, 250);
     return () => clearTimeout(autoRef.current);
-  }, [input, settings?.autoSubmit, fb, answered, doSubmit]);
+  }, [input, settings?.autoSubmit, fb, answered, doSubmit, q]);
 
   const onFbDone = useCallback(() => {
     setFb(null);
@@ -214,13 +216,25 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
         ) : (
           <View style={st.qCard}>
             <Text style={st.qIdx}>第 {idx + 1} 题</Text>
-            <View style={st.qRow}>
-              {q.missingPos === 'left' ? InputBox : <Text style={st.qNum}>{q.display.left}</Text>}
-              <Text style={st.qOp}>{opSym}</Text>
-              {q.missingPos === 'right' ? InputBox : <Text style={st.qNum}>{q.display.right}</Text>}
-              <Text style={st.qOp}>=</Text>
-              {q.missingPos === 'result' ? InputBox : <Text style={st.qNum}>{q.display.result}</Text>}
-            </View>
+            {q.op === 'divRem' ? (
+              <View style={st.qRow}>
+                <Text style={st.qNum}>{q.display.left}</Text>
+                <Text style={st.qOp}>÷</Text>
+                <Text style={st.qNum}>{q.display.right}</Text>
+                <Text style={st.qOp}>=</Text>
+                {q.missingPos === 'result' ? InputBox : <Text style={st.qNum}>{q.display.result}</Text>}
+                <Text style={st.qDots}>...</Text>
+                {q.missingPos === 'remainder' ? InputBox : <Text style={st.qNum}>{q.display.remainder}</Text>}
+              </View>
+            ) : (
+              <View style={st.qRow}>
+                {q.missingPos === 'left' ? InputBox : <Text style={st.qNum}>{q.display.left}</Text>}
+                <Text style={st.qOp}>{opSym}</Text>
+                {q.missingPos === 'right' ? InputBox : <Text style={st.qNum}>{q.display.right}</Text>}
+                <Text style={st.qOp}>=</Text>
+                {q.missingPos === 'result' ? InputBox : <Text style={st.qNum}>{q.display.result}</Text>}
+              </View>
+            )}
           </View>
         )}
         <Feedback
@@ -343,6 +357,7 @@ const st = StyleSheet.create({
   qRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' },
   qNum: { fontSize: 40, fontWeight: '800', color: C.text },
   qOp: { fontSize: 28, fontWeight: '600', color: C.textMid, marginHorizontal: 8 },
+  qDots: { fontSize: 28, fontWeight: '800', color: C.textMid, marginHorizontal: 4, letterSpacing: 2 },
   qInput: {
     minWidth: 54, height: 54, borderRadius: 14, borderWidth: 2.5,
     borderColor: C.primary, borderStyle: 'dashed', backgroundColor: C.primaryBg,

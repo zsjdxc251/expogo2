@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { C, SHADOW, SUBJECTS } from '../lib/theme';
 import { getLevel, nextLevel, ACH_DEFS } from '../lib/points';
 
-const SUBJECT_LIST = ['multiply', 'add', 'subtract', 'divide'];
+const SUBJECT_LIST = ['multiply', 'add', 'subtract', 'divide', 'divRem'];
 
 export default function HomeScreen({ user, streak, achievements, onSubject }) {
   const lv = getLevel(user.totalPoints);

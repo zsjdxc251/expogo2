@@ -101,7 +101,9 @@ export default function ResultsScreen({ data, onHome, onRetry }) {
           <Text style={st.wrongTitle}>错题回顾</Text>
           {wrongList.map((w, i) => {
             const sym = OP_SYMBOL[w.op] || '?';
-            const qStr = `${w.left} ${sym} ${w.right} = ${w.result}`;
+            const qStr = w.op === 'divRem'
+              ? `${w.left} ÷ ${w.right} = ${w.result} ... ${w.remainder}`
+              : `${w.left} ${sym} ${w.right} = ${w.result}`;
             return (
               <View key={i} style={st.wrongCard}>
                 <Text style={st.wrongQ}>{qStr}</Text>
