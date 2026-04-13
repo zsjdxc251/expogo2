@@ -1,20 +1,20 @@
 {
   "expo": {
-    "name": "expogo2",
-    "slug": "expogo2",
-    "version": "1.0.0",
+    "name": "数学星球",
+    "slug": "mathstar",
+    "version": "2.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F0F9FF"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#F0F9FF"
       }
     },
     "web": {}

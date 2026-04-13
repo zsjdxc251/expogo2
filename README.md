@@ -1,6 +1,15 @@
-# expogo2
+# 数学星球 MathStar
 
-A React Native app built with [Expo](https://expo.dev), compatible with **Expo Go** and **Expo Snack**.
+A child-friendly math practice app built with [Expo](https://expo.dev).
+
+## Features
+
+- 4 subjects: Multiplication, Addition, Subtraction, Division
+- 3 difficulty levels per subject
+- Points & level system with achievement badges
+- Practice history & error review
+- Auto-submit mode, combo streaks, animated feedback
+- Local data persistence via AsyncStorage
 
 ## Quick Start
 
@@ -9,17 +18,14 @@ npm install
 npm start
 ```
 
-Scan the QR code with **Expo Go** app (Android/iOS) to preview.
-
 ## Import to Expo Snack
 
-1. Push this repo to GitHub
+1. Push to GitHub
 2. Go to [snack.expo.dev](https://snack.expo.dev)
-3. Click **Import Git Repository**
-4. Paste the GitHub repo URL
+3. Click **Import Git Repository** and paste the repo URL
 
 ## Tech Stack
 
-- Expo SDK 54
-- React 19
-- React Native 0.81
+- Expo SDK 54, React 19, React Native 0.81
+- AsyncStorage for local persistence
+- RN built-in Animated API for animations
