@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { C, DIFFICULTIES, RADIUS } from '../lib/theme';
 import { generateQuestions } from '../lib/questions';
 import { playCorrect, playWrong, playCombo } from '../lib/sounds';
+import { useApp } from '../lib/AppContext';
 import NumberPad from '../components/NumberPad';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -210,7 +212,11 @@ function ResultPhase({ correct, best, onRetry, onBack }) {
   );
 }
 
-export default function SpeedChallengeScreen({ onFinish, onBack }) {
+export default function SpeedChallengeScreen() {
+  const nav = useNavigation();
+  const { finishQuiz } = useApp();
+  const onBack = useCallback(() => nav.goBack(), [nav]);
+
   const [phase, setPhase] = useState('setup');
   const [questions, setQuestions] = useState([]);
   const [diff, setDiff] = useState('easy');
@@ -244,7 +250,7 @@ export default function SpeedChallengeScreen({ onFinish, onBack }) {
     setResult({ correct, best: newBest });
     setPhase('result');
 
-    onFinish({
+    await finishQuiz({
       questions: questions.slice(0, Math.min(correct + 5, questions.length)),
       answers: questions.slice(0, Math.min(correct + 5, questions.length)).map((q, i) => i < correct ? q.answer : null),
       elapsed: TOTAL_TIME,
@@ -252,7 +258,7 @@ export default function SpeedChallengeScreen({ onFinish, onBack }) {
       difficulty: diff,
       maxCombo,
     });
-  }, [best, questions, diff, onFinish]);
+  }, [best, questions, diff, finishQuiz]);
 
   const onRetry = useCallback(() => {
     setResult(null);

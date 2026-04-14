@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { C, RADIUS } from '../lib/theme';
 import { CHN_TOPICS, generateChnQuestions, getChnMaxQuestions } from '../lib/chinese';
+import { useApp } from '../lib/AppContext';
 import Feedback from '../components/Feedback';
 
 function fmt(sec) {
@@ -218,7 +220,18 @@ function QuizPhase({ questions, topicKey, onFinish, onBack }) {
   );
 }
 
-export default function ChineseQuizScreen({ topicKey, onFinish, onBack }) {
+export default function ChineseQuizScreen() {
+  const route = useRoute();
+  const nav = useNavigation();
+  const { finishQuiz } = useApp();
+  const topicKey = route.params?.topicKey;
+  const onBack = useCallback(() => nav.goBack(), [nav]);
+
+  const handleFinish = useCallback(async (data) => {
+    await finishQuiz(data);
+    nav.replace('Results');
+  }, [finishQuiz, nav]);
+
   const [phase, setPhase] = useState('setup');
   const [questions, setQuestions] = useState([]);
 
@@ -235,7 +248,7 @@ export default function ChineseQuizScreen({ topicKey, onFinish, onBack }) {
     <QuizPhase
       questions={questions}
       topicKey={topicKey}
-      onFinish={onFinish}
+      onFinish={handleFinish}
       onBack={onBack}
     />
   );

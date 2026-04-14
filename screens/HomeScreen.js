@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { C, SUBJECTS, RADIUS } from '../lib/theme';
 import { ENG_TOPICS, ENG_LEVELS, LEVEL_TOPIC_KEYS } from '../lib/english';
 import { CHN_LEVELS, LEVEL_TOPIC_KEYS as CHN_LEVEL_KEYS, CHN_TOPICS } from '../lib/chinese';
 import { getLevel, nextLevel, ACH_DEFS } from '../lib/points';
+import { useApp } from '../lib/AppContext';
 import DailyTaskBar from '../components/DailyTaskBar';
 
 const MATH_SUBJECTS = ['mulForward', 'mulBlank', 'add', 'subtract', 'divide', 'divRem', 'divReverse'];
@@ -37,11 +39,20 @@ function calcLevelProgress(history, topicKeys, prefix) {
   return Math.round(total / topicKeys.length);
 }
 
-export default function HomeScreen({
-  user, streak, achievements, history, dailyTasks,
-  onSubject, onEngLearn, onEngPractice, onChnLearn, onChnPractice,
-  onSpeedChallenge, onDictation,
-}) {
+export default function HomeScreen() {
+  const { user, streak, achievements, history, dailyTasks, saveQuizRoute } = useApp();
+  const nav = useNavigation();
+  const go = useCallback((name, params) => {
+    saveQuizRoute(name, params);
+    nav.navigate(name, params);
+  }, [nav, saveQuizRoute]);
+  const onSubject = useCallback((s) => go('Quiz', { subject: s }), [go]);
+  const onEngLearn = useCallback((k) => nav.navigate('EngLearn', { topicKey: k }), [nav]);
+  const onEngPractice = useCallback((k) => go('EngQuiz', { topicKey: k }), [go]);
+  const onChnLearn = useCallback((k) => nav.navigate('ChnLearn', { topicKey: k }), [nav]);
+  const onChnPractice = useCallback((k) => go('ChnQuiz', { topicKey: k }), [go]);
+  const onSpeedChallenge = useCallback(() => go('Speed', {}), [go]);
+  const onDictation = useCallback((m) => go('Dictation', { mode: m }), [go]);
   const lv = getLevel(user.totalPoints);
   const nxt = nextLevel(user.totalPoints);
   const pct = nxt ? Math.round(((user.totalPoints - lv.min) / (nxt.min - lv.min)) * 100) : 100;

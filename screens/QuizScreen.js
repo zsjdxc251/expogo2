@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { C, SUBJECTS, DIFFICULTIES, OP_SYMBOL, RADIUS } from '../lib/theme';
 import { generateQuestions, getMaxQuestions } from '../lib/questions';
+import { useApp } from '../lib/AppContext';
 import NumberPad from '../components/NumberPad';
 import Feedback from '../components/Feedback';
 
@@ -391,7 +393,13 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
 
 // ── Main Export ───────────────────────────────────────────
 
-export default function QuizScreen({ params, settings, onFinish, onBack }) {
+export default function QuizScreen() {
+  const route = useRoute();
+  const nav = useNavigation();
+  const { settings, finishQuiz } = useApp();
+  const params = route.params || {};
+  const onBack = useCallback(() => nav.goBack(), [nav]);
+
   const [phase, setPhase] = useState(params.isReview ? 'quiz' : 'setup');
   const [questions, setQuestions] = useState(params.questions || []);
   const [diff, setDiff] = useState(params.difficulty || 'normal');
@@ -406,6 +414,11 @@ export default function QuizScreen({ params, settings, onFinish, onBack }) {
     [params.subject],
   );
 
+  const handleFinish = useCallback(async (data) => {
+    await finishQuiz({ ...data, difficulty: diff });
+    nav.replace('Results');
+  }, [finishQuiz, diff, nav]);
+
   if (phase === 'setup') {
     return <SetupPhase subject={params.subject} onStart={startQuiz} onBack={onBack} />;
   }
@@ -415,7 +428,7 @@ export default function QuizScreen({ params, settings, onFinish, onBack }) {
       questions={questions}
       subject={params.subject}
       settings={settings}
-      onFinish={(data) => onFinish({ ...data, difficulty: diff })}
+      onFinish={handleFinish}
       onBack={onBack}
     />
   );

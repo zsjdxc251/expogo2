@@ -1,10 +1,16 @@
 import { useState, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { C, RADIUS } from '../lib/theme';
 import { CHN_TOPICS, LEARN_CARDS } from '../lib/chinese';
 import SpeakButton from '../components/SpeakButton';
 
-export default function ChineseLearnScreen({ topicKey, onBack, onPractice }) {
+export default function ChineseLearnScreen() {
+  const route = useRoute();
+  const nav = useNavigation();
+  const topicKey = route.params?.topicKey;
+  const onBack = useCallback(() => nav.goBack(), [nav]);
+  const onPractice = useCallback((k) => nav.replace('ChnQuiz', { topicKey: k }), [nav]);
   const topic = CHN_TOPICS[topicKey];
   const cards = LEARN_CARDS[topicKey] || [];
   const [idx, setIdx] = useState(0);

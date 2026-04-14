@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, Switch, TextInput, ScrollView, StyleSheet, Alert, Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { C, AVATARS, RADIUS } from '../lib/theme';
+import { useApp } from '../lib/AppContext';
 
 function showConfirm(title, msg, onOk) {
   if (Platform.OS === 'web') {
@@ -15,7 +17,10 @@ function showConfirm(title, msg, onOk) {
   }
 }
 
-export default function SettingsScreen({ user, settings, onUpdate, onClear, onChangePin }) {
+export default function SettingsScreen() {
+  const { user, settings, updateUser: onUpdate, resetAll, requestPin } = useApp();
+  const onClear = resetAll;
+  const onChangePin = useCallback(() => requestPin('setup'), [requestPin]);
   const [editing, setEditing] = useState(null);
   const [tmpName, setTmpName] = useState(user.name);
   const [tmpAvatar, setTmpAvatar] = useState(user.avatar);

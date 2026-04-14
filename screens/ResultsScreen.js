@@ -1,17 +1,35 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { C, SUBJECTS, OP_SYMBOL, RADIUS } from '../lib/theme';
 import { ENG_TOPICS } from '../lib/english';
 import { CHN_TOPICS } from '../lib/chinese';
 import { ACH_DEFS } from '../lib/points';
 import { playLevelUp } from '../lib/sounds';
+import { useApp } from '../lib/AppContext';
 import SpeakButton from '../components/SpeakButton';
 
 function fmt(sec) {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 }
 
-export default function ResultsScreen({ data, onHome, onRetry }) {
+export default function ResultsScreen() {
+  const { quizResult: data, lastQuizRoute } = useApp();
+  const nav = useNavigation();
+  const onHome = useCallback(() => nav.popToTop(), [nav]);
+  const onRetry = useCallback(() => {
+    if (lastQuizRoute) {
+      nav.replace(lastQuizRoute.routeName, lastQuizRoute.params);
+    } else {
+      nav.popToTop();
+    }
+  }, [nav, lastQuizRoute]);
+
+  if (!data) {
+    nav.popToTop();
+    return null;
+  }
+
   const {
     total, correct, wrong, elapsed, pointsEarned, accuracy,
     subject, levelUp, newLevel, newAchievements = [], wrongList = [],

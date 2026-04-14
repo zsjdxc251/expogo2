@@ -3,8 +3,10 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { C, AVATARS, RADIUS } from '../lib/theme';
+import { useApp } from '../lib/AppContext';
 
-export default function WelcomeScreen({ onComplete }) {
+export default function WelcomeScreen() {
+  const { createUser } = useApp();
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState('');
 
@@ -52,7 +54,7 @@ export default function WelcomeScreen({ onComplete }) {
         style={[st.btn, !valid && st.btnOff]}
         disabled={!valid}
         activeOpacity={0.8}
-        onPress={() => onComplete({ name: name.trim(), avatar })}
+        onPress={() => createUser({ name: name.trim(), avatar })}
       >
         <Text style={[st.btnTxt, !valid && st.btnTxtOff]}>开始冒险!</Text>
       </TouchableOpacity>

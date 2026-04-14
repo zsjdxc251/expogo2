@@ -1,7 +1,10 @@
+import { useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { C, SUBJECTS, RADIUS } from '../lib/theme';
 import { ENG_TOPICS } from '../lib/english';
 import { CHN_TOPICS } from '../lib/chinese';
+import { useApp } from '../lib/AppContext';
 
 function getSubjectInfo(subject) {
   if (SUBJECTS[subject]) return SUBJECTS[subject];
@@ -36,7 +39,16 @@ function fmtDate(iso) {
   return `${m}/${dd} ${hh}:${mm}`;
 }
 
-export default function HistoryScreen({ history, onErrorReview }) {
+export default function HistoryScreen() {
+  const { history, buildErrorReview, saveQuizRoute } = useApp();
+  const nav = useNavigation();
+  const onErrorReview = useCallback(() => {
+    const params = buildErrorReview();
+    if (params) {
+      saveQuizRoute('Quiz', params);
+      nav.navigate('Quiz', params);
+    }
+  }, [buildErrorReview, nav, saveQuizRoute]);
   const errorCount = history.reduce(
     (sum, h) => sum + (h.wrongList ? h.wrongList.length : 0), 0,
   );

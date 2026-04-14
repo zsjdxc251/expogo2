@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import * as Speech from 'expo-speech';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { C, RADIUS } from '../lib/theme';
 import { ENG_TOPIC_KEYS, ENG_TOPICS, generateEngQuestions } from '../lib/english';
 import { CHN_TOPICS, generateChnQuestions } from '../lib/chinese';
 import { playCorrect, playWrong, playCombo } from '../lib/sounds';
+import { useApp } from '../lib/AppContext';
 import Feedback from '../components/Feedback';
 import { shuffle } from '../lib/questions';
 
@@ -280,7 +282,18 @@ function QuizPhase({ questions, mode, onFinish, onBack }) {
   );
 }
 
-export default function DictationScreen({ mode, onFinish, onBack }) {
+export default function DictationScreen() {
+  const route = useRoute();
+  const nav = useNavigation();
+  const { finishQuiz } = useApp();
+  const mode = route.params?.mode || 'eng';
+  const onBack = useCallback(() => nav.goBack(), [nav]);
+
+  const handleFinish = useCallback(async (data) => {
+    await finishQuiz(data);
+    nav.replace('Results');
+  }, [finishQuiz, nav]);
+
   const [phase, setPhase] = useState('setup');
   const [questions, setQuestions] = useState([]);
 
@@ -297,7 +310,7 @@ export default function DictationScreen({ mode, onFinish, onBack }) {
     <QuizPhase
       questions={questions}
       mode={mode}
-      onFinish={onFinish}
+      onFinish={handleFinish}
       onBack={onBack}
     />
   );
