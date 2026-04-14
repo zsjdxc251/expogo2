@@ -62,7 +62,7 @@ export default function PinModal({ visible, mode, correctPin, onSuccess, onCance
             }
           }
         } else {
-          if (correctPin && next !== correctPin) {
+          if (!correctPin || next !== correctPin) {
             setError('密码错误，请重试');
             doShake();
             setPin('');

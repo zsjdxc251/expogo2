@@ -126,7 +126,7 @@ function QuizPhase({ questions, mode, onFinish, onBack }) {
   const speakWord = useCallback(() => {
     if (!q || speaking) return;
     setSpeaking(true);
-    Speech.speak(q.speakText || q.options[q.answer], {
+    Speech.speak(q.speakText || q.options?.[q.answer] || '', {
       language: q.speakLang || (isEng ? 'en-US' : 'zh-CN'),
       rate: isEng ? 0.8 : 0.9,
       onDone: () => setSpeaking(false),
@@ -138,7 +138,7 @@ function QuizPhase({ questions, mode, onFinish, onBack }) {
     if (q && !allDone && !fb) {
       setTimeout(speakWord, 400);
     }
-  }, [idx]);
+  }, [idx, q, allDone, fb, speakWord]);
 
   const onSelect = useCallback((optIdx) => {
     if (fb || answers[idx] !== null) return;

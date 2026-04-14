@@ -16,7 +16,7 @@ const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 // ── Setup Phase ──────────────────────────────────────────
 
 function SetupPhase({ topicKey, onStart, onBack }) {
-  const topic = ENG_TOPICS[topicKey];
+  const topic = ENG_TOPICS[topicKey] || { icon: '📖', label: topicKey || '英语', color: C.primary, key: topicKey };
   const max = getEngMaxQuestions(topicKey);
   const [count, setCount] = useState(Math.min(10, max));
   const clamped = Math.min(count, max);
@@ -79,7 +79,7 @@ function SetupPhase({ topicKey, onStart, onBack }) {
 // ── Quiz Phase ───────────────────────────────────────────
 
 function QuizPhase({ questions, topicKey, onFinish, onBack }) {
-  const topic = ENG_TOPICS[topicKey];
+  const topic = ENG_TOPICS[topicKey] || { icon: '📖', label: topicKey || '英语', color: C.primary, key: topicKey };
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState(() => new Array(questions.length).fill(null));
   const [elapsed, setElapsed] = useState(0);

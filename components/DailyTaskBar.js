@@ -33,7 +33,7 @@ export default function DailyTaskBar({ tasks }) {
         {tasks.map((t) => {
           const color = TYPE_COLORS[t.type] || C.primary;
           const icon = TYPE_ICONS[t.type] || '📝';
-          const pct = Math.min(100, Math.round((t.progress / t.target) * 100));
+          const pct = t.target > 0 ? Math.min(100, Math.round((t.progress / t.target) * 100)) : 0;
           return (
             <View
               key={t.id}

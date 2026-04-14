@@ -11,7 +11,7 @@ export default function EnglishLearnScreen() {
   const topicKey = route.params?.topicKey;
   const onBack = useCallback(() => nav.goBack(), [nav]);
   const onPractice = useCallback((k) => nav.replace('EngQuiz', { topicKey: k }), [nav]);
-  const topic = ENG_TOPICS[topicKey];
+  const topic = ENG_TOPICS[topicKey] || { icon: '📖', label: topicKey || '英语', color: C.primary };
   const cards = LEARN_CARDS[topicKey] || [];
   const [idx, setIdx] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;

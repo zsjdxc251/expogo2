@@ -53,9 +53,10 @@ export default function HomeScreen() {
   const onChnPractice = useCallback((k) => go('ChnQuiz', { topicKey: k }), [go]);
   const onSpeedChallenge = useCallback(() => go('Speed', {}), [go]);
   const onDictation = useCallback((m) => go('Dictation', { mode: m }), [go]);
-  const lv = getLevel(user.totalPoints);
-  const nxt = nextLevel(user.totalPoints);
-  const pct = nxt ? Math.round(((user.totalPoints - lv.min) / (nxt.min - lv.min)) * 100) : 100;
+  const totalPts = user?.totalPoints || 0;
+  const lv = getLevel(totalPts);
+  const nxt = nextLevel(totalPts);
+  const pct = nxt ? Math.round(((totalPts - lv.min) / (nxt.min - lv.min)) * 100) : 100;
   const [activeTab, setActiveTab] = useState('math');
   const [openLevel, setOpenLevel] = useState('beginner');
   const [openChnLevel, setOpenChnLevel] = useState('pinyin');
@@ -72,7 +73,7 @@ export default function HomeScreen() {
         </View>
         <View style={st.headerItem}>
           <Text style={st.headerEmoji}>💎</Text>
-          <Text style={st.headerValTeal}>{user.totalPoints} XP</Text>
+          <Text style={st.headerValTeal}>{totalPts} XP</Text>
         </View>
         <View style={st.headerItem}>
           <Text style={st.headerEmoji}>❤️</Text>
@@ -82,9 +83,9 @@ export default function HomeScreen() {
 
       {/* User greeting */}
       <View style={st.userRow}>
-        <Text style={st.avatar}>{user.avatar}</Text>
+        <Text style={st.avatar}>{user?.avatar || '🧒'}</Text>
         <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={st.greeting}>你好, {user.name}!</Text>
+          <Text style={st.greeting}>你好, {user?.name || '同学'}!</Text>
           <View style={st.levelBadge}>
             <Text style={st.levelBadgeTxt}>⭐ Lv.{lv.level} {lv.title}</Text>
           </View>
@@ -97,7 +98,7 @@ export default function HomeScreen() {
           <View style={st.xpBar}>
             <View style={[st.xpFill, { width: `${pct}%` }]} />
           </View>
-          <Text style={st.xpRemain}>{nxt.min - user.totalPoints} 分</Text>
+          <Text style={st.xpRemain}>{nxt.min - totalPts} 分</Text>
         </View>
       )}
 

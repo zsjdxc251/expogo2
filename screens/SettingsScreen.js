@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, Switch, TextInput, ScrollView, StyleSheet, Alert, Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { C, AVATARS, RADIUS } from '../lib/theme';
 import { useApp } from '../lib/AppContext';
 
@@ -22,10 +21,10 @@ export default function SettingsScreen() {
   const onClear = resetAll;
   const onChangePin = useCallback(() => requestPin('setup'), [requestPin]);
   const [editing, setEditing] = useState(null);
-  const [tmpName, setTmpName] = useState(user.name);
-  const [tmpAvatar, setTmpAvatar] = useState(user.avatar);
+  const [tmpName, setTmpName] = useState(user?.name || '');
+  const [tmpAvatar, setTmpAvatar] = useState(user?.avatar || '');
 
-  const breakConfig = user.breakConfig || { usageMinutes: 20, breakMinutes: 5 };
+  const breakConfig = user?.breakConfig || { usageMinutes: 20, breakMinutes: 5 };
 
   const saveName = () => {
     if (tmpName.trim()) {

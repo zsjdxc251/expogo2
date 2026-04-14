@@ -64,9 +64,20 @@ function RacingPhase({ questions, onComplete, onBack }) {
   const [flash, setFlash] = useState(null);
   const tick = useRef(null);
   const comboAnim = useRef(new Animated.Value(1)).current;
+  const doneRef = useRef(false);
+  const stateRef = useRef({ correct: 0, combo: 0 });
 
-  const q = questions[idx];
+  stateRef.current = { correct, combo };
+
+  const q = idx < questions.length ? questions[idx] : null;
   const finished = remaining <= 0 || idx >= questions.length;
+
+  const completeOnce = useCallback((c, cb) => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    clearInterval(tick.current);
+    onComplete(c, cb);
+  }, [onComplete]);
 
   useEffect(() => {
     tick.current = setInterval(() => {
@@ -83,12 +94,13 @@ function RacingPhase({ questions, onComplete, onBack }) {
 
   useEffect(() => {
     if (remaining <= 0) {
-      onComplete(correct, combo);
+      const { correct: c, combo: cb } = stateRef.current;
+      completeOnce(c, cb);
     }
-  }, [remaining]);
+  }, [remaining, completeOnce]);
 
   const onKey = useCallback((k) => {
-    if (finished) return;
+    if (finished || doneRef.current) return;
     if (k === 'C') { setInput(''); return; }
     if (k === '⌫') { setInput((v) => v.slice(0, -1)); return; }
     const next = input.length < 4 ? input + k : input;
@@ -99,12 +111,15 @@ function RacingPhase({ questions, onComplete, onBack }) {
     if (next.length >= digits) {
       const val = parseInt(next, 10);
       const isOk = val === q.answer;
+      let newCorrect = correct;
+      let newCombo = combo;
       if (isOk) {
         playCorrect();
-        setCorrect((c) => c + 1);
-        const nc = combo + 1;
-        setCombo(nc);
-        if (nc >= 3) {
+        newCorrect = correct + 1;
+        newCombo = combo + 1;
+        setCorrect(newCorrect);
+        setCombo(newCombo);
+        if (newCombo >= 3) {
           playCombo();
           comboAnim.setValue(1.4);
           Animated.spring(comboAnim, { toValue: 1, friction: 4, useNativeDriver: true }).start();
@@ -112,6 +127,7 @@ function RacingPhase({ questions, onComplete, onBack }) {
         setFlash('ok');
       } else {
         playWrong();
+        newCombo = 0;
         setCombo(0);
         setFlash('err');
       }
@@ -121,12 +137,11 @@ function RacingPhase({ questions, onComplete, onBack }) {
         if (idx < questions.length - 1) {
           setIdx((i) => i + 1);
         } else {
-          clearInterval(tick.current);
-          onComplete(isOk ? correct + 1 : correct, combo);
+          completeOnce(newCorrect, newCombo);
         }
       }, 300);
     }
-  }, [input, q, idx, combo, correct, finished, questions.length, onComplete, comboAnim]);
+  }, [input, q, idx, combo, correct, finished, questions.length, completeOnce, comboAnim]);
 
   const pct = Math.round((remaining / TOTAL_TIME) * 100);
   const timerColor = remaining <= 10 ? C.error : remaining <= 20 ? C.accent : C.primary;

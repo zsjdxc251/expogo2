@@ -11,7 +11,7 @@ export default function ChineseLearnScreen() {
   const topicKey = route.params?.topicKey;
   const onBack = useCallback(() => nav.goBack(), [nav]);
   const onPractice = useCallback((k) => nav.replace('ChnQuiz', { topicKey: k }), [nav]);
-  const topic = CHN_TOPICS[topicKey];
+  const topic = CHN_TOPICS[topicKey] || { icon: '📝', label: topicKey || '语文', color: C.primary };
   const cards = LEARN_CARDS[topicKey] || [];
   const [idx, setIdx] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;

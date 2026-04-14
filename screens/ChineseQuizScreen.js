@@ -13,7 +13,7 @@ function fmt(sec) {
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 
 function SetupPhase({ topicKey, onStart, onBack }) {
-  const topic = CHN_TOPICS[topicKey];
+  const topic = CHN_TOPICS[topicKey] || { icon: '📝', label: topicKey || '语文', color: C.primary, key: topicKey };
   const max = getChnMaxQuestions(topicKey);
   const [count, setCount] = useState(Math.min(10, max));
   const clamped = Math.min(count, max);
@@ -74,7 +74,7 @@ function SetupPhase({ topicKey, onStart, onBack }) {
 }
 
 function QuizPhase({ questions, topicKey, onFinish, onBack }) {
-  const topic = CHN_TOPICS[topicKey];
+  const topic = CHN_TOPICS[topicKey] || { icon: '📝', label: topicKey || '语文', color: C.primary, key: topicKey };
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState(() => new Array(questions.length).fill(null));
   const [elapsed, setElapsed] = useState(0);

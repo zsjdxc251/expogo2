@@ -14,10 +14,10 @@ function fmt(sec) {
 // ── Setup Phase ──────────────────────────────────────────
 
 function SetupPhase({ subject, onStart, onBack }) {
-  const sub = SUBJECTS[subject];
+  const sub = SUBJECTS[subject] || { icon: '📝', label: subject || '练习', color: C.primary };
   const [diff, setDiff] = useState('normal');
   const [count, setCount] = useState(20);
-  const max = getMaxQuestions(subject, DIFFICULTIES[diff].range);
+  const max = getMaxQuestions(subject, DIFFICULTIES[diff]?.range);
   const clamped = Math.min(count, max);
 
   useEffect(() => { if (count > max) setCount(max); }, [diff]);

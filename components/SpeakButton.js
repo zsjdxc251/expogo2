@@ -11,6 +11,7 @@ export default function SpeakButton({ text, size = 'normal', language = 'en-US' 
   }, []);
 
   const handlePress = async () => {
+    if (!text) return;
     const isSpeaking = await Speech.isSpeakingAsync();
     if (isSpeaking) {
       Speech.stop();

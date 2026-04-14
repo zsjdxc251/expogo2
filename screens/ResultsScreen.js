@@ -25,13 +25,14 @@ export default function ResultsScreen() {
     }
   }, [nav, lastQuizRoute]);
 
-  if (!data) {
-    nav.popToTop();
-    return null;
-  }
+  useEffect(() => {
+    if (!data) nav.popToTop();
+  }, [data, nav]);
+
+  if (!data) return null;
 
   const {
-    total, correct, wrong, elapsed, pointsEarned, accuracy,
+    total = 0, correct = 0, wrong = 0, elapsed = 0, pointsEarned = 0, accuracy = 0,
     subject, levelUp, newLevel, newAchievements = [], wrongList = [],
   } = data;
 
@@ -149,11 +150,11 @@ export default function ResultsScreen() {
                   <View style={st.wrongRow}>
                     <Text style={st.wrongLbl}>
                       你的答案 <Text style={{ color: C.error, fontWeight: '700' }}>
-                        {w.userAnswer !== null && w.userAnswer !== undefined ? w.options[w.userAnswer] : '—'}
+                        {w.userAnswer !== null && w.userAnswer !== undefined ? (w.options?.[w.userAnswer] ?? w.userAnswer) : '—'}
                       </Text>
                     </Text>
                     <Text style={st.wrongLbl}>
-                      正确答案 <Text style={{ color: C.success, fontWeight: '700' }}>{w.options[w.answer]}</Text>
+                      正确答案 <Text style={{ color: C.success, fontWeight: '700' }}>{w.options?.[w.answer] ?? w.answer}</Text>
                     </Text>
                   </View>
                   {w.explanation ? <Text style={st.wrongExpl}>💡 {w.explanation}</Text> : null}
