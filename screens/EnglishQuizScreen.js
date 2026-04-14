@@ -215,6 +215,7 @@ function QuizPhase({ questions, topicKey, onFinish, onBack }) {
         <Feedback
           type={fb}
           points={fb === 'correct' ? 10 + (combo >= 3 ? 5 : 0) : 0}
+          combo={combo}
           onDone={onFbDone}
         />
       </View>

@@ -9,6 +9,8 @@ import {
 } from './lib/storage';
 import { calcPoints, getLevel, checkNewAchievements, updateStreak, genId } from './lib/points';
 import { shuffle } from './lib/questions';
+import { preload as preloadSounds } from './lib/sounds';
+import { loadDailyTasks, saveDailyTasks, updateTaskProgress } from './lib/dailyTasks';
 
 import TabBar from './components/TabBar';
 import PinModal from './components/PinModal';
@@ -23,6 +25,8 @@ import EnglishQuizScreen from './screens/EnglishQuizScreen';
 import ChineseLearnScreen from './screens/ChineseLearnScreen';
 import ChineseQuizScreen from './screens/ChineseQuizScreen';
 import BreakScreen from './screens/BreakScreen';
+import SpeedChallengeScreen from './screens/SpeedChallengeScreen';
+import DictationScreen from './screens/DictationScreen';
 
 const DEFAULT_SETTINGS = { autoSubmit: false };
 const DEFAULT_BREAK = { usageMinutes: 20, breakMinutes: 5 };
@@ -38,6 +42,8 @@ export default function App() {
   const [quizResult, setQuizResult] = useState(null);
   const [engTopicKey, setEngTopicKey] = useState(null);
   const [chnTopicKey, setChnTopicKey] = useState(null);
+  const [dictMode, setDictMode] = useState('eng');
+  const [dailyTasks, setDailyTasks] = useState([]);
 
   // Parent PIN
   const [showPin, setShowPin] = useState(false);
@@ -59,11 +65,14 @@ export default function App() {
         const [u, h, a, s] = await Promise.all([
           loadUser(), loadHistory(), loadAchievements(), loadStreak(),
         ]);
+        preloadSounds();
         if (u) {
           setUser(u);
           setHistory(h);
           setAchievements(a);
           setStreak(s);
+          const tasks = await loadDailyTasks();
+          setDailyTasks(tasks);
           setScreen('main');
         } else {
           setScreen('welcome');
@@ -82,14 +91,19 @@ export default function App() {
       if (elapsed >= breakConfig.usageMinutes) {
         setShowBreak(true);
       }
-    }, 30000);
+    }, 10000);
     return () => clearInterval(interval);
   }, [user, showBreak, breakConfig.usageMinutes]);
 
-  const onBreakDone = useCallback(() => {
+  const onBreakDone = useCallback(async (rewardPts) => {
     setShowBreak(false);
     usageStart.current = Date.now();
-  }, []);
+    if (rewardPts && user) {
+      const updated = { ...user, totalPoints: (user.totalPoints || 0) + rewardPts };
+      setUser(updated);
+      await saveUser(updated);
+    }
+  }, [user]);
 
   // ── Welcome complete ────────────────────────────────
 
@@ -209,6 +223,10 @@ export default function App() {
         await saveAchievements(updAch);
       }
 
+      const updTasks = updateTaskProgress(dailyTasks, record);
+      setDailyTasks(updTasks);
+      saveDailyTasks(updTasks);
+
       setQuizResult({
         ...record,
         pointsEarned,
@@ -217,8 +235,13 @@ export default function App() {
         newAchievements: freshAch,
       });
       setScreen('results');
+
+      const usageElapsed = (Date.now() - usageStart.current) / 60000;
+      if (usageElapsed >= breakConfig.usageMinutes) {
+        setTimeout(() => setShowBreak(true), 1500);
+      }
     },
-    [user, history, streak, achievements],
+    [user, history, streak, achievements, breakConfig.usageMinutes, dailyTasks],
   );
 
   // ── Settings handlers ───────────────────────────────
@@ -272,21 +295,11 @@ export default function App() {
       await onUpdateUser({ parentPin: pin });
       setIsParent(true);
       setTab('settings');
-    } else if (pinMode === 'changePin') {
-      // handled via setup after verify
-      setPinMode('setup');
-      setShowPin(true);
     } else {
-      if (pin === user?.parentPin) {
-        setIsParent(true);
-        setTab('settings');
-      } else {
-        // wrong pin — re-show with error handled inside PinModal
-        setPinMode('verify');
-        setShowPin(true);
-      }
+      setIsParent(true);
+      setTab('settings');
     }
-  }, [pinMode, user, onUpdateUser]);
+  }, [pinMode, onUpdateUser]);
 
   const onPinCancel = useCallback(() => {
     setShowPin(false);
@@ -378,6 +391,28 @@ export default function App() {
     );
   }
 
+  if (screen === 'speed') {
+    return wrap(
+      <SpeedChallengeScreen
+        onFinish={async (data) => {
+          await finishQuiz(data);
+          setScreen('speed');
+        }}
+        onBack={goHome}
+      />,
+    );
+  }
+
+  if (screen === 'dictation') {
+    return wrap(
+      <DictationScreen
+        mode={dictMode}
+        onFinish={finishQuiz}
+        onBack={goHome}
+      />,
+    );
+  }
+
   if (screen === 'results') {
     return wrap(<ResultsScreen data={quizResult} onHome={goHome} onRetry={retryQuiz} />);
   }
@@ -391,11 +426,15 @@ export default function App() {
               user={user}
               streak={streak}
               achievements={achievements}
+              history={history}
+              dailyTasks={dailyTasks}
               onSubject={onSubject}
               onEngLearn={onEngLearn}
               onEngPractice={onEngPractice}
               onChnLearn={onChnLearn}
               onChnPractice={onChnPractice}
+              onSpeedChallenge={() => setScreen('speed')}
+              onDictation={(mode) => { setScreen('dictation'); setDictMode(mode); }}
             />
           )}
           {tab === 'history' && (
@@ -416,6 +455,7 @@ export default function App() {
       <PinModal
         visible={showPin}
         mode={pinMode}
+        correctPin={user?.parentPin}
         onSuccess={onPinSuccess}
         onCancel={onPinCancel}
       />

@@ -4,6 +4,7 @@ import { C, SUBJECTS, RADIUS } from '../lib/theme';
 import { ENG_TOPICS, ENG_LEVELS, LEVEL_TOPIC_KEYS } from '../lib/english';
 import { CHN_LEVELS, LEVEL_TOPIC_KEYS as CHN_LEVEL_KEYS, CHN_TOPICS } from '../lib/chinese';
 import { getLevel, nextLevel, ACH_DEFS } from '../lib/points';
+import DailyTaskBar from '../components/DailyTaskBar';
 
 const MATH_SUBJECTS = ['mulForward', 'mulBlank', 'add', 'subtract', 'divide', 'divRem', 'divReverse'];
 
@@ -13,9 +14,33 @@ const SUBJECT_TABS = [
   { key: 'chinese', icon: '📝', label: '语文' },
 ];
 
+function calcSubjectProgress(history, subject) {
+  const recs = history.filter((h) => h.subject === subject);
+  if (recs.length === 0) return 0;
+  const avgAcc = recs.reduce((s, h) => s + (h.accuracy || 0), 0) / recs.length;
+  return Math.round(avgAcc);
+}
+
+function calcLevelProgress(history, topicKeys, prefix) {
+  if (!topicKeys || topicKeys.length === 0) return 0;
+  let total = 0;
+  let count = 0;
+  topicKeys.forEach((k) => {
+    const sub = prefix ? `${prefix}${k}` : k;
+    const recs = history.filter((h) => h.subject === sub);
+    if (recs.length > 0) {
+      count++;
+      total += recs.reduce((s, h) => s + (h.accuracy || 0), 0) / recs.length;
+    }
+  });
+  if (count === 0) return 0;
+  return Math.round(total / topicKeys.length);
+}
+
 export default function HomeScreen({
-  user, streak, achievements,
+  user, streak, achievements, history, dailyTasks,
   onSubject, onEngLearn, onEngPractice, onChnLearn, onChnPractice,
+  onSpeedChallenge, onDictation,
 }) {
   const lv = getLevel(user.totalPoints);
   const nxt = nextLevel(user.totalPoints);
@@ -65,6 +90,9 @@ export default function HomeScreen({
         </View>
       )}
 
+      {/* Daily Tasks */}
+      <DailyTaskBar tasks={dailyTasks} />
+
       {/* Subject Switcher */}
       <View style={st.tabRow}>
         {SUBJECT_TABS.map((t) => (
@@ -93,6 +121,7 @@ export default function HomeScreen({
           <View style={st.grid}>
             {MATH_SUBJECTS.map((key) => {
               const sub = SUBJECTS[key];
+              const prog = calcSubjectProgress(history || [], key);
               return (
                 <TouchableOpacity
                   key={key}
@@ -105,13 +134,26 @@ export default function HomeScreen({
                   {sub.desc ? <Text style={st.cardDesc}>{sub.desc}</Text> : null}
                   <View style={st.cardProgressWrap}>
                     <View style={st.cardProgress}>
-                      <View style={[st.cardProgressFill, { width: '40%', backgroundColor: sub.color }]} />
+                      <View style={[st.cardProgressFill, { width: `${prog}%`, backgroundColor: sub.color }]} />
                     </View>
-                    <Text style={st.crownSmall}>👑</Text>
+                    <Text style={st.crownSmall}>{prog > 0 ? `${prog}%` : '👑'}</Text>
                   </View>
                 </TouchableOpacity>
               );
             })}
+            {onSpeedChallenge && (
+              <TouchableOpacity style={st.card} activeOpacity={0.7} onPress={onSpeedChallenge}>
+                <Text style={st.cardIcon}>⚡</Text>
+                <Text style={st.cardTitle}>口算竞速</Text>
+                <Text style={st.cardDesc}>60秒挑战</Text>
+                <View style={st.cardProgressWrap}>
+                  <View style={st.cardProgress}>
+                    <View style={[st.cardProgressFill, { width: '0%', backgroundColor: '#EB9F4A' }]} />
+                  </View>
+                  <Text style={st.crownSmall}>🏆</Text>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
         </>
       )}
@@ -123,12 +165,13 @@ export default function HomeScreen({
             <Text style={st.secTitle}>英语学习</Text>
             <View style={st.secRight}>
               <Text style={st.crownIcon}>👑</Text>
-              <Text style={st.secScore}>30 题</Text>
+              <Text style={st.secScore}>{(history || []).filter((h) => h.subject && !h.subject.startsWith('chn_') && !MATH_SUBJECTS.includes(h.subject)).length} 次练习</Text>
             </View>
           </View>
           {ENG_LEVELS.map((lvl) => {
             const isOpen = openLevel === lvl.key;
             const topicKeys = LEVEL_TOPIC_KEYS[lvl.key] || [];
+            const engProg = calcLevelProgress(history || [], topicKeys, '');
             return (
               <View key={lvl.key} style={st.levelBlock}>
                 <TouchableOpacity
@@ -142,9 +185,9 @@ export default function HomeScreen({
                     <Text style={st.levelDesc}>{lvl.desc} · {topicKeys.length} 主题</Text>
                   </View>
                   <View style={st.levelProgress}>
-                    <View style={[st.levelProgressFill, { width: '30%', backgroundColor: lvl.color }]} />
+                    <View style={[st.levelProgressFill, { width: `${engProg}%`, backgroundColor: lvl.color }]} />
                   </View>
-                  <Text style={st.crownSmall}>👑</Text>
+                  <Text style={st.crownSmall}>{engProg > 0 ? `${engProg}%` : '👑'}</Text>
                   <Text style={st.levelArrow}>{isOpen ? '▾' : '▸'}</Text>
                 </TouchableOpacity>
                 {isOpen && (
@@ -176,6 +219,20 @@ export default function HomeScreen({
                         </View>
                       );
                     })}
+                    {onDictation && (
+                      <TouchableOpacity
+                        style={st.engCard}
+                        activeOpacity={0.7}
+                        onPress={() => onDictation('eng')}
+                      >
+                        <Text style={st.engCardIcon}>🎧</Text>
+                        <Text style={st.engCardLabel}>听写模式</Text>
+                        <Text style={st.engCardDesc}>听发音选拼写</Text>
+                        <View style={[st.engBtn, { backgroundColor: C.primary, marginTop: 8 }]}>
+                          <Text style={st.engBtnTxtW}>🎧 开始听写</Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
               </View>
@@ -191,12 +248,13 @@ export default function HomeScreen({
             <Text style={st.secTitle}>语文学习</Text>
             <View style={st.secRight}>
               <Text style={st.crownIcon}>👑</Text>
-              <Text style={st.secScore}>30 题</Text>
+              <Text style={st.secScore}>{(history || []).filter((h) => h.subject && h.subject.startsWith('chn_')).length} 次练习</Text>
             </View>
           </View>
           {CHN_LEVELS.map((lvl) => {
             const isOpen = openChnLevel === lvl.key;
             const topicKeys = CHN_LEVEL_KEYS[lvl.key] || [];
+            const chnProg = calcLevelProgress(history || [], topicKeys, 'chn_');
             return (
               <View key={lvl.key} style={st.levelBlock}>
                 <TouchableOpacity
@@ -210,9 +268,9 @@ export default function HomeScreen({
                     <Text style={st.levelDesc}>{lvl.desc} · {topicKeys.length} 主题</Text>
                   </View>
                   <View style={st.levelProgress}>
-                    <View style={[st.levelProgressFill, { width: '30%', backgroundColor: lvl.color }]} />
+                    <View style={[st.levelProgressFill, { width: `${chnProg}%`, backgroundColor: lvl.color }]} />
                   </View>
-                  <Text style={st.crownSmall}>👑</Text>
+                  <Text style={st.crownSmall}>{chnProg > 0 ? `${chnProg}%` : '👑'}</Text>
                   <Text style={st.levelArrow}>{isOpen ? '▾' : '▸'}</Text>
                 </TouchableOpacity>
                 {isOpen && (
@@ -244,6 +302,20 @@ export default function HomeScreen({
                         </View>
                       );
                     })}
+                    {onDictation && (
+                      <TouchableOpacity
+                        style={st.engCard}
+                        activeOpacity={0.7}
+                        onPress={() => onDictation('chn')}
+                      >
+                        <Text style={st.engCardIcon}>🎧</Text>
+                        <Text style={st.engCardLabel}>听写模式</Text>
+                        <Text style={st.engCardDesc}>听拼音选汉字</Text>
+                        <View style={[st.engBtn, { backgroundColor: C.accent, marginTop: 8 }]}>
+                          <Text style={st.engBtnTxtW}>🎧 开始听写</Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
               </View>

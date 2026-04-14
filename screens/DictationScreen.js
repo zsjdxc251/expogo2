@@ -1,30 +1,64 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import * as Speech from 'expo-speech';
 import { C, RADIUS } from '../lib/theme';
-import { CHN_TOPICS, generateChnQuestions, getChnMaxQuestions } from '../lib/chinese';
+import { ENG_TOPIC_KEYS, ENG_TOPICS, generateEngQuestions } from '../lib/english';
+import { CHN_TOPICS, generateChnQuestions } from '../lib/chinese';
+import { playCorrect, playWrong, playCombo } from '../lib/sounds';
 import Feedback from '../components/Feedback';
+import { shuffle } from '../lib/questions';
+
+const OPTION_LABELS = ['A', 'B', 'C', 'D'];
+
+function generateDictationQuestions(mode, count) {
+  if (mode === 'eng') {
+    const keys = ENG_TOPIC_KEYS.slice(0, 6);
+    let pool = [];
+    keys.forEach((k) => {
+      const qs = generateEngQuestions(k, 10);
+      pool.push(...qs.map((q) => ({
+        ...q,
+        speakText: q.options[q.answer],
+        speakLang: 'en-US',
+        dictStem: '听发音，选择正确的答案',
+      })));
+    });
+    return shuffle(pool).slice(0, Math.min(count, pool.length));
+  }
+
+  const chnKeys = Object.keys(CHN_TOPICS).slice(0, 5);
+  let pool = [];
+  chnKeys.forEach((k) => {
+    const qs = generateChnQuestions(k, 10);
+    pool.push(...qs.map((q) => ({
+      ...q,
+      speakText: q.options[q.answer],
+      speakLang: 'zh-CN',
+      dictStem: '听发音，选择正确的答案',
+    })));
+  });
+  return shuffle(pool).slice(0, Math.min(count, pool.length));
+}
 
 function fmt(sec) {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 }
 
-const OPTION_LABELS = ['A', 'B', 'C', 'D'];
-
-function SetupPhase({ topicKey, onStart, onBack }) {
-  const topic = CHN_TOPICS[topicKey];
-  const max = getChnMaxQuestions(topicKey);
-  const [count, setCount] = useState(Math.min(10, max));
+function SetupPhase({ mode, onStart, onBack }) {
+  const isEng = mode === 'eng';
+  const [count, setCount] = useState(10);
+  const max = 30;
   const clamped = Math.min(count, max);
-
-  const PRESETS = [5, 10, 15, 20].filter((n) => n <= max);
+  const PRESETS = [5, 10, 15, 20];
 
   return (
     <View style={st.setupRoot}>
       <TouchableOpacity style={st.backBtn} onPress={onBack}>
         <Text style={st.backTxt}>← 返回</Text>
       </TouchableOpacity>
-      <Text style={st.setupIcon}>{topic.icon}</Text>
-      <Text style={st.setupTitle}>{topic.label} - 练习</Text>
+      <Text style={st.setupIcon}>🎧</Text>
+      <Text style={st.setupTitle}>{isEng ? '英语听写' : '语文听写'}</Text>
+      <Text style={st.setupDesc}>听发音，选择正确答案</Text>
 
       <View style={st.setupCard}>
         <Text style={st.setupLabel}>选择题数</Text>
@@ -32,16 +66,10 @@ function SetupPhase({ topicKey, onStart, onBack }) {
           <TouchableOpacity style={st.cBtn} onPress={() => setCount((c) => Math.max(1, c - 5))}>
             <Text style={st.cBtnTxt}>−5</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={st.cBtn} onPress={() => setCount((c) => Math.max(1, c - 1))}>
-            <Text style={st.cBtnTxt}>−1</Text>
-          </TouchableOpacity>
           <View style={st.countDisp}>
-            <Text style={[st.countNum, { color: topic.color }]}>{clamped}</Text>
+            <Text style={[st.countNum, { color: isEng ? C.primary : C.accent }]}>{clamped}</Text>
             <Text style={st.countUnit}>题</Text>
           </View>
-          <TouchableOpacity style={st.cBtn} onPress={() => setCount((c) => Math.min(max, c + 1))}>
-            <Text style={st.cBtnTxt}>+1</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={st.cBtn} onPress={() => setCount((c) => Math.min(max, c + 5))}>
             <Text style={st.cBtnTxt}>+5</Text>
           </TouchableOpacity>
@@ -50,7 +78,7 @@ function SetupPhase({ topicKey, onStart, onBack }) {
           {PRESETS.map((n) => (
             <TouchableOpacity
               key={n}
-              style={[st.presetBtn, clamped === n && { backgroundColor: topic.color }]}
+              style={[st.presetBtn, clamped === n && { backgroundColor: isEng ? C.primary : C.accent }]}
               onPress={() => setCount(n)}
             >
               <Text style={[st.presetTxt, clamped === n && { color: '#fff' }]}>{n}题</Text>
@@ -60,19 +88,19 @@ function SetupPhase({ topicKey, onStart, onBack }) {
       </View>
 
       <TouchableOpacity
-        style={[st.goBtn, { backgroundColor: topic.color }]}
+        style={[st.goBtn, { backgroundColor: isEng ? C.primary : C.accent }]}
         activeOpacity={0.8}
         onPress={() => onStart(clamped)}
       >
-        <Text style={st.goBtnTxt}>开始练习</Text>
+        <Text style={st.goBtnTxt}>开始听写</Text>
       </TouchableOpacity>
-      <Text style={st.hint}>共 {max} 道题可练</Text>
     </View>
   );
 }
 
-function QuizPhase({ questions, topicKey, onFinish, onBack }) {
-  const topic = CHN_TOPICS[topicKey];
+function QuizPhase({ questions, mode, onFinish, onBack }) {
+  const isEng = mode === 'eng';
+  const color = isEng ? C.primary : C.accent;
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState(() => new Array(questions.length).fill(null));
   const [elapsed, setElapsed] = useState(0);
@@ -81,6 +109,7 @@ function QuizPhase({ questions, topicKey, onFinish, onBack }) {
   const [selected, setSelected] = useState(null);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
+  const [speaking, setSpeaking] = useState(false);
   const tick = useRef(null);
   const comboAnim = useRef(new Animated.Value(1)).current;
 
@@ -92,22 +121,40 @@ function QuizPhase({ questions, topicKey, onFinish, onBack }) {
     return () => clearInterval(tick.current);
   }, [timing]);
 
+  const speakWord = useCallback(() => {
+    if (!q || speaking) return;
+    setSpeaking(true);
+    Speech.speak(q.speakText || q.options[q.answer], {
+      language: q.speakLang || (isEng ? 'en-US' : 'zh-CN'),
+      rate: isEng ? 0.8 : 0.9,
+      onDone: () => setSpeaking(false),
+      onError: () => setSpeaking(false),
+    });
+  }, [q, speaking, isEng]);
+
+  useEffect(() => {
+    if (q && !allDone && !fb) {
+      setTimeout(speakWord, 400);
+    }
+  }, [idx]);
+
   const onSelect = useCallback((optIdx) => {
     if (fb || answers[idx] !== null) return;
     setSelected(optIdx);
-
     const isOk = optIdx === q.answer;
     setAnswers((prev) => { const n = [...prev]; n[idx] = optIdx; return n; });
-
     if (isOk) {
+      playCorrect();
       const next = combo + 1;
       setCombo(next);
       setMaxCombo((m) => Math.max(m, next));
       if (next >= 3) {
+        playCombo();
         comboAnim.setValue(1.4);
         Animated.spring(comboAnim, { toValue: 1, friction: 4, useNativeDriver: true }).start();
       }
     } else {
+      playWrong();
       setCombo(0);
     }
     setFb(isOk ? 'correct' : 'wrong');
@@ -126,8 +173,14 @@ function QuizPhase({ questions, topicKey, onFinish, onBack }) {
   const handleFinish = useCallback(() => {
     setTiming(false);
     clearInterval(tick.current);
-    onFinish({ questions, answers, elapsed, subject: `chn_${topicKey}`, maxCombo });
-  }, [questions, answers, elapsed, topicKey, maxCombo, onFinish]);
+    onFinish({
+      questions,
+      answers,
+      elapsed,
+      subject: isEng ? 'dictation_eng' : 'dictation_chn',
+      maxCombo,
+    });
+  }, [questions, answers, elapsed, isEng, maxCombo, onFinish]);
 
   const pct = Math.round(((allDone ? questions.length : idx) / questions.length) * 100);
   const showCombo = combo >= 3 && !allDone;
@@ -148,7 +201,7 @@ function QuizPhase({ questions, topicKey, onFinish, onBack }) {
         </View>
         <Text style={st.qProg}>{allDone ? questions.length : idx + 1}/{questions.length}</Text>
       </View>
-      <View style={st.bar}><View style={[st.barFill, { width: `${pct}%`, backgroundColor: topic.color }]} /></View>
+      <View style={st.bar}><View style={[st.barFill, { width: `${pct}%`, backgroundColor: color }]} /></View>
 
       {showCombo && (
         <Animated.View style={[st.comboBox, { transform: [{ scale: comboAnim }] }]}>
@@ -165,7 +218,16 @@ function QuizPhase({ questions, topicKey, onFinish, onBack }) {
         ) : (
           <View style={st.qCard}>
             <Text style={st.qIdx}>第 {idx + 1} 题</Text>
-            <Text style={st.qStem}>{q.stem}</Text>
+            <Text style={st.dictLabel}>🎧 听发音，选择正确答案</Text>
+
+            <TouchableOpacity
+              style={[st.speakBtn, { backgroundColor: color }]}
+              activeOpacity={0.7}
+              onPress={speakWord}
+              disabled={speaking}
+            >
+              <Text style={st.speakTxt}>{speaking ? '🔊 播放中...' : '🔊 点击播放'}</Text>
+            </TouchableOpacity>
 
             <View style={st.optGrid}>
               {q.options.map((opt, i) => {
@@ -177,13 +239,13 @@ function QuizPhase({ questions, topicKey, onFinish, onBack }) {
                     style={[
                       st.optBtn,
                       bg && { backgroundColor: bg + '20', borderColor: bg },
-                      isChosen && !bg && { borderColor: topic.color, backgroundColor: topic.bg },
+                      isChosen && !bg && { borderColor: color, backgroundColor: color + '15' },
                     ]}
                     activeOpacity={0.7}
                     onPress={() => onSelect(i)}
                     disabled={!!fb || answers[idx] !== null}
                   >
-                    <View style={[st.optLabel, bg ? { backgroundColor: bg } : { backgroundColor: topic.color + '20' }]}>
+                    <View style={[st.optLabel, bg ? { backgroundColor: bg } : { backgroundColor: color + '20' }]}>
                       <Text style={[st.optLabelTxt, bg && { color: '#fff' }]}>{OPTION_LABELS[i]}</Text>
                     </View>
                     <Text style={[st.optText, bg && { color: bg, fontWeight: '700' }]}>{opt}</Text>
@@ -209,7 +271,7 @@ function QuizPhase({ questions, topicKey, onFinish, onBack }) {
 
       {allDone && (
         <View style={st.qBottom}>
-          <TouchableOpacity style={[st.finishBtn, { backgroundColor: topic.color }]} onPress={handleFinish} activeOpacity={0.8}>
+          <TouchableOpacity style={[st.finishBtn, { backgroundColor: color }]} onPress={handleFinish} activeOpacity={0.8}>
             <Text style={st.finishTxt}>查看结果</Text>
           </TouchableOpacity>
         </View>
@@ -218,23 +280,23 @@ function QuizPhase({ questions, topicKey, onFinish, onBack }) {
   );
 }
 
-export default function ChineseQuizScreen({ topicKey, onFinish, onBack }) {
+export default function DictationScreen({ mode, onFinish, onBack }) {
   const [phase, setPhase] = useState('setup');
   const [questions, setQuestions] = useState([]);
 
   const startQuiz = useCallback((count) => {
-    setQuestions(generateChnQuestions(topicKey, count));
+    setQuestions(generateDictationQuestions(mode, count));
     setPhase('quiz');
-  }, [topicKey]);
+  }, [mode]);
 
   if (phase === 'setup') {
-    return <SetupPhase topicKey={topicKey} onStart={startQuiz} onBack={onBack} />;
+    return <SetupPhase mode={mode} onStart={startQuiz} onBack={onBack} />;
   }
 
   return (
     <QuizPhase
       questions={questions}
-      topicKey={topicKey}
+      mode={mode}
       onFinish={onFinish}
       onBack={onBack}
     />
@@ -246,7 +308,8 @@ const st = StyleSheet.create({
   backBtn: { position: 'absolute', top: 16, left: 20 },
   backTxt: { fontSize: 16, fontWeight: '600', color: C.primary },
   setupIcon: { fontSize: 48, marginBottom: 4 },
-  setupTitle: { fontSize: 22, fontWeight: '800', color: C.text, marginBottom: 20 },
+  setupTitle: { fontSize: 24, fontWeight: '800', color: C.text, marginBottom: 4 },
+  setupDesc: { fontSize: 15, color: C.textMid, marginBottom: 16 },
   setupCard: { width: '100%', backgroundColor: C.card, borderRadius: RADIUS, padding: 24, alignItems: 'center' },
   setupLabel: { fontSize: 15, fontWeight: '600', color: C.textMid, marginBottom: 12 },
   countRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
@@ -255,7 +318,7 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginHorizontal: 3,
   },
   cBtnTxt: { fontSize: 15, fontWeight: '700', color: C.primary },
-  countDisp: { alignItems: 'center', marginHorizontal: 10, minWidth: 56 },
+  countDisp: { alignItems: 'center', marginHorizontal: 16, minWidth: 56 },
   countNum: { fontSize: 36, fontWeight: '800' },
   countUnit: { fontSize: 12, color: C.textMid, marginTop: -4 },
   presetRow: { flexDirection: 'row' },
@@ -266,7 +329,6 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   goBtnTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  hint: { marginTop: 12, fontSize: 12, color: C.textLight },
 
   quizRoot: { flex: 1, backgroundColor: C.bg },
   qHeader: {
@@ -285,7 +347,13 @@ const st = StyleSheet.create({
   qArea: { flex: 1, justifyContent: 'center', paddingHorizontal: 16 },
   qCard: { backgroundColor: C.card, borderRadius: RADIUS, padding: 20 },
   qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 10, textAlign: 'center' },
-  qStem: { fontSize: 20, fontWeight: '700', color: C.text, textAlign: 'center', lineHeight: 30, marginBottom: 20 },
+  dictLabel: { fontSize: 16, fontWeight: '700', color: C.text, textAlign: 'center', marginBottom: 16 },
+
+  speakBtn: {
+    alignSelf: 'center', paddingHorizontal: 24, paddingVertical: 14,
+    borderRadius: 20, marginBottom: 20,
+  },
+  speakTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
 
   optGrid: {},
   optBtn: {

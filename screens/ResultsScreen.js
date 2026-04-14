@@ -4,6 +4,7 @@ import { C, SUBJECTS, OP_SYMBOL, RADIUS } from '../lib/theme';
 import { ENG_TOPICS } from '../lib/english';
 import { CHN_TOPICS } from '../lib/chinese';
 import { ACH_DEFS } from '../lib/points';
+import { playLevelUp } from '../lib/sounds';
 import SpeakButton from '../components/SpeakButton';
 
 function fmt(sec) {
@@ -36,6 +37,7 @@ export default function ResultsScreen({ data, onHome, onRetry }) {
   useEffect(() => {
     Animated.timing(ptAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
     if (levelUp) {
+      playLevelUp();
       Animated.sequence([
         Animated.delay(600),
         Animated.spring(starScale, { toValue: 1, friction: 3, useNativeDriver: true }),
@@ -120,7 +122,11 @@ export default function ResultsScreen({ data, onHome, onRetry }) {
                 <View key={i} style={st.wrongCard}>
                   <View style={st.wrongQRow}>
                     <Text style={[st.wrongQ, { flex: 1 }]}>{w.stem}</Text>
-                    <SpeakButton text={w.stem.replace(/___/g, 'blank')} size="small" />
+                    <SpeakButton
+                      text={w.stem.replace(/___/g, 'blank')}
+                      size="small"
+                      language={w.op.startsWith('chn_') ? 'zh-CN' : 'en-US'}
+                    />
                   </View>
                   <View style={st.wrongRow}>
                     <Text style={st.wrongLbl}>

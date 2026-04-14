@@ -98,6 +98,8 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
   const [fb, setFb] = useState(null);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
+  const [errStreak, setErrStreak] = useState(0);
+  const [hint, setHint] = useState(null);
   const tick = useRef(null);
   const autoRef = useRef(null);
   const comboAnim = useRef(new Animated.Value(1)).current;
@@ -125,6 +127,25 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
     return val === answer;
   }, []);
 
+  const genHint = useCallback((question) => {
+    if (!question) return null;
+    const { op, left, right, result, remainder } = question;
+    if (op === 'divRem') return `${left} ÷ ${right} = ${result} 余 ${remainder}，因为 ${right} × ${result} = ${right * result}，${left} - ${right * result} = ${remainder}`;
+    if (op === 'divReverse') return `${right} × ${result} = ${right * result}，最大余数 = ${right} - 1 = ${right - 1}，被除数 = ${right * result} + ${right - 1} = ${left}`;
+    if (op === 'divide') return `${left} ÷ ${right} = ${result}，因为 ${right} × ${result} = ${left}`;
+    if (op === 'mulForward' || op === 'mulBlank') return `${left} × ${right} = ${left * right}`;
+    if (op === 'add') return `${left} + ${right} = ${left + right}`;
+    if (op === 'subtract') return `${left} - ${right} = ${left - right}`;
+    return null;
+  }, []);
+
+  const ENCOURAGE = [
+    '没关系，错误是学习的好朋友！',
+    '加油！再想想看～',
+    '不要灰心，慢慢来！',
+    '每次错误都是进步的机会！',
+  ];
+
   const doSubmit = useCallback(
     (val) => {
       if (fb) return;
@@ -134,16 +155,21 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
         const next = combo + 1;
         setCombo(next);
         setMaxCombo((m) => Math.max(m, next));
+        setErrStreak(0);
+        setHint(null);
         if (next >= 3) {
           comboAnim.setValue(1.4);
           Animated.spring(comboAnim, { toValue: 1, friction: 4, useNativeDriver: true }).start();
         }
       } else {
         setCombo(0);
+        const newErr = errStreak + 1;
+        setErrStreak(newErr);
+        setHint(genHint(q));
       }
       setFb(isOk ? 'correct' : 'wrong');
     },
-    [fb, q, idx, combo, comboAnim, checkAnswer],
+    [fb, q, idx, combo, comboAnim, checkAnswer, errStreak, genHint],
   );
 
   const onSubmit = useCallback(() => {
@@ -200,6 +226,7 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
 
   const onFbDone = useCallback(() => {
     setFb(null);
+    setHint(null);
     setInputA('');
     setInputB('');
     setFocus('a');
@@ -321,11 +348,22 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
                 </Text>
               </View>
             )}
+            {fb === 'wrong' && hint && (
+              <View style={st.hintBox}>
+                <Text style={st.hintTxt}>💡 {hint}</Text>
+              </View>
+            )}
+            {errStreak >= 3 && (
+              <View style={st.encourageBox}>
+                <Text style={st.encourageTxt}>{ENCOURAGE[errStreak % ENCOURAGE.length]}</Text>
+              </View>
+            )}
           </View>
         )}
         <Feedback
           type={fb}
           points={fb === 'correct' ? 10 + (combo >= 3 ? 5 : 0) : 0}
+          combo={combo}
           onDone={onFbDone}
         />
       </View>
@@ -454,6 +492,10 @@ const st = StyleSheet.create({
   qInputPh: { fontSize: 26, fontWeight: '700', color: C.textLight },
   focusHint: { marginTop: 10 },
   focusHintTxt: { fontSize: 11, color: C.textLight },
+  hintBox: { marginTop: 10, backgroundColor: C.accentBg, borderRadius: 10, padding: 10 },
+  hintTxt: { fontSize: 13, color: C.accent, lineHeight: 20 },
+  encourageBox: { marginTop: 8, backgroundColor: C.successBg, borderRadius: 10, padding: 8 },
+  encourageTxt: { fontSize: 13, color: C.success, fontWeight: '600', textAlign: 'center' },
 
   doneBox: { alignItems: 'center' },
   doneEmoji: { fontSize: 56, marginBottom: 10 },

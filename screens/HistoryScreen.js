@@ -1,5 +1,24 @@
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { C, SUBJECTS, RADIUS } from '../lib/theme';
+import { ENG_TOPICS } from '../lib/english';
+import { CHN_TOPICS } from '../lib/chinese';
+
+function getSubjectInfo(subject) {
+  if (SUBJECTS[subject]) return SUBJECTS[subject];
+  if (ENG_TOPICS[subject]) {
+    const t = ENG_TOPICS[subject];
+    return { icon: t.icon, label: t.label, color: t.color };
+  }
+  const chnKey = subject && subject.startsWith('chn_') ? subject.slice(4) : null;
+  if (chnKey && CHN_TOPICS[chnKey]) {
+    const t = CHN_TOPICS[chnKey];
+    return { icon: t.icon, label: t.label, color: t.color };
+  }
+  if (subject === 'speed') return { icon: '⚡', label: '口算竞速', color: '#EB9F4A' };
+  if (subject === 'dictation_eng') return { icon: '🎧', label: '英语听写', color: '#338F9B' };
+  if (subject === 'dictation_chn') return { icon: '🎧', label: '语文听写', color: '#EB9F4A' };
+  return { icon: '📝', label: subject, color: C.primary };
+}
 
 function fmt(sec) {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
@@ -45,7 +64,7 @@ export default function HistoryScreen({ history, onErrorReview }) {
         </View>
       ) : (
         history.map((h, i) => {
-          const sub = SUBJECTS[h.subject] || { icon: '📝', label: h.subject, color: C.primary };
+          const sub = getSubjectInfo(h.subject);
           return (
             <View key={h.id || i} style={st.card}>
               <View style={st.cardTop}>
