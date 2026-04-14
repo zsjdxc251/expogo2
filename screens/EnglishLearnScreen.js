@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
-import { C, SHADOW } from '../lib/theme';
+import { C, RADIUS } from '../lib/theme';
 import { ENG_TOPICS, LEARN_CARDS } from '../lib/english';
 import SpeakButton from '../components/SpeakButton';
 
@@ -132,16 +132,16 @@ const st = StyleSheet.create({
 
   dots: { flexDirection: 'row', justifyContent: 'center', marginBottom: 8 },
   dot: {
-    width: 8, height: 8, borderRadius: 4, backgroundColor: C.border,
-    marginHorizontal: 3, transition: 'width 0.2s',
+    width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(196,196,196,0.5)',
+    marginHorizontal: 3,
   },
 
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 20 },
 
   card: {
-    backgroundColor: C.card, borderRadius: 20, padding: 24,
-    borderTopWidth: 4, ...SHADOW,
+    backgroundColor: C.card, borderRadius: RADIUS, padding: 24,
+    borderTopWidth: 4,
   },
   cardEmoji: { fontSize: 48, textAlign: 'center', marginBottom: 8 },
   cardTitle: { fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', marginBottom: 16 },
@@ -156,7 +156,7 @@ const st = StyleSheet.create({
   highlightText: { fontSize: 15, fontWeight: '700', lineHeight: 22 },
 
   visualBox: {
-    backgroundColor: C.cardAlt, borderRadius: 12, padding: 14, marginBottom: 16,
+    backgroundColor: 'rgba(229,229,229,0.5)', borderRadius: 12, padding: 14, marginBottom: 16,
     alignItems: 'center',
   },
   visualLine: { fontSize: 16, fontFamily: 'monospace', lineHeight: 24, color: C.text },
@@ -164,7 +164,7 @@ const st = StyleSheet.create({
   exSection: { marginTop: 4 },
   exTitle: { fontSize: 15, fontWeight: '700', color: C.textMid, marginBottom: 8 },
   exItem: {
-    backgroundColor: C.cardAlt, borderRadius: 12, padding: 12, marginBottom: 8,
+    backgroundColor: 'rgba(229,229,229,0.5)', borderRadius: 12, padding: 12, marginBottom: 8,
   },
   exEnRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
   exEn: { fontSize: 16, fontWeight: '600', color: C.primary },
@@ -175,8 +175,8 @@ const st = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12,
   },
   navBtn: {
-    flex: 1, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.card, marginHorizontal: 4, ...SHADOW, shadowOpacity: 0.05,
+    flex: 1, height: 48, borderRadius: RADIUS, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: C.card, marginHorizontal: 4,
   },
   navBtnDisabled: { opacity: 0.4 },
   navBtnTxt: { fontSize: 15, fontWeight: '700', color: C.text },

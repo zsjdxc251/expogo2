@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { C, SHADOW, SUBJECTS } from '../lib/theme';
+import { C, SUBJECTS, RADIUS } from '../lib/theme';
 
 function fmt(sec) {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
@@ -95,8 +95,7 @@ const st = StyleSheet.create({
   emptyDesc: { fontSize: 13, color: C.textLight, marginTop: 4 },
 
   card: {
-    backgroundColor: C.card, borderRadius: 16, padding: 14, marginBottom: 10,
-    ...SHADOW, shadowOpacity: 0.04,
+    backgroundColor: C.card, borderRadius: RADIUS, padding: 14, marginBottom: 10,
   },
   cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   cardIcon: { fontSize: 20, marginRight: 6 },

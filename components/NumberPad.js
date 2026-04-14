@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { C, SHADOW } from '../lib/theme';
+import { C, RADIUS } from '../lib/theme';
 
 const KEYS = [
   ['1', '2', '3'],
@@ -38,11 +38,10 @@ const st = StyleSheet.create({
   wrap: { marginBottom: 10 },
   row: { flexDirection: 'row', justifyContent: 'center', marginBottom: 8 },
   key: {
-    flex: 1, height: 52, marginHorizontal: 4, borderRadius: 20,
+    flex: 1, height: 52, marginHorizontal: 4, borderRadius: RADIUS,
     backgroundColor: C.card, alignItems: 'center', justifyContent: 'center',
-    ...SHADOW, shadowOpacity: 0.06,
   },
-  keyAct: { backgroundColor: C.cardAlt },
+  keyAct: { backgroundColor: 'rgba(229,229,229,0.8)' },
   keyOff: { opacity: 0.35 },
   keyTxt: { fontSize: 22, fontWeight: '700', color: C.text },
   keyActTxt: { fontSize: 15, fontWeight: '700', color: C.textMid },

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { C, SHADOW } from '../lib/theme';
+import { C, RADIUS } from '../lib/theme';
 import { ENG_TOPICS, generateEngQuestions, getEngMaxQuestions } from '../lib/english';
 import Feedback from '../components/Feedback';
 import SpeakButton from '../components/SpeakButton';
@@ -265,7 +265,7 @@ const st = StyleSheet.create({
   backTxt: { fontSize: 16, fontWeight: '600', color: C.primary },
   setupIcon: { fontSize: 48, marginBottom: 4 },
   setupTitle: { fontSize: 22, fontWeight: '800', color: C.text, marginBottom: 20 },
-  setupCard: { width: '100%', backgroundColor: C.card, borderRadius: 20, padding: 24, alignItems: 'center', ...SHADOW },
+  setupCard: { width: '100%', backgroundColor: C.card, borderRadius: RADIUS, padding: 24, alignItems: 'center' },
   setupLabel: { fontSize: 15, fontWeight: '600', color: C.textMid, marginBottom: 12 },
   countRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   cBtn: {
@@ -280,8 +280,8 @@ const st = StyleSheet.create({
   presetBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: C.bg, marginHorizontal: 3 },
   presetTxt: { fontSize: 13, fontWeight: '600', color: C.textMid },
   goBtn: {
-    marginTop: 28, width: '100%', height: 54, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center', ...SHADOW,
+    marginTop: 28, width: '100%', height: 54, borderRadius: RADIUS,
+    alignItems: 'center', justifyContent: 'center',
   },
   goBtnTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
   hint: { marginTop: 12, fontSize: 12, color: C.textLight },
@@ -295,14 +295,14 @@ const st = StyleSheet.create({
   timerBox: { backgroundColor: C.primaryBg, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16 },
   timerTxt: { fontSize: 17, fontWeight: '700', color: C.primary, fontVariant: ['tabular-nums'] },
   qProg: { fontSize: 14, fontWeight: '600', color: C.textMid },
-  bar: { height: 4, backgroundColor: C.border, marginHorizontal: 16, borderRadius: 2, overflow: 'hidden' },
-  barFill: { height: 4, borderRadius: 2 },
+  bar: { height: 8, backgroundColor: 'rgba(196,196,196,0.4)', marginHorizontal: 16, borderRadius: 30, overflow: 'hidden' },
+  barFill: { height: 8, borderRadius: 30 },
 
   comboBox: { alignSelf: 'center', marginTop: 8, paddingHorizontal: 14, paddingVertical: 4, borderRadius: 16, backgroundColor: C.accentBg },
   comboTxt: { fontSize: 15, fontWeight: '800', color: C.accent },
 
   qArea: { flex: 1, justifyContent: 'center', paddingHorizontal: 16 },
-  qCard: { backgroundColor: C.card, borderRadius: 20, padding: 20, ...SHADOW },
+  qCard: { backgroundColor: C.card, borderRadius: RADIUS, padding: 20 },
   qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 10, textAlign: 'center' },
   stemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   qStem: { fontSize: 20, fontWeight: '700', color: C.text, textAlign: 'center', lineHeight: 30 },
@@ -310,7 +310,7 @@ const st = StyleSheet.create({
   optGrid: { },
   optBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.cardAlt, borderRadius: 20, padding: 14, marginBottom: 10,
+    backgroundColor: 'rgba(229,229,229,0.5)', borderRadius: RADIUS, padding: 14, marginBottom: 10,
     borderWidth: 2, borderColor: 'transparent',
   },
   optLabel: {

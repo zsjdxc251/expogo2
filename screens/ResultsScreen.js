@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
-import { C, SHADOW, SUBJECTS, OP_SYMBOL } from '../lib/theme';
+import { C, SUBJECTS, OP_SYMBOL, RADIUS } from '../lib/theme';
 import { ENG_TOPICS } from '../lib/english';
 import { ACH_DEFS } from '../lib/points';
 import SpeakButton from '../components/SpeakButton';
@@ -174,8 +174,8 @@ const st = StyleSheet.create({
 
   row: { flexDirection: 'row', marginBottom: 10 },
   stat: {
-    flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 14, alignItems: 'center',
-    marginHorizontal: 4, ...SHADOW, shadowOpacity: 0.05,
+    flex: 1, backgroundColor: C.card, borderRadius: RADIUS, padding: 14, alignItems: 'center',
+    marginHorizontal: 4,
   },
   statV: { fontSize: 24, fontWeight: '800', color: C.text },
   statL: { fontSize: 12, color: C.textMid, marginTop: 3 },
@@ -195,7 +195,7 @@ const st = StyleSheet.create({
   achTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 8 },
   achItem: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: C.card,
-    borderRadius: 14, padding: 12, marginBottom: 8, ...SHADOW, shadowOpacity: 0.04,
+    borderRadius: RADIUS, padding: 12, marginBottom: 8,
   },
   achIcon: { fontSize: 28, marginRight: 12 },
   achName: { fontSize: 15, fontWeight: '700', color: C.text },

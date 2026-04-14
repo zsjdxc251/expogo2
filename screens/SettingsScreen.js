@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   View, Text, TouchableOpacity, Switch, TextInput, ScrollView, StyleSheet, Alert, Platform,
 } from 'react-native';
-import { C, SHADOW, AVATARS } from '../lib/theme';
+import { C, AVATARS, RADIUS } from '../lib/theme';
 
 function showConfirm(title, msg, onOk) {
   if (Platform.OS === 'web') {
@@ -131,7 +131,7 @@ const st = StyleSheet.create({
   content: { padding: 20, paddingBottom: 16 },
   title: { fontSize: 22, fontWeight: '800', color: C.text, marginBottom: 16 },
 
-  card: { backgroundColor: C.card, borderRadius: 20, overflow: 'hidden', ...SHADOW, shadowOpacity: 0.05 },
+  card: { backgroundColor: C.card, borderRadius: RADIUS, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 16 },
   rowTitle: { fontSize: 16, fontWeight: '600', color: C.text },
   rowDesc: { fontSize: 13, color: C.textLight, marginTop: 2 },

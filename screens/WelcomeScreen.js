@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { C, SHADOW, AVATARS } from '../lib/theme';
+import { C, AVATARS, RADIUS } from '../lib/theme';
 
 export default function WelcomeScreen({ onComplete }) {
   const [name, setName] = useState('');
@@ -68,8 +68,7 @@ const st = StyleSheet.create({
   title: { fontSize: 32, fontWeight: '800', color: C.primary, marginTop: 4 },
   desc: { fontSize: 14, color: C.textLight, marginTop: 6 },
   card: {
-    width: '100%', backgroundColor: C.card, borderRadius: 20, padding: 24,
-    ...SHADOW,
+    width: '100%', backgroundColor: C.card, borderRadius: RADIUS, padding: 24,
   },
   label: { fontSize: 15, fontWeight: '600', color: C.textMid, marginBottom: 10 },
   input: {
@@ -85,9 +84,8 @@ const st = StyleSheet.create({
   avatarOn: { borderColor: C.primary, backgroundColor: C.primaryBg },
   avatarTxt: { fontSize: 30 },
   btn: {
-    marginTop: 28, width: '100%', height: 56, borderRadius: 16,
+    marginTop: 28, width: '100%', height: 56, borderRadius: RADIUS,
     backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center',
-    ...SHADOW,
   },
   btnOff: { backgroundColor: C.border },
   btnTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
