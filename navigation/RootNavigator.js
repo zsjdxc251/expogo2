@@ -1,6 +1,7 @@
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { C, SAFE_TOP } from '../lib/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { C } from '../lib/theme';
 import { useApp } from '../lib/AppContext';
 
 import MainTabs from './MainTabs';
@@ -32,11 +33,12 @@ export default function RootNavigator() {
     ready, hasUser, showBreak, breakConfig, onBreakDone,
     showPin, pinMode, user, onPinSuccess, onPinCancel,
   } = useApp();
+  const insets = useSafeAreaInsets();
 
   if (!ready) return <LoadingScreen />;
 
   return (
-    <View style={st.root}>
+    <View style={[st.root, { paddingTop: insets.top }]}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -79,7 +81,7 @@ export default function RootNavigator() {
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg, paddingTop: SAFE_TOP },
+  root: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg },
   loadTxt: { fontSize: 15, color: C.textMid, marginTop: 12 },
 });

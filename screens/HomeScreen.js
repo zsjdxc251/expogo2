@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { C, SUBJECTS, RADIUS, SUBJECT_COLORS, SHADOW } from '../lib/theme';
+import { C, SUBJECTS, RADIUS, SUBJECT_COLORS } from '../lib/theme';
 import { ENG_TOPICS, ENG_LEVELS, LEVEL_TOPIC_KEYS } from '../lib/english';
 import { CHN_LEVELS, LEVEL_TOPIC_KEYS as CHN_LEVEL_KEYS, CHN_TOPICS } from '../lib/chinese';
 import { getLevel, nextLevel, ACH_DEFS } from '../lib/points';
@@ -456,7 +456,7 @@ const st = StyleSheet.create({
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12 },
 
-  card: { width: '48%', backgroundColor: C.cardWhite, borderTopWidth: 3, padding: 14, marginBottom: 10, minHeight: 130, justifyContent: 'space-between' },
+  card: { width: '48%', backgroundColor: C.cardWhite, borderTopWidth: 3, padding: 14, marginBottom: 10, minHeight: 120 },
   cardIcon: { fontSize: 30, marginBottom: 4 },
   cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
   cardDesc: { fontSize: 11, color: C.textMid, marginTop: 1 },

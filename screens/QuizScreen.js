@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { C, SUBJECTS, DIFFICULTIES, OP_SYMBOL, RADIUS, SUBJECT_COLORS } from '../lib/theme';
+import { C, SUBJECTS, DIFFICULTIES, OP_SYMBOL, SUBJECT_COLORS } from '../lib/theme';
 import { generateQuestions, getMaxQuestions } from '../lib/questions';
 import { useApp } from '../lib/AppContext';
 import NumberPad from '../components/NumberPad';
@@ -12,9 +12,10 @@ function fmt(sec) {
 }
 
 const TIMER_PRESETS = [
-  { label: '3 分钟', value: 180 },
-  { label: '5 分钟', value: 300 },
-  { label: '10 分钟', value: 600 },
+  { label: '60秒', value: 60 },
+  { label: '120秒', value: 120 },
+  { label: '180秒', value: 180 },
+  { label: '300秒', value: 300 },
 ];
 
 // ── Setup Phase ──────────────────────────────────────────
@@ -34,7 +35,7 @@ function SetupPhase({ subject, onStart, onBack }) {
   const PRESETS = [10, 20, 30].filter((n) => n <= max).concat(max > 30 ? [max] : []);
 
   return (
-    <View style={st.setupRoot}>
+    <ScrollView style={st.setupScroll} contentContainerStyle={st.setupRoot} showsVerticalScrollIndicator={false}>
       <TouchableOpacity style={st.backBtn} onPress={onBack}>
         <Text style={st.backTxt}>← 返回</Text>
       </TouchableOpacity>
@@ -103,16 +104,48 @@ function SetupPhase({ subject, onStart, onBack }) {
           </TouchableOpacity>
         </View>
         {timerMode === 'countdown' && (
-          <View style={[st.presetRow, { marginTop: 10 }]}>
-            {TIMER_PRESETS.map((tp) => (
-              <TouchableOpacity
-                key={tp.value}
-                style={[st.presetBtn, countdownSec === tp.value && { backgroundColor: C.error }]}
-                onPress={() => setCountdownSec(tp.value)}
-              >
-                <Text style={[st.presetTxt, countdownSec === tp.value && { color: '#fff' }]}>{tp.label}</Text>
+          <View style={{ alignItems: 'center', marginTop: 10 }}>
+            <View style={st.presetRow}>
+              {TIMER_PRESETS.map((tp) => (
+                <TouchableOpacity
+                  key={tp.value}
+                  style={[st.presetBtn, countdownSec === tp.value && { backgroundColor: C.error }]}
+                  onPress={() => setCountdownSec(tp.value)}
+                >
+                  <Text style={[st.presetTxt, countdownSec === tp.value && { color: '#fff' }]}>{tp.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={st.cdInputRow}>
+              <TouchableOpacity style={st.cBtn} onPress={() => setCountdownSec((v) => Math.max(10, v - 30))}>
+                <Text style={st.cBtnTxt}>−30</Text>
               </TouchableOpacity>
-            ))}
+              <TouchableOpacity style={st.cBtn} onPress={() => setCountdownSec((v) => Math.max(10, v - 10))}>
+                <Text style={st.cBtnTxt}>−10</Text>
+              </TouchableOpacity>
+              <View style={st.cdInputWrap}>
+                <TextInput
+                  style={st.cdInput}
+                  keyboardType="number-pad"
+                  value={String(countdownSec)}
+                  onChangeText={(t) => {
+                    const n = parseInt(t, 10);
+                    if (!isNaN(n) && n >= 0) setCountdownSec(n);
+                    else if (t === '') setCountdownSec(0);
+                  }}
+                  maxLength={4}
+                  selectTextOnFocus
+                />
+                <Text style={st.cdUnit}>秒</Text>
+              </View>
+              <TouchableOpacity style={st.cBtn} onPress={() => setCountdownSec((v) => Math.min(3600, v + 10))}>
+                <Text style={st.cBtnTxt}>+10</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={st.cBtn} onPress={() => setCountdownSec((v) => Math.min(3600, v + 30))}>
+                <Text style={st.cBtnTxt}>+30</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={st.cdHint}>= {Math.floor(countdownSec / 60)} 分 {countdownSec % 60} 秒</Text>
           </View>
         )}
       </View>
@@ -125,7 +158,7 @@ function SetupPhase({ subject, onStart, onBack }) {
         <Text style={st.goBtnTxt}>开始答题</Text>
       </TouchableOpacity>
       <Text style={st.hint}>本难度最多 {max} 道不重复题</Text>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -570,8 +603,9 @@ export default function QuizScreen() {
 // ── Styles ───────────────────────────────────────────────
 
 const st = StyleSheet.create({
-  setupRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: C.bg },
-  backBtn: { position: 'absolute', top: 16, left: 20 },
+  setupScroll: { flex: 1, backgroundColor: C.bg },
+  setupRoot: { alignItems: 'center', paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
+  backBtn: { alignSelf: 'flex-start', marginBottom: 12 },
   backTxt: { fontSize: 16, fontWeight: '600', color: C.primary },
   setupIcon: { fontSize: 48, marginBottom: 4 },
   setupTitle: { fontSize: 24, fontWeight: '800', color: C.text, marginBottom: 20 },
@@ -597,6 +631,15 @@ const st = StyleSheet.create({
   presetOn: { backgroundColor: C.primary },
   presetTxt: { fontSize: 13, fontWeight: '600', color: C.textMid },
   presetTxtOn: { color: '#fff' },
+  cdInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
+  cdInputWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 6 },
+  cdInput: {
+    width: 64, height: 40, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1.5, borderColor: C.error,
+    textAlign: 'center', fontSize: 20, fontWeight: '800', color: C.error,
+  },
+  cdUnit: { fontSize: 14, fontWeight: '600', color: C.textMid, marginLeft: 4 },
+  cdHint: { fontSize: 11, color: C.textLight, marginTop: 6 },
+
   goBtn: {
     marginTop: 28, width: '100%', height: 54, borderRadius: 16,
     backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center',

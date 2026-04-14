@@ -32,15 +32,17 @@ export default function ProgressRing({
     <View style={[st.wrap, { width: size, height: size }]}>
       <View style={base} />
       {/* Right half (0-180 deg) */}
-      <View style={[st.clipRight, { width: radius, height: size, left: radius }]}>
-        <View
-          style={[
-            half,
-            { borderTopColor: color, borderRightColor: color, left: -radius },
-            { transform: [{ rotate: `${rightAngle}deg` }] },
-          ]}
-        />
-      </View>
+      {angle > 0 && (
+        <View style={[st.clipRight, { width: radius, height: size, left: radius }]}>
+          <View
+            style={[
+              half,
+              { borderTopColor: color, borderRightColor: color, left: -radius },
+              { transform: [{ rotate: `${rightAngle}deg` }] },
+            ]}
+          />
+        </View>
+      )}
       {/* Left half (180-360 deg) */}
       {angle > 180 && (
         <View style={[st.clipLeft, { width: radius, height: size, left: 0 }]}>

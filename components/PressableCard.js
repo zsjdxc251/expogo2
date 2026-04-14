@@ -13,24 +13,28 @@ export default function PressableCard({ style, onPress, disabled, children }) {
   };
 
   return (
-    <TouchableOpacity
-      activeOpacity={1}
-      onPress={onPress}
-      onPressIn={onPressIn}
-      onPressOut={onPressOut}
-      disabled={disabled}
-    >
-      <Animated.View style={[st.card, style, { transform: [{ scale }] }]}>
+    <Animated.View style={[st.card, style, { transform: [{ scale }] }]}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        disabled={disabled}
+        style={st.touch}
+      >
         {children}
-      </Animated.View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
 const st = StyleSheet.create({
   card: {
     borderRadius: RADIUS,
-    padding: 16,
+    overflow: 'hidden',
     ...SHADOW,
+  },
+  touch: {
+    flex: 1,
   },
 });
