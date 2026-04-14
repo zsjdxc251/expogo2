@@ -1,10 +1,11 @@
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { C, SHADOW, SUBJECTS } from '../lib/theme';
+import { ENG_TOPICS, ENG_TOPIC_KEYS } from '../lib/english';
 import { getLevel, nextLevel, ACH_DEFS } from '../lib/points';
 
-const SUBJECT_LIST = ['multiply', 'add', 'subtract', 'divide', 'divRem'];
+const MATH_SUBJECTS = ['mulForward', 'mulBlank', 'add', 'subtract', 'divide', 'divRem'];
 
-export default function HomeScreen({ user, streak, achievements, onSubject }) {
+export default function HomeScreen({ user, streak, achievements, onSubject, onEngLearn, onEngPractice }) {
   const lv = getLevel(user.totalPoints);
   const nxt = nextLevel(user.totalPoints);
   const pct = nxt ? Math.round(((user.totalPoints - lv.min) / (nxt.min - lv.min)) * 100) : 100;
@@ -48,27 +49,65 @@ export default function HomeScreen({ user, streak, achievements, onSubject }) {
         </View>
       </View>
 
-      {/* Subjects */}
-      <Text style={st.secTitle}>今天要挑战什么?</Text>
+      {/* ── Math section ─────────────────── */}
+      <View style={st.secHeader}>
+        <Text style={st.secEmoji}>📐</Text>
+        <Text style={st.secTitle}>数学练习</Text>
+      </View>
       <View style={st.grid}>
-        {SUBJECT_LIST.map((key) => {
+        {MATH_SUBJECTS.map((key) => {
           const sub = SUBJECTS[key];
           return (
             <TouchableOpacity
               key={key}
-              style={[st.card, { borderLeftColor: sub.color, borderLeftWidth: 4 }]}
+              style={[st.mathCard, { borderLeftColor: sub.color, borderLeftWidth: 4 }]}
               activeOpacity={0.7}
               onPress={() => onSubject(key)}
             >
               <Text style={st.cardIcon}>{sub.icon}</Text>
               <Text style={st.cardLabel}>{sub.label}</Text>
+              {sub.desc ? <Text style={st.cardDesc}>{sub.desc}</Text> : null}
               <Text style={[st.cardGo, { color: sub.color }]}>开始 →</Text>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      {/* Achievements */}
+      {/* ── English section ──────────────── */}
+      <View style={st.secHeader}>
+        <Text style={st.secEmoji}>📚</Text>
+        <Text style={st.secTitle}>英语学习</Text>
+      </View>
+      <View style={st.engGrid}>
+        {ENG_TOPIC_KEYS.map((key) => {
+          const topic = ENG_TOPICS[key];
+          return (
+            <View key={key} style={[st.engCard, { borderTopColor: topic.color, borderTopWidth: 3 }]}>
+              <Text style={st.engIcon}>{topic.icon}</Text>
+              <Text style={st.engLabel}>{topic.label}</Text>
+              <Text style={st.engDesc}>{topic.desc}</Text>
+              <View style={st.engBtns}>
+                <TouchableOpacity
+                  style={[st.engBtn, { backgroundColor: topic.bg }]}
+                  activeOpacity={0.7}
+                  onPress={() => onEngLearn(key)}
+                >
+                  <Text style={[st.engBtnTxt, { color: topic.color }]}>📖 学习</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[st.engBtn, { backgroundColor: topic.color }]}
+                  activeOpacity={0.7}
+                  onPress={() => onEngPractice(key)}
+                >
+                  <Text style={st.engBtnTxtW}>✏️ 练习</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* ── Achievements ─────────────────── */}
       <Text style={st.secTitle}>成就</Text>
       <View style={st.achRow}>
         {ACH_DEFS.map((a) => {
@@ -113,17 +152,40 @@ const st = StyleSheet.create({
   xpFill: { height: 6, borderRadius: 3, backgroundColor: C.accent },
   xpTxt: { fontSize: 10, color: C.textLight, marginTop: 2 },
 
-  secTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 12 },
+  // Section headers
+  secHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  secEmoji: { fontSize: 20, marginRight: 6 },
+  secTitle: { fontSize: 18, fontWeight: '700', color: C.text },
 
+  // Math grid
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 24 },
-  card: {
+  mathCard: {
     width: '48%', backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 12,
     ...SHADOW, shadowOpacity: 0.05,
   },
   cardIcon: { fontSize: 32, marginBottom: 8 },
   cardLabel: { fontSize: 16, fontWeight: '700', color: C.text },
+  cardDesc: { fontSize: 12, color: C.textMid, marginTop: 2 },
   cardGo: { fontSize: 13, fontWeight: '600', marginTop: 8 },
 
+  // English grid
+  engGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 24 },
+  engCard: {
+    width: '48%', backgroundColor: C.card, borderRadius: 16, padding: 14, marginBottom: 12,
+    ...SHADOW, shadowOpacity: 0.05,
+  },
+  engIcon: { fontSize: 28, marginBottom: 4 },
+  engLabel: { fontSize: 15, fontWeight: '700', color: C.text },
+  engDesc: { fontSize: 11, color: C.textMid, marginTop: 2, marginBottom: 10 },
+  engBtns: { flexDirection: 'row' },
+  engBtn: {
+    flex: 1, paddingVertical: 7, borderRadius: 10, alignItems: 'center',
+    justifyContent: 'center', marginHorizontal: 2,
+  },
+  engBtnTxt: { fontSize: 12, fontWeight: '700' },
+  engBtnTxtW: { fontSize: 12, fontWeight: '700', color: '#fff' },
+
+  // Achievements
   achRow: { flexDirection: 'row', flexWrap: 'wrap' },
   achItem: {
     alignItems: 'center', width: 64, marginRight: 8, marginBottom: 8, padding: 6,

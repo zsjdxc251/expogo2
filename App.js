@@ -17,6 +17,8 @@ import QuizScreen from './screens/QuizScreen';
 import ResultsScreen from './screens/ResultsScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import EnglishLearnScreen from './screens/EnglishLearnScreen';
+import EnglishQuizScreen from './screens/EnglishQuizScreen';
 
 const DEFAULT_SETTINGS = { autoSubmit: false };
 
@@ -29,6 +31,7 @@ export default function App() {
   const [streak, setStreak] = useState({ count: 0, lastDate: null });
   const [quizParams, setQuizParams] = useState(null);
   const [quizResult, setQuizResult] = useState(null);
+  const [engTopicKey, setEngTopicKey] = useState(null);
 
   const settings = user?.settings || DEFAULT_SETTINGS;
 
@@ -77,6 +80,20 @@ export default function App() {
     setScreen('quiz');
   }, []);
 
+  // ── English navigation ─────────────────────────────────
+
+  const onEngLearn = useCallback((topicKey) => {
+    setEngTopicKey(topicKey);
+    setScreen('engLearn');
+  }, []);
+
+  const onEngPractice = useCallback((topicKey) => {
+    setEngTopicKey(topicKey);
+    setScreen('engQuiz');
+  }, []);
+
+  // ── Error review ──────────────────────────────────────
+
   const onErrorReview = useCallback(() => {
     const allWrong = history.flatMap((h) => h.wrongList || []);
     if (allWrong.length === 0) return;
@@ -116,6 +133,66 @@ export default function App() {
 
       const record = {
         id: genId(), subject, difficulty: difficulty || 'normal',
+        date: new Date().toISOString(),
+        total, correct, wrong, elapsed, pointsEarned,
+        accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+        wrongList,
+      };
+      const newHist = await addRecord(record);
+      setHistory(newHist);
+
+      const newStreak = updateStreak(streak);
+      setStreak(newStreak);
+      await saveStreak(newStreak);
+
+      const freshAch = checkNewAchievements({
+        user: updatedUser, history: newHist, record, streak: newStreak, unlocked: achievements,
+      });
+      let updAch = achievements;
+      if (freshAch.length > 0) {
+        updAch = { ...achievements };
+        freshAch.forEach((id) => { updAch[id] = { unlocked: true, date: new Date().toISOString() }; });
+        setAchievements(updAch);
+        await saveAchievements(updAch);
+      }
+
+      setQuizResult({
+        ...record,
+        pointsEarned,
+        levelUp: lvl.level > prevLevel,
+        newLevel: lvl,
+        newAchievements: freshAch,
+      });
+      setScreen('results');
+    },
+    [user, history, streak, achievements],
+  );
+
+  // ── English quiz finish ────────────────────────────────
+
+  const onEngQuizFinish = useCallback(
+    async (data) => {
+      const { questions, answers, elapsed, subject, maxCombo } = data;
+      const correct = questions.filter((q, i) => answers[i] === q.answer).length;
+      const total = questions.length;
+      const wrong = total - correct;
+      const wrongList = questions
+        .map((q, i) => ({ ...q, userAnswer: answers[i] }))
+        .filter((_, i) => answers[i] !== questions[i].answer);
+
+      const today = new Date().toISOString().split('T')[0];
+      const dailyFirst = !history.some((h) => h.date.startsWith(today));
+      const pointsEarned = calcPoints({ total, correct, elapsed, maxCombo, dailyFirst });
+
+      const newTotal = (user?.totalPoints || 0) + pointsEarned;
+      const lvl = getLevel(newTotal);
+      const prevLevel = user?.level || 1;
+      const updatedUser = { ...user, totalPoints: newTotal, level: lvl.level };
+      setUser(updatedUser);
+      await saveUser(updatedUser);
+
+      const record = {
+        id: genId(), subject, difficulty: 'normal',
         date: new Date().toISOString(),
         total, correct, wrong, elapsed, pointsEarned,
         accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
@@ -209,6 +286,26 @@ export default function App() {
     );
   }
 
+  if (screen === 'engLearn') {
+    return wrap(
+      <EnglishLearnScreen
+        topicKey={engTopicKey}
+        onBack={goHome}
+        onPractice={(key) => { setEngTopicKey(key); setScreen('engQuiz'); }}
+      />,
+    );
+  }
+
+  if (screen === 'engQuiz') {
+    return wrap(
+      <EnglishQuizScreen
+        topicKey={engTopicKey}
+        onFinish={onEngQuizFinish}
+        onBack={goHome}
+      />,
+    );
+  }
+
   if (screen === 'results') {
     return wrap(<ResultsScreen data={quizResult} onHome={goHome} onRetry={retryQuiz} />);
   }
@@ -224,6 +321,8 @@ export default function App() {
               streak={streak}
               achievements={achievements}
               onSubject={onSubject}
+              onEngLearn={onEngLearn}
+              onEngPractice={onEngPractice}
             />
           )}
           {tab === 'history' && (

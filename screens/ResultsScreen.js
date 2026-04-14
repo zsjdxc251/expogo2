@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
 import { C, SHADOW, SUBJECTS, OP_SYMBOL } from '../lib/theme';
+import { ENG_TOPICS } from '../lib/english';
 import { ACH_DEFS } from '../lib/points';
 
 function fmt(sec) {
@@ -14,7 +15,13 @@ export default function ResultsScreen({ data, onHome, onRetry }) {
   } = data;
 
   const perfect = wrong === 0 && total > 0;
-  const sub = SUBJECTS[subject] || { icon: '📝', label: '错题练习', color: C.primary };
+  const isEng = subject && subject.startsWith('eng');
+  const engTopicObj = isEng
+    ? Object.values(ENG_TOPICS).find((t) => t.key === subject)
+    : null;
+  const sub = engTopicObj
+    ? { icon: engTopicObj.icon, label: engTopicObj.label, color: engTopicObj.color }
+    : SUBJECTS[subject] || { icon: '📝', label: '错题练习', color: C.primary };
 
   const ptAnim = useRef(new Animated.Value(0)).current;
   const starScale = useRef(new Animated.Value(0)).current;
@@ -100,6 +107,25 @@ export default function ResultsScreen({ data, onHome, onRetry }) {
         <View style={st.wrongSec}>
           <Text style={st.wrongTitle}>错题回顾</Text>
           {wrongList.map((w, i) => {
+            const wIsEng = w.op && w.op.startsWith('eng');
+            if (wIsEng) {
+              return (
+                <View key={i} style={st.wrongCard}>
+                  <Text style={st.wrongQ}>{w.stem}</Text>
+                  <View style={st.wrongRow}>
+                    <Text style={st.wrongLbl}>
+                      你的答案 <Text style={{ color: C.error, fontWeight: '700' }}>
+                        {w.userAnswer !== null && w.userAnswer !== undefined ? w.options[w.userAnswer] : '—'}
+                      </Text>
+                    </Text>
+                    <Text style={st.wrongLbl}>
+                      正确答案 <Text style={{ color: C.success, fontWeight: '700' }}>{w.options[w.answer]}</Text>
+                    </Text>
+                  </View>
+                  {w.explanation ? <Text style={st.wrongExpl}>💡 {w.explanation}</Text> : null}
+                </View>
+              );
+            }
             const sym = OP_SYMBOL[w.op] || '?';
             const qStr = w.op === 'divRem'
               ? `${w.left} ÷ ${w.right} = ${w.result} ... ${w.remainder}`
@@ -177,6 +203,7 @@ const st = StyleSheet.create({
   wrongQ: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 6 },
   wrongRow: { flexDirection: 'row', justifyContent: 'space-between' },
   wrongLbl: { fontSize: 13, color: C.textMid },
+  wrongExpl: { fontSize: 12, color: '#92400E', marginTop: 6, backgroundColor: '#FFFBEB', padding: 6, borderRadius: 6 },
 
   homeBtn: {
     height: 54, borderRadius: 14, backgroundColor: C.primary,
