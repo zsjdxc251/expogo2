@@ -4,7 +4,7 @@ import { C, RADIUS } from '../lib/theme';
 const TABS = [
   { key: 'home',     icon: '🏠', label: '主页' },
   { key: 'history',  icon: '📋', label: '记录' },
-  { key: 'settings', icon: '⚙️', label: '设置' },
+  { key: 'settings', icon: '🔒', label: '家长' },
 ];
 
 export default function TabBar({ active, onChange }) {

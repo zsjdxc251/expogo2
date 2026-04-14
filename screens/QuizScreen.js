@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { C, SUBJECTS, DIFFICULTIES, OP_SYMBOL, RADIUS } from '../lib/theme';
 import { generateQuestions, getMaxQuestions } from '../lib/questions';
@@ -93,7 +93,6 @@ function SetupPhase({ subject, onStart, onBack }) {
 function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState(() => new Array(questions.length).fill(null));
-  const [input, setInput] = useState('');
   const [elapsed, setElapsed] = useState(0);
   const [timing, setTiming] = useState(true);
   const [fb, setFb] = useState(null);
@@ -104,20 +103,32 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
   const comboAnim = useRef(new Animated.Value(1)).current;
 
   const q = questions[idx];
+  const isMulti = !!q?.multiInput;
   const answered = answers[idx] !== null;
   const allDone = answers.every((a) => a !== null);
   const sub = SUBJECTS[subject] || { icon: '📝', label: '错题练习', color: C.primary };
   const opSym = OP_SYMBOL[q?.op] || '?';
+
+  const [inputA, setInputA] = useState('');
+  const [inputB, setInputB] = useState('');
+  const [focus, setFocus] = useState('a');
 
   useEffect(() => {
     if (timing) tick.current = setInterval(() => setElapsed((t) => t + 1), 1000);
     return () => clearInterval(tick.current);
   }, [timing]);
 
+  const checkAnswer = useCallback((val, answer) => {
+    if (typeof answer === 'object' && answer !== null) {
+      return Object.keys(answer).every((k) => val?.[k] === answer[k]);
+    }
+    return val === answer;
+  }, []);
+
   const doSubmit = useCallback(
     (val) => {
       if (fb) return;
-      const isOk = val === q.answer;
+      const isOk = checkAnswer(val, q.answer);
       setAnswers((prev) => { const n = [...prev]; n[idx] = val; return n; });
       if (isOk) {
         const next = combo + 1;
@@ -132,38 +143,66 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
       }
       setFb(isOk ? 'correct' : 'wrong');
     },
-    [fb, q, idx, combo, comboAnim],
+    [fb, q, idx, combo, comboAnim, checkAnswer],
   );
 
   const onSubmit = useCallback(() => {
-    if (!input || fb || answered) return;
-    doSubmit(parseInt(input, 10));
-  }, [input, fb, answered, doSubmit]);
+    if (fb || answered) return;
+    if (isMulti) {
+      if (!inputA || !inputB) return;
+      if (q.op === 'divRem') {
+        doSubmit({ q: parseInt(inputA, 10), r: parseInt(inputB, 10) });
+      } else if (q.op === 'divReverse') {
+        doSubmit({ dividend: parseInt(inputA, 10), remainder: parseInt(inputB, 10) });
+      }
+    } else {
+      if (!inputA) return;
+      doSubmit(parseInt(inputA, 10));
+    }
+  }, [inputA, inputB, fb, answered, doSubmit, isMulti, q]);
 
   const onKey = useCallback(
     (k) => {
       if (fb || answered) return;
-      if (k === 'C') { setInput(''); return; }
-      if (k === '⌫') { setInput((v) => v.slice(0, -1)); return; }
-      setInput((v) => (v.length < 2 ? v + k : v));
+      const setter = focus === 'a' ? setInputA : setInputB;
+      if (k === 'C') { setter(''); return; }
+      if (k === '⌫') { setter((v) => v.slice(0, -1)); return; }
+      setter((v) => (v.length < 3 ? v + k : v));
     },
-    [fb, answered],
+    [fb, answered, focus],
   );
 
-  // Auto-submit: wait until input length matches expected digit count
   useEffect(() => {
-    if (!settings?.autoSubmit || !input || fb || answered || !q) return;
-    const digits = String(q.answer).length;
-    if (input.length < digits) return;
-    autoRef.current = setTimeout(() => {
-      doSubmit(parseInt(input, 10));
-    }, 250);
+    if (!settings?.autoSubmit || fb || answered || !q) return;
+    if (isMulti) {
+      const ans = q.answer;
+      const keysArr = Object.keys(ans);
+      const digitsA = String(ans[keysArr[0]]).length;
+      const digitsB = String(ans[keysArr[1]]).length;
+      if (!inputA || inputA.length < digitsA || !inputB || inputB.length < digitsB) return;
+      autoRef.current = setTimeout(() => {
+        if (q.op === 'divRem') {
+          doSubmit({ q: parseInt(inputA, 10), r: parseInt(inputB, 10) });
+        } else if (q.op === 'divReverse') {
+          doSubmit({ dividend: parseInt(inputA, 10), remainder: parseInt(inputB, 10) });
+        }
+      }, 350);
+    } else {
+      if (!inputA) return;
+      const digits = String(q.answer).length;
+      if (inputA.length < digits) return;
+      autoRef.current = setTimeout(() => {
+        doSubmit(parseInt(inputA, 10));
+      }, 250);
+    }
     return () => clearTimeout(autoRef.current);
-  }, [input, settings?.autoSubmit, fb, answered, doSubmit, q]);
+  }, [inputA, inputB, settings?.autoSubmit, fb, answered, doSubmit, q, isMulti]);
 
   const onFbDone = useCallback(() => {
     setFb(null);
-    setInput('');
+    setInputA('');
+    setInputB('');
+    setFocus('a');
     if (idx < questions.length - 1) {
       setIdx((i) => i + 1);
     } else {
@@ -180,16 +219,71 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
   const pct = Math.round(((allDone ? questions.length : idx) / questions.length) * 100);
   const showCombo = combo >= 3 && !allDone;
 
-  // Input box renderer
-  const InputBox = (
-    <View style={[st.qInput, input ? st.qInputFilled : null]}>
-      <Text style={input ? st.qInputTxt : st.qInputPh}>{input || '?'}</Text>
-    </View>
+  const renderInputBox = (field, label) => {
+    const val = field === 'a' ? inputA : inputB;
+    const isFocused = focus === field;
+    return (
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => setFocus(field)}
+        style={[st.qInput, val ? st.qInputFilled : null, isFocused && st.qInputFocus]}
+      >
+        <Text style={st.qInputLabel}>{label}</Text>
+        <Text style={val ? st.qInputTxt : st.qInputPh}>{val || '?'}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const SingleInputBox = (
+    <TouchableOpacity activeOpacity={1} style={[st.qInput, inputA ? st.qInputFilled : null, st.qInputFocus]}>
+      <Text style={inputA ? st.qInputTxt : st.qInputPh}>{inputA || '?'}</Text>
+    </TouchableOpacity>
   );
+
+  const renderQuestion = () => {
+    if (!q) return null;
+
+    if (q.op === 'divRem') {
+      return (
+        <View style={st.qRow}>
+          <Text style={st.qNum}>{q.display.left}</Text>
+          <Text style={st.qOp}>÷</Text>
+          <Text style={st.qNum}>{q.display.right}</Text>
+          <Text style={st.qOp}>=</Text>
+          {renderInputBox('a', '商')}
+          <Text style={st.qDots}>...</Text>
+          {renderInputBox('b', '余')}
+        </View>
+      );
+    }
+
+    if (q.op === 'divReverse') {
+      return (
+        <View style={st.qRow}>
+          {renderInputBox('a', '被除数')}
+          <Text style={st.qOp}>÷</Text>
+          <Text style={st.qNum}>{q.display.right}</Text>
+          <Text style={st.qOp}>=</Text>
+          <Text style={st.qNum}>{q.display.result}</Text>
+          <Text style={st.qDots}>...</Text>
+          {renderInputBox('b', '余')}
+        </View>
+      );
+    }
+
+    return (
+      <View style={st.qRow}>
+        {q.missingPos === 'left' ? SingleInputBox : <Text style={st.qNum}>{q.display.left}</Text>}
+        <Text style={st.qOp}>{opSym}</Text>
+        {q.missingPos === 'right' ? SingleInputBox : <Text style={st.qNum}>{q.display.right}</Text>}
+        <Text style={st.qOp}>=</Text>
+        {q.missingPos === 'result' ? SingleInputBox : <Text style={st.qNum}>{q.display.result}</Text>}
+      </View>
+    );
+  };
 
   return (
     <View style={st.quizRoot}>
-      {/* Header */}
       <View style={st.qHeader}>
         <TouchableOpacity onPress={onBack}><Text style={st.backTxt}>←</Text></TouchableOpacity>
         <View style={st.timerBox}>
@@ -199,14 +293,12 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
       </View>
       <View style={st.bar}><View style={[st.barFill, { width: `${pct}%`, backgroundColor: sub.color }]} /></View>
 
-      {/* Combo */}
       {showCombo && (
         <Animated.View style={[st.comboBox, { transform: [{ scale: comboAnim }] }]}>
           <Text style={st.comboTxt}>🔥 连击 x{combo}!</Text>
         </Animated.View>
       )}
 
-      {/* Question area */}
       <View style={st.qArea}>
         {allDone ? (
           <View style={st.doneBox}>
@@ -216,23 +308,17 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
         ) : (
           <View style={st.qCard}>
             <Text style={st.qIdx}>第 {idx + 1} 题</Text>
-            {q.op === 'divRem' ? (
-              <View style={st.qRow}>
-                <Text style={st.qNum}>{q.display.left}</Text>
-                <Text style={st.qOp}>÷</Text>
-                <Text style={st.qNum}>{q.display.right}</Text>
-                <Text style={st.qOp}>=</Text>
-                {q.missingPos === 'result' ? InputBox : <Text style={st.qNum}>{q.display.result}</Text>}
-                <Text style={st.qDots}>...</Text>
-                {q.missingPos === 'remainder' ? InputBox : <Text style={st.qNum}>{q.display.remainder}</Text>}
-              </View>
-            ) : (
-              <View style={st.qRow}>
-                {q.missingPos === 'left' ? InputBox : <Text style={st.qNum}>{q.display.left}</Text>}
-                <Text style={st.qOp}>{opSym}</Text>
-                {q.missingPos === 'right' ? InputBox : <Text style={st.qNum}>{q.display.right}</Text>}
-                <Text style={st.qOp}>=</Text>
-                {q.missingPos === 'result' ? InputBox : <Text style={st.qNum}>{q.display.result}</Text>}
+            {isMulti && (
+              <Text style={st.qHint}>
+                {q.op === 'divReverse' ? '求最大被除数和余数' : '填写商和余数'}
+              </Text>
+            )}
+            {renderQuestion()}
+            {isMulti && (
+              <View style={st.focusHint}>
+                <Text style={st.focusHintTxt}>
+                  点击输入框切换 · 当前填写: {focus === 'a' ? (q.op === 'divReverse' ? '被除数' : '商') : '余数'}
+                </Text>
               </View>
             )}
           </View>
@@ -244,7 +330,6 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
         />
       </View>
 
-      {/* Pad + Buttons */}
       <View style={st.qBottom}>
         {!allDone && <NumberPad onPress={onKey} disabled={!!fb || answered} />}
         {allDone ? (
@@ -253,12 +338,12 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
           </TouchableOpacity>
         ) : !settings?.autoSubmit ? (
           <TouchableOpacity
-            style={[st.subBtn, (!input || !!fb) && st.subBtnOff]}
+            style={[st.subBtn, (isMulti ? (!inputA || !inputB || !!fb) : (!inputA || !!fb)) && st.subBtnOff]}
             onPress={onSubmit}
-            disabled={!input || !!fb || answered}
+            disabled={isMulti ? (!inputA || !inputB || !!fb || answered) : (!inputA || !!fb || answered)}
             activeOpacity={0.8}
           >
-            <Text style={[st.subBtnTxt, (!input || !!fb) && st.subBtnTxtOff]}>确认</Text>
+            <Text style={[st.subBtnTxt, (isMulti ? (!inputA || !inputB || !!fb) : (!inputA || !!fb)) && st.subBtnTxtOff]}>确认</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -301,7 +386,6 @@ export default function QuizScreen({ params, settings, onFinish, onBack }) {
 // ── Styles ───────────────────────────────────────────────
 
 const st = StyleSheet.create({
-  // Setup
   setupRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: C.bg },
   backBtn: { position: 'absolute', top: 16, left: 20 },
   backTxt: { fontSize: 16, fontWeight: '600', color: C.primary },
@@ -336,7 +420,6 @@ const st = StyleSheet.create({
   goBtnTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
   hint: { marginTop: 12, fontSize: 12, color: C.textLight },
 
-  // Quiz
   quizRoot: { flex: 1, backgroundColor: C.bg },
   qHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -353,19 +436,24 @@ const st = StyleSheet.create({
 
   qArea: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
   qCard: { width: '100%', backgroundColor: C.card, borderRadius: 20, paddingVertical: 24, paddingHorizontal: 16, alignItems: 'center' },
-  qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 10 },
+  qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 6 },
+  qHint: { fontSize: 12, color: C.primary, fontWeight: '600', marginBottom: 10, backgroundColor: C.primaryBg, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
   qRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' },
-  qNum: { fontSize: 40, fontWeight: '800', color: C.text },
-  qOp: { fontSize: 28, fontWeight: '600', color: C.textMid, marginHorizontal: 8 },
-  qDots: { fontSize: 28, fontWeight: '800', color: C.textMid, marginHorizontal: 4, letterSpacing: 2 },
+  qNum: { fontSize: 36, fontWeight: '800', color: C.text },
+  qOp: { fontSize: 24, fontWeight: '600', color: C.textMid, marginHorizontal: 6 },
+  qDots: { fontSize: 24, fontWeight: '800', color: C.textMid, marginHorizontal: 4, letterSpacing: 2 },
   qInput: {
-    minWidth: 54, height: 54, borderRadius: 14, borderWidth: 2.5,
-    borderColor: C.primary, borderStyle: 'dashed', backgroundColor: C.primaryBg,
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10,
+    minWidth: 50, height: 58, borderRadius: 14, borderWidth: 2.5,
+    borderColor: C.border, borderStyle: 'dashed', backgroundColor: 'rgba(229,229,229,0.3)',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8,
   },
   qInputFilled: { borderStyle: 'solid', backgroundColor: '#fff' },
-  qInputTxt: { fontSize: 40, fontWeight: '800', color: C.primary },
-  qInputPh: { fontSize: 30, fontWeight: '700', color: C.textLight },
+  qInputFocus: { borderColor: C.primary, borderStyle: 'solid', backgroundColor: C.primaryBg },
+  qInputLabel: { fontSize: 9, color: C.textLight, fontWeight: '600', position: 'absolute', top: 2 },
+  qInputTxt: { fontSize: 34, fontWeight: '800', color: C.primary },
+  qInputPh: { fontSize: 26, fontWeight: '700', color: C.textLight },
+  focusHint: { marginTop: 10 },
+  focusHintTxt: { fontSize: 11, color: C.textLight },
 
   doneBox: { alignItems: 'center' },
   doneEmoji: { fontSize: 56, marginBottom: 10 },

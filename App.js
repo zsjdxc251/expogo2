@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaView, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -11,6 +11,7 @@ import { calcPoints, getLevel, checkNewAchievements, updateStreak, genId } from 
 import { shuffle } from './lib/questions';
 
 import TabBar from './components/TabBar';
+import PinModal from './components/PinModal';
 import WelcomeScreen from './screens/WelcomeScreen';
 import HomeScreen from './screens/HomeScreen';
 import QuizScreen from './screens/QuizScreen';
@@ -19,8 +20,12 @@ import HistoryScreen from './screens/HistoryScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import EnglishLearnScreen from './screens/EnglishLearnScreen';
 import EnglishQuizScreen from './screens/EnglishQuizScreen';
+import ChineseLearnScreen from './screens/ChineseLearnScreen';
+import ChineseQuizScreen from './screens/ChineseQuizScreen';
+import BreakScreen from './screens/BreakScreen';
 
 const DEFAULT_SETTINGS = { autoSubmit: false };
+const DEFAULT_BREAK = { usageMinutes: 20, breakMinutes: 5 };
 
 export default function App() {
   const [screen, setScreen] = useState('loading');
@@ -32,8 +37,19 @@ export default function App() {
   const [quizParams, setQuizParams] = useState(null);
   const [quizResult, setQuizResult] = useState(null);
   const [engTopicKey, setEngTopicKey] = useState(null);
+  const [chnTopicKey, setChnTopicKey] = useState(null);
+
+  // Parent PIN
+  const [showPin, setShowPin] = useState(false);
+  const [pinMode, setPinMode] = useState('verify');
+  const [isParent, setIsParent] = useState(false);
+
+  // Break timer
+  const [showBreak, setShowBreak] = useState(false);
+  const usageStart = useRef(Date.now());
 
   const settings = user?.settings || DEFAULT_SETTINGS;
+  const breakConfig = user?.breakConfig || DEFAULT_BREAK;
 
   // ── Bootstrap ────────────────────────────────────────
 
@@ -58,6 +74,23 @@ export default function App() {
     })();
   }, []);
 
+  // ── Break timer check ─────────────────────────────────
+  useEffect(() => {
+    if (!user || showBreak) return;
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - usageStart.current) / 60000;
+      if (elapsed >= breakConfig.usageMinutes) {
+        setShowBreak(true);
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user, showBreak, breakConfig.usageMinutes]);
+
+  const onBreakDone = useCallback(() => {
+    setShowBreak(false);
+    usageStart.current = Date.now();
+  }, []);
+
   // ── Welcome complete ────────────────────────────────
 
   const onWelcome = useCallback(async ({ name, avatar }) => {
@@ -67,6 +100,7 @@ export default function App() {
       totalPoints: 0,
       level: 1,
       settings: DEFAULT_SETTINGS,
+      breakConfig: DEFAULT_BREAK,
     };
     await saveUser(u);
     setUser(u);
@@ -92,6 +126,18 @@ export default function App() {
     setScreen('engQuiz');
   }, []);
 
+  // ── Chinese navigation ─────────────────────────────────
+
+  const onChnLearn = useCallback((topicKey) => {
+    setChnTopicKey(topicKey);
+    setScreen('chnLearn');
+  }, []);
+
+  const onChnPractice = useCallback((topicKey) => {
+    setChnTopicKey(topicKey);
+    setScreen('chnQuiz');
+  }, []);
+
   // ── Error review ──────────────────────────────────────
 
   const onErrorReview = useCallback(() => {
@@ -108,17 +154,24 @@ export default function App() {
     setScreen('quiz');
   }, [history]);
 
-  // ── Quiz finish ─────────────────────────────────────
+  // ── Quiz finish (shared helper) ───────────────────────
 
-  const onQuizFinish = useCallback(
+  const finishQuiz = useCallback(
     async (data) => {
       const { questions, answers, elapsed, subject, difficulty, maxCombo } = data;
-      const correct = questions.filter((q, i) => answers[i] === q.answer).length;
+      const isCorrect = (q, a) => {
+        if (typeof q.answer === 'object' && q.answer !== null) {
+          return a !== null && typeof a === 'object' &&
+            Object.keys(q.answer).every((k) => a[k] === q.answer[k]);
+        }
+        return a === q.answer;
+      };
+      const correct = questions.filter((q, i) => isCorrect(q, answers[i])).length;
       const total = questions.length;
       const wrong = total - correct;
       const wrongList = questions
         .map((q, i) => ({ ...q, userAnswer: answers[i] }))
-        .filter((_, i) => answers[i] !== questions[i].answer);
+        .filter((q, i) => !isCorrect(questions[i], answers[i]));
 
       const today = new Date().toISOString().split('T')[0];
       const dailyFirst = !history.some((h) => h.date.startsWith(today));
@@ -133,66 +186,6 @@ export default function App() {
 
       const record = {
         id: genId(), subject, difficulty: difficulty || 'normal',
-        date: new Date().toISOString(),
-        total, correct, wrong, elapsed, pointsEarned,
-        accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
-        wrongList,
-      };
-      const newHist = await addRecord(record);
-      setHistory(newHist);
-
-      const newStreak = updateStreak(streak);
-      setStreak(newStreak);
-      await saveStreak(newStreak);
-
-      const freshAch = checkNewAchievements({
-        user: updatedUser, history: newHist, record, streak: newStreak, unlocked: achievements,
-      });
-      let updAch = achievements;
-      if (freshAch.length > 0) {
-        updAch = { ...achievements };
-        freshAch.forEach((id) => { updAch[id] = { unlocked: true, date: new Date().toISOString() }; });
-        setAchievements(updAch);
-        await saveAchievements(updAch);
-      }
-
-      setQuizResult({
-        ...record,
-        pointsEarned,
-        levelUp: lvl.level > prevLevel,
-        newLevel: lvl,
-        newAchievements: freshAch,
-      });
-      setScreen('results');
-    },
-    [user, history, streak, achievements],
-  );
-
-  // ── English quiz finish ────────────────────────────────
-
-  const onEngQuizFinish = useCallback(
-    async (data) => {
-      const { questions, answers, elapsed, subject, maxCombo } = data;
-      const correct = questions.filter((q, i) => answers[i] === q.answer).length;
-      const total = questions.length;
-      const wrong = total - correct;
-      const wrongList = questions
-        .map((q, i) => ({ ...q, userAnswer: answers[i] }))
-        .filter((_, i) => answers[i] !== questions[i].answer);
-
-      const today = new Date().toISOString().split('T')[0];
-      const dailyFirst = !history.some((h) => h.date.startsWith(today));
-      const pointsEarned = calcPoints({ total, correct, elapsed, maxCombo, dailyFirst });
-
-      const newTotal = (user?.totalPoints || 0) + pointsEarned;
-      const lvl = getLevel(newTotal);
-      const prevLevel = user?.level || 1;
-      const updatedUser = { ...user, totalPoints: newTotal, level: lvl.level };
-      setUser(updatedUser);
-      await saveUser(updatedUser);
-
-      const record = {
-        id: genId(), subject, difficulty: 'normal',
         date: new Date().toISOString(),
         total, correct, wrong, elapsed, pointsEarned,
         accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
@@ -245,15 +238,64 @@ export default function App() {
     setHistory([]);
     setAchievements({});
     setStreak({ count: 0, lastDate: null });
+    setIsParent(false);
     setScreen('welcome');
   }, []);
 
-  const goHome = useCallback(() => { setTab('home'); setScreen('main'); }, []);
+  const goHome = useCallback(() => { setTab('home'); setIsParent(false); setScreen('main'); }, []);
 
   const retryQuiz = useCallback(() => {
     if (quizParams) setScreen('quiz');
     else goHome();
   }, [quizParams, goHome]);
+
+  // ── PIN / parent handling ──────────────────────────────
+
+  const handleTabChange = useCallback((newTab) => {
+    if (newTab === 'settings') {
+      if (!user?.parentPin) {
+        setPinMode('setup');
+        setShowPin(true);
+      } else {
+        setPinMode('verify');
+        setShowPin(true);
+      }
+    } else {
+      setIsParent(false);
+      setTab(newTab);
+    }
+  }, [user]);
+
+  const onPinSuccess = useCallback(async (pin) => {
+    setShowPin(false);
+    if (pinMode === 'setup') {
+      await onUpdateUser({ parentPin: pin });
+      setIsParent(true);
+      setTab('settings');
+    } else if (pinMode === 'changePin') {
+      // handled via setup after verify
+      setPinMode('setup');
+      setShowPin(true);
+    } else {
+      if (pin === user?.parentPin) {
+        setIsParent(true);
+        setTab('settings');
+      } else {
+        // wrong pin — re-show with error handled inside PinModal
+        setPinMode('verify');
+        setShowPin(true);
+      }
+    }
+  }, [pinMode, user, onUpdateUser]);
+
+  const onPinCancel = useCallback(() => {
+    setShowPin(false);
+  }, []);
+
+  const onChangePin = useCallback(() => {
+    setPinMode('setup');
+    setShowPin(true);
+  }, []);
 
   // ── Render ──────────────────────────────────────────
 
@@ -263,6 +305,16 @@ export default function App() {
       <StatusBar style="auto" />
     </SafeAreaView>
   );
+
+  // Break screen overlay
+  if (showBreak) {
+    return (
+      <SafeAreaView style={st.root}>
+        <BreakScreen breakMinutes={breakConfig.breakMinutes} onDone={onBreakDone} />
+        <StatusBar style="auto" />
+      </SafeAreaView>
+    );
+  }
 
   if (screen === 'loading') {
     return wrap(
@@ -280,7 +332,7 @@ export default function App() {
       <QuizScreen
         params={quizParams}
         settings={settings}
-        onFinish={onQuizFinish}
+        onFinish={finishQuiz}
         onBack={goHome}
       />,
     );
@@ -300,7 +352,27 @@ export default function App() {
     return wrap(
       <EnglishQuizScreen
         topicKey={engTopicKey}
-        onFinish={onEngQuizFinish}
+        onFinish={finishQuiz}
+        onBack={goHome}
+      />,
+    );
+  }
+
+  if (screen === 'chnLearn') {
+    return wrap(
+      <ChineseLearnScreen
+        topicKey={chnTopicKey}
+        onBack={goHome}
+        onPractice={(key) => { setChnTopicKey(key); setScreen('chnQuiz'); }}
+      />,
+    );
+  }
+
+  if (screen === 'chnQuiz') {
+    return wrap(
+      <ChineseQuizScreen
+        topicKey={chnTopicKey}
+        onFinish={finishQuiz}
         onBack={goHome}
       />,
     );
@@ -310,7 +382,6 @@ export default function App() {
     return wrap(<ResultsScreen data={quizResult} onHome={goHome} onRetry={retryQuiz} />);
   }
 
-  // screen === 'main' with tab bar
   return (
     <SafeAreaView style={st.root}>
       <View style={st.inner}>
@@ -323,22 +394,31 @@ export default function App() {
               onSubject={onSubject}
               onEngLearn={onEngLearn}
               onEngPractice={onEngPractice}
+              onChnLearn={onChnLearn}
+              onChnPractice={onChnPractice}
             />
           )}
           {tab === 'history' && (
             <HistoryScreen history={history} onErrorReview={onErrorReview} />
           )}
-          {tab === 'settings' && (
+          {tab === 'settings' && isParent && (
             <SettingsScreen
               user={user}
               settings={settings}
               onUpdate={onUpdateUser}
               onClear={onClearAll}
+              onChangePin={onChangePin}
             />
           )}
         </View>
-        <TabBar active={tab} onChange={setTab} />
+        <TabBar active={tab} onChange={handleTabChange} />
       </View>
+      <PinModal
+        visible={showPin}
+        mode={pinMode}
+        onSuccess={onPinSuccess}
+        onCancel={onPinCancel}
+      />
       <StatusBar style="auto" />
     </SafeAreaView>
   );

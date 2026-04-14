@@ -3,7 +3,7 @@ import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import * as Speech from 'expo-speech';
 import { C } from '../lib/theme';
 
-export default function SpeakButton({ text, size = 'normal' }) {
+export default function SpeakButton({ text, size = 'normal', language = 'en-US' }) {
   const [speaking, setSpeaking] = useState(false);
 
   useEffect(() => {
@@ -19,8 +19,8 @@ export default function SpeakButton({ text, size = 'normal' }) {
     }
     setSpeaking(true);
     Speech.speak(text, {
-      language: 'en-US',
-      rate: 0.85,
+      language,
+      rate: language === 'zh-CN' ? 0.9 : 0.85,
       onDone: () => setSpeaking(false),
       onStopped: () => setSpeaking(false),
       onError: () => setSpeaking(false),

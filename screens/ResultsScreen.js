@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
 import { C, SUBJECTS, OP_SYMBOL, RADIUS } from '../lib/theme';
 import { ENG_TOPICS } from '../lib/english';
+import { CHN_TOPICS } from '../lib/chinese';
 import { ACH_DEFS } from '../lib/points';
 import SpeakButton from '../components/SpeakButton';
 
@@ -17,11 +18,16 @@ export default function ResultsScreen({ data, onHome, onRetry }) {
 
   const perfect = wrong === 0 && total > 0;
   const isEng = subject && subject.startsWith('eng');
+  const isChn = subject && subject.startsWith('chn_');
   const engTopicObj = isEng
     ? Object.values(ENG_TOPICS).find((t) => t.key === subject)
     : null;
+  const chnTopicKey = isChn ? subject.replace('chn_', '') : null;
+  const chnTopicObj = chnTopicKey ? CHN_TOPICS[chnTopicKey] : null;
   const sub = engTopicObj
     ? { icon: engTopicObj.icon, label: engTopicObj.label, color: engTopicObj.color }
+    : chnTopicObj
+    ? { icon: chnTopicObj.icon, label: chnTopicObj.label, color: chnTopicObj.color }
     : SUBJECTS[subject] || { icon: '📝', label: '错题练习', color: C.primary };
 
   const ptAnim = useRef(new Animated.Value(0)).current;
@@ -108,7 +114,7 @@ export default function ResultsScreen({ data, onHome, onRetry }) {
         <View style={st.wrongSec}>
           <Text style={st.wrongTitle}>错题回顾</Text>
           {wrongList.map((w, i) => {
-            const wIsEng = w.op && w.op.startsWith('eng');
+            const wIsEng = w.op && (w.op.startsWith('eng') || w.op.startsWith('chn_'));
             if (wIsEng) {
               return (
                 <View key={i} style={st.wrongCard}>
@@ -131,18 +137,30 @@ export default function ResultsScreen({ data, onHome, onRetry }) {
               );
             }
             const sym = OP_SYMBOL[w.op] || '?';
-            const qStr = w.op === 'divRem'
+            const isDivMulti = w.op === 'divRem' || w.op === 'divReverse';
+            const qStr = isDivMulti
               ? `${w.left} ÷ ${w.right} = ${w.result} ... ${w.remainder}`
               : `${w.left} ${sym} ${w.right} = ${w.result}`;
+
+            const fmtAnswer = (ans) => {
+              if (ans === null || ans === undefined) return '—';
+              if (typeof ans === 'object') {
+                if ('q' in ans) return `商=${ans.q}, 余=${ans.r}`;
+                if ('dividend' in ans) return `被除数=${ans.dividend}, 余=${ans.remainder}`;
+                return JSON.stringify(ans);
+              }
+              return String(ans);
+            };
+
             return (
               <View key={i} style={st.wrongCard}>
                 <Text style={st.wrongQ}>{qStr}</Text>
                 <View style={st.wrongRow}>
                   <Text style={st.wrongLbl}>
-                    你的答案 <Text style={{ color: C.error, fontWeight: '700' }}>{w.userAnswer ?? '—'}</Text>
+                    你的答案 <Text style={{ color: C.error, fontWeight: '700' }}>{fmtAnswer(w.userAnswer)}</Text>
                   </Text>
                   <Text style={st.wrongLbl}>
-                    正确答案 <Text style={{ color: C.success, fontWeight: '700' }}>{w.answer}</Text>
+                    正确答案 <Text style={{ color: C.success, fontWeight: '700' }}>{fmtAnswer(w.answer)}</Text>
                   </Text>
                 </View>
               </View>
