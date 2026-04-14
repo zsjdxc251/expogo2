@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from '
 import { C, SHADOW, SUBJECTS, OP_SYMBOL } from '../lib/theme';
 import { ENG_TOPICS } from '../lib/english';
 import { ACH_DEFS } from '../lib/points';
+import SpeakButton from '../components/SpeakButton';
 
 function fmt(sec) {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
@@ -111,7 +112,10 @@ export default function ResultsScreen({ data, onHome, onRetry }) {
             if (wIsEng) {
               return (
                 <View key={i} style={st.wrongCard}>
-                  <Text style={st.wrongQ}>{w.stem}</Text>
+                  <View style={st.wrongQRow}>
+                    <Text style={[st.wrongQ, { flex: 1 }]}>{w.stem}</Text>
+                    <SpeakButton text={w.stem.replace(/___/g, 'blank')} size="small" />
+                  </View>
                   <View style={st.wrongRow}>
                     <Text style={st.wrongLbl}>
                       你的答案 <Text style={{ color: C.error, fontWeight: '700' }}>
@@ -200,10 +204,11 @@ const st = StyleSheet.create({
   wrongSec: { marginTop: 16 },
   wrongTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 10 },
   wrongCard: { backgroundColor: C.errorBg, borderRadius: 14, padding: 14, marginBottom: 8 },
-  wrongQ: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 6 },
+  wrongQRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  wrongQ: { fontSize: 17, fontWeight: '700', color: C.text },
   wrongRow: { flexDirection: 'row', justifyContent: 'space-between' },
   wrongLbl: { fontSize: 13, color: C.textMid },
-  wrongExpl: { fontSize: 12, color: '#92400E', marginTop: 6, backgroundColor: '#FFFBEB', padding: 6, borderRadius: 6 },
+  wrongExpl: { fontSize: 12, color: C.accent, marginTop: 6, backgroundColor: C.accentBg, padding: 6, borderRadius: 8 },
 
   homeBtn: {
     height: 54, borderRadius: 14, backgroundColor: C.primary,

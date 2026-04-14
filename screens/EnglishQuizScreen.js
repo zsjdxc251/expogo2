@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native
 import { C, SHADOW } from '../lib/theme';
 import { ENG_TOPICS, generateEngQuestions, getEngMaxQuestions } from '../lib/english';
 import Feedback from '../components/Feedback';
+import SpeakButton from '../components/SpeakButton';
 
 function fmt(sec) {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
@@ -172,7 +173,10 @@ function QuizPhase({ questions, topicKey, onFinish, onBack }) {
         ) : (
           <View style={st.qCard}>
             <Text style={st.qIdx}>第 {idx + 1} 题</Text>
-            <Text style={st.qStem}>{q.stem}</Text>
+            <View style={st.stemRow}>
+              <Text style={[st.qStem, { flex: 1 }]}>{q.stem}</Text>
+              <SpeakButton text={q.stem.replace(/___/g, 'blank')} size="small" />
+            </View>
 
             {/* Options */}
             <View style={st.optGrid}>
@@ -294,18 +298,19 @@ const st = StyleSheet.create({
   bar: { height: 4, backgroundColor: C.border, marginHorizontal: 16, borderRadius: 2, overflow: 'hidden' },
   barFill: { height: 4, borderRadius: 2 },
 
-  comboBox: { alignSelf: 'center', marginTop: 8, paddingHorizontal: 14, paddingVertical: 4, borderRadius: 16, backgroundColor: '#FEF3C7' },
-  comboTxt: { fontSize: 15, fontWeight: '800', color: '#D97706' },
+  comboBox: { alignSelf: 'center', marginTop: 8, paddingHorizontal: 14, paddingVertical: 4, borderRadius: 16, backgroundColor: C.accentBg },
+  comboTxt: { fontSize: 15, fontWeight: '800', color: C.accent },
 
   qArea: { flex: 1, justifyContent: 'center', paddingHorizontal: 16 },
   qCard: { backgroundColor: C.card, borderRadius: 20, padding: 20, ...SHADOW },
   qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 10, textAlign: 'center' },
-  qStem: { fontSize: 20, fontWeight: '700', color: C.text, textAlign: 'center', marginBottom: 20, lineHeight: 30 },
+  stemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  qStem: { fontSize: 20, fontWeight: '700', color: C.text, textAlign: 'center', lineHeight: 30 },
 
   optGrid: { },
   optBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F8FAFC', borderRadius: 14, padding: 14, marginBottom: 10,
+    backgroundColor: C.cardAlt, borderRadius: 20, padding: 14, marginBottom: 10,
     borderWidth: 2, borderColor: 'transparent',
   },
   optLabel: {
@@ -315,8 +320,8 @@ const st = StyleSheet.create({
   optLabelTxt: { fontSize: 15, fontWeight: '800', color: C.primary },
   optText: { fontSize: 17, fontWeight: '600', color: C.text, flex: 1 },
 
-  explBox: { backgroundColor: '#FFFBEB', borderRadius: 10, padding: 10, marginTop: 8 },
-  explTxt: { fontSize: 13, color: '#92400E', lineHeight: 20 },
+  explBox: { backgroundColor: C.accentBg, borderRadius: 12, padding: 10, marginTop: 8 },
+  explTxt: { fontSize: 13, color: C.accent, lineHeight: 20 },
 
   doneBox: { alignItems: 'center' },
   doneEmoji: { fontSize: 56, marginBottom: 10 },

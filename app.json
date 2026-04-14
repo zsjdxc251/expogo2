@@ -1,20 +1,20 @@
 {
   "expo": {
-    "name": "数学星球",
-    "slug": "mathstar",
-    "version": "2.0.0",
+    "name": "学习乐园",
+    "slug": "learnpark",
+    "version": "3.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#F0F9FF"
+      "backgroundColor": "#FBF5F2"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F0F9FF"
+        "backgroundColor": "#FBF5F2"
       }
     },
     "web": {}

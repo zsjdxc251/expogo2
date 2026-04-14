@@ -19,9 +19,8 @@ export default function TabBar({ active, onChange }) {
             activeOpacity={0.7}
             onPress={() => onChange(t.key)}
           >
-            <Text style={st.icon}>{t.icon}</Text>
+            <Text style={[st.icon, on && st.iconOn]}>{t.icon}</Text>
             <Text style={[st.label, on && st.labelOn]}>{t.label}</Text>
-            {on && <View style={st.dot} />}
           </TouchableOpacity>
         );
       })}
@@ -31,14 +30,12 @@ export default function TabBar({ active, onChange }) {
 
 const st = StyleSheet.create({
   bar: {
-    flexDirection: 'row', backgroundColor: C.card, paddingBottom: 8, paddingTop: 8,
-    borderTopWidth: 1, borderTopColor: C.border,
+    flexDirection: 'row', backgroundColor: C.navBg, paddingBottom: 10, paddingTop: 10,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
   },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 4 },
-  icon: { fontSize: 22 },
-  label: { fontSize: 11, color: C.textLight, marginTop: 2 },
-  labelOn: { color: C.primary, fontWeight: '700' },
-  dot: {
-    width: 5, height: 5, borderRadius: 3, backgroundColor: C.primary, marginTop: 3,
-  },
+  icon: { fontSize: 22, opacity: 0.7 },
+  iconOn: { opacity: 1 },
+  label: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2, fontWeight: '500' },
+  labelOn: { color: '#fff', fontWeight: '700' },
 });

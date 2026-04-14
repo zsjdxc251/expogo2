@@ -16,10 +16,10 @@ export default function WelcomeScreen({ onComplete }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={st.top}>
-        <Text style={st.rocket}>🚀🌟</Text>
+        <Text style={st.rocket}>🌿🌟</Text>
         <Text style={st.welcome}>欢迎来到</Text>
-        <Text style={st.title}>数学星球</Text>
-        <Text style={st.desc}>开始你的冒险之旅!</Text>
+        <Text style={st.title}>学习乐园</Text>
+        <Text style={st.desc}>数学 + 英语, 一起探索!</Text>
       </View>
 
       <View style={st.card}>
@@ -73,7 +73,7 @@ const st = StyleSheet.create({
   },
   label: { fontSize: 15, fontWeight: '600', color: C.textMid, marginBottom: 10 },
   input: {
-    height: 50, borderRadius: 14, backgroundColor: C.bg, paddingHorizontal: 16,
+    height: 50, borderRadius: 20, backgroundColor: C.bg, paddingHorizontal: 16,
     fontSize: 18, fontWeight: '600', color: C.text, borderWidth: 2, borderColor: C.border,
   },
   avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },

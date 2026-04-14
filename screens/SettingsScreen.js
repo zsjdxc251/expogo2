@@ -121,7 +121,7 @@ export default function SettingsScreen({ user, settings, onUpdate, onClear }) {
         </TouchableOpacity>
       </View>
 
-      <Text style={st.ver}>数学星球 v2.0</Text>
+      <Text style={st.ver}>学习乐园 v3.0</Text>
     </ScrollView>
   );
 }

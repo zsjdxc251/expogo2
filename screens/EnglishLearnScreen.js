@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
 import { C, SHADOW } from '../lib/theme';
 import { ENG_TOPICS, LEARN_CARDS } from '../lib/english';
+import SpeakButton from '../components/SpeakButton';
 
 export default function EnglishLearnScreen({ topicKey, onBack, onPractice }) {
   const topic = ENG_TOPICS[topicKey];
@@ -74,7 +75,10 @@ export default function EnglishLearnScreen({ topicKey, onBack, onPractice }) {
               <Text style={st.exTitle}>📝 例句</Text>
               {card.examples.map((ex, i) => (
                 <View key={i} style={st.exItem}>
-                  <Text style={st.exEn}>{ex.en}</Text>
+                  <View style={st.exEnRow}>
+                    <Text style={[st.exEn, { flex: 1 }]}>{ex.en}</Text>
+                    <SpeakButton text={ex.en} size="small" />
+                  </View>
                   <Text style={st.exZh}>{ex.zh}</Text>
                 </View>
               ))}
@@ -152,7 +156,7 @@ const st = StyleSheet.create({
   highlightText: { fontSize: 15, fontWeight: '700', lineHeight: 22 },
 
   visualBox: {
-    backgroundColor: '#F8FAFC', borderRadius: 12, padding: 14, marginBottom: 16,
+    backgroundColor: C.cardAlt, borderRadius: 12, padding: 14, marginBottom: 16,
     alignItems: 'center',
   },
   visualLine: { fontSize: 16, fontFamily: 'monospace', lineHeight: 24, color: C.text },
@@ -160,9 +164,10 @@ const st = StyleSheet.create({
   exSection: { marginTop: 4 },
   exTitle: { fontSize: 15, fontWeight: '700', color: C.textMid, marginBottom: 8 },
   exItem: {
-    backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, marginBottom: 8,
+    backgroundColor: C.cardAlt, borderRadius: 12, padding: 12, marginBottom: 8,
   },
-  exEn: { fontSize: 16, fontWeight: '600', color: C.primary, marginBottom: 2 },
+  exEnRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  exEn: { fontSize: 16, fontWeight: '600', color: C.primary },
   exZh: { fontSize: 14, color: C.textMid },
 
   navRow: {

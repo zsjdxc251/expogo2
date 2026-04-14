@@ -348,8 +348,8 @@ const st = StyleSheet.create({
   bar: { height: 4, backgroundColor: C.border, marginHorizontal: 16, borderRadius: 2, overflow: 'hidden' },
   barFill: { height: 4, borderRadius: 2 },
 
-  comboBox: { alignSelf: 'center', marginTop: 8, paddingHorizontal: 14, paddingVertical: 4, borderRadius: 16, backgroundColor: '#FEF3C7' },
-  comboTxt: { fontSize: 15, fontWeight: '800', color: '#D97706' },
+  comboBox: { alignSelf: 'center', marginTop: 8, paddingHorizontal: 14, paddingVertical: 4, borderRadius: 16, backgroundColor: C.accentBg },
+  comboTxt: { fontSize: 15, fontWeight: '800', color: C.accent },
 
   qArea: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
   qCard: { width: '100%', backgroundColor: C.card, borderRadius: 20, paddingVertical: 24, paddingHorizontal: 16, alignItems: 'center', ...SHADOW },

@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { C, SHADOW, SUBJECTS } from '../lib/theme';
-import { ENG_TOPICS, ENG_TOPIC_KEYS } from '../lib/english';
+import { ENG_TOPICS, ENG_LEVELS, LEVEL_TOPIC_KEYS } from '../lib/english';
 import { getLevel, nextLevel, ACH_DEFS } from '../lib/points';
 
 const MATH_SUBJECTS = ['mulForward', 'mulBlank', 'add', 'subtract', 'divide', 'divRem'];
@@ -9,6 +10,9 @@ export default function HomeScreen({ user, streak, achievements, onSubject, onEn
   const lv = getLevel(user.totalPoints);
   const nxt = nextLevel(user.totalPoints);
   const pct = nxt ? Math.round(((user.totalPoints - lv.min) / (nxt.min - lv.min)) * 100) : 100;
+
+  const [openLevel, setOpenLevel] = useState('beginner');
+  const toggleLevel = (k) => setOpenLevel(openLevel === k ? null : k);
 
   return (
     <ScrollView style={st.root} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
@@ -49,7 +53,7 @@ export default function HomeScreen({ user, streak, achievements, onSubject, onEn
         </View>
       </View>
 
-      {/* ── Math section ─────────────────── */}
+      {/* Math section */}
       <View style={st.secHeader}>
         <Text style={st.secEmoji}>📐</Text>
         <Text style={st.secTitle}>数学练习</Text>
@@ -73,42 +77,70 @@ export default function HomeScreen({ user, streak, achievements, onSubject, onEn
         })}
       </View>
 
-      {/* ── English section ──────────────── */}
+      {/* English section - 3 levels */}
       <View style={st.secHeader}>
         <Text style={st.secEmoji}>📚</Text>
         <Text style={st.secTitle}>英语学习</Text>
       </View>
-      <View style={st.engGrid}>
-        {ENG_TOPIC_KEYS.map((key) => {
-          const topic = ENG_TOPICS[key];
-          return (
-            <View key={key} style={[st.engCard, { borderTopColor: topic.color, borderTopWidth: 3 }]}>
-              <Text style={st.engIcon}>{topic.icon}</Text>
-              <Text style={st.engLabel}>{topic.label}</Text>
-              <Text style={st.engDesc}>{topic.desc}</Text>
-              <View style={st.engBtns}>
-                <TouchableOpacity
-                  style={[st.engBtn, { backgroundColor: topic.bg }]}
-                  activeOpacity={0.7}
-                  onPress={() => onEngLearn(key)}
-                >
-                  <Text style={[st.engBtnTxt, { color: topic.color }]}>📖 学习</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[st.engBtn, { backgroundColor: topic.color }]}
-                  activeOpacity={0.7}
-                  onPress={() => onEngPractice(key)}
-                >
-                  <Text style={st.engBtnTxtW}>✏️ 练习</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        })}
-      </View>
 
-      {/* ── Achievements ─────────────────── */}
-      <Text style={st.secTitle}>成就</Text>
+      {ENG_LEVELS.map((lvl) => {
+        const isOpen = openLevel === lvl.key;
+        const topicKeys = LEVEL_TOPIC_KEYS[lvl.key] || [];
+        return (
+          <View key={lvl.key} style={st.levelBlock}>
+            <TouchableOpacity
+              style={[st.levelHeader, { borderLeftColor: lvl.color, borderLeftWidth: 4 }]}
+              activeOpacity={0.7}
+              onPress={() => toggleLevel(lvl.key)}
+            >
+              <Text style={st.levelBadge}>{lvl.badge}</Text>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={st.levelTitle}>{lvl.label}</Text>
+                <Text style={st.levelDesc}>{lvl.desc} · {topicKeys.length} 个主题</Text>
+              </View>
+              <Text style={st.levelArrow}>{isOpen ? '▾' : '▸'}</Text>
+            </TouchableOpacity>
+
+            {isOpen && (
+              <View style={st.engGrid}>
+                {topicKeys.map((key) => {
+                  const topic = ENG_TOPICS[key];
+                  if (!topic) return null;
+                  return (
+                    <View key={key} style={[st.engCard, { borderTopColor: topic.color, borderTopWidth: 3 }]}>
+                      <Text style={st.engIcon}>{topic.icon}</Text>
+                      <Text style={st.engLabel}>{topic.label}</Text>
+                      <Text style={st.engDesc}>{topic.desc}</Text>
+                      <View style={st.engBtns}>
+                        <TouchableOpacity
+                          style={[st.engBtn, { backgroundColor: topic.bg }]}
+                          activeOpacity={0.7}
+                          onPress={() => onEngLearn(key)}
+                        >
+                          <Text style={[st.engBtnTxt, { color: topic.color }]}>📖 学习</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[st.engBtn, { backgroundColor: topic.color }]}
+                          activeOpacity={0.7}
+                          onPress={() => onEngPractice(key)}
+                        >
+                          <Text style={st.engBtnTxtW}>✏️ 练习</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        );
+      })}
+
+      {/* Achievements */}
+      <View style={[st.secHeader, { marginTop: 8 }]}>
+        <Text style={st.secEmoji}>🏆</Text>
+        <Text style={st.secTitle}>成就</Text>
+      </View>
       <View style={st.achRow}>
         {ACH_DEFS.map((a) => {
           const unlocked = !!achievements[a.id];
@@ -131,7 +163,7 @@ const st = StyleSheet.create({
   content: { padding: 20, paddingBottom: 16 },
 
   header: {
-    backgroundColor: C.card, borderRadius: 20, padding: 18, marginBottom: 20, ...SHADOW,
+    backgroundColor: C.card, borderRadius: 22, padding: 18, marginBottom: 20, ...SHADOW,
   },
   userRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   avatar: { fontSize: 44 },
@@ -149,18 +181,16 @@ const st = StyleSheet.create({
     width: '90%', height: 6, borderRadius: 3, backgroundColor: C.border,
     marginTop: 4, overflow: 'hidden',
   },
-  xpFill: { height: 6, borderRadius: 3, backgroundColor: C.accent },
+  xpFill: { height: 6, borderRadius: 3, backgroundColor: C.gold },
   xpTxt: { fontSize: 10, color: C.textLight, marginTop: 2 },
 
-  // Section headers
   secHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   secEmoji: { fontSize: 20, marginRight: 6 },
   secTitle: { fontSize: 18, fontWeight: '700', color: C.text },
 
-  // Math grid
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 24 },
   mathCard: {
-    width: '48%', backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 12,
+    width: '48%', backgroundColor: C.card, borderRadius: 20, padding: 16, marginBottom: 12,
     ...SHADOW, shadowOpacity: 0.05,
   },
   cardIcon: { fontSize: 32, marginBottom: 8 },
@@ -168,10 +198,23 @@ const st = StyleSheet.create({
   cardDesc: { fontSize: 12, color: C.textMid, marginTop: 2 },
   cardGo: { fontSize: 13, fontWeight: '600', marginTop: 8 },
 
-  // English grid
-  engGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 24 },
+  levelBlock: { marginBottom: 14 },
+  levelHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card, borderRadius: 16, padding: 14,
+    ...SHADOW, shadowOpacity: 0.04,
+  },
+  levelBadge: { fontSize: 26 },
+  levelTitle: { fontSize: 16, fontWeight: '700', color: C.text },
+  levelDesc: { fontSize: 12, color: C.textMid, marginTop: 2 },
+  levelArrow: { fontSize: 18, color: C.textMid, fontWeight: '600' },
+
+  engGrid: {
+    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between',
+    marginTop: 10, paddingLeft: 4, paddingRight: 4,
+  },
   engCard: {
-    width: '48%', backgroundColor: C.card, borderRadius: 16, padding: 14, marginBottom: 12,
+    width: '48%', backgroundColor: C.card, borderRadius: 18, padding: 14, marginBottom: 12,
     ...SHADOW, shadowOpacity: 0.05,
   },
   engIcon: { fontSize: 28, marginBottom: 4 },
@@ -179,17 +222,16 @@ const st = StyleSheet.create({
   engDesc: { fontSize: 11, color: C.textMid, marginTop: 2, marginBottom: 10 },
   engBtns: { flexDirection: 'row' },
   engBtn: {
-    flex: 1, paddingVertical: 7, borderRadius: 10, alignItems: 'center',
+    flex: 1, paddingVertical: 7, borderRadius: 12, alignItems: 'center',
     justifyContent: 'center', marginHorizontal: 2,
   },
   engBtnTxt: { fontSize: 12, fontWeight: '700' },
   engBtnTxtW: { fontSize: 12, fontWeight: '700', color: '#fff' },
 
-  // Achievements
   achRow: { flexDirection: 'row', flexWrap: 'wrap' },
   achItem: {
     alignItems: 'center', width: 64, marginRight: 8, marginBottom: 8, padding: 6,
-    borderRadius: 12, backgroundColor: C.card,
+    borderRadius: 14, backgroundColor: C.card,
   },
   achLocked: { opacity: 0.3 },
   achIcon: { fontSize: 24 },
