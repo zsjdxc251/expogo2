@@ -49,14 +49,14 @@ export default function RootNavigator() {
         ) : (
           <>
             <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="Quiz" component={QuizScreen} />
+            <Stack.Screen name="Quiz" component={QuizScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="EngLearn" component={EnglishLearnScreen} />
-            <Stack.Screen name="EngQuiz" component={EnglishQuizScreen} />
+            <Stack.Screen name="EngQuiz" component={EnglishQuizScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="ChnLearn" component={ChineseLearnScreen} />
-            <Stack.Screen name="ChnQuiz" component={ChineseQuizScreen} />
-            <Stack.Screen name="Speed" component={SpeedChallengeScreen} />
-            <Stack.Screen name="Dictation" component={DictationScreen} />
-            <Stack.Screen name="Results" component={ResultsScreen} options={{ gestureEnabled: false }} />
+            <Stack.Screen name="ChnQuiz" component={ChineseQuizScreen} options={{ animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="Speed" component={SpeedChallengeScreen} options={{ animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="Dictation" component={DictationScreen} options={{ animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="Results" component={ResultsScreen} options={{ gestureEnabled: false, animation: 'fade' }} />
           </>
         )}
       </Stack.Navigator>

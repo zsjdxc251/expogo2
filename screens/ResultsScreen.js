@@ -1,16 +1,38 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { C, SUBJECTS, OP_SYMBOL, RADIUS } from '../lib/theme';
+import { C, SUBJECTS, OP_SYMBOL, RADIUS, SUBJECT_COLORS } from '../lib/theme';
 import { ENG_TOPICS } from '../lib/english';
 import { CHN_TOPICS } from '../lib/chinese';
 import { ACH_DEFS } from '../lib/points';
 import { playLevelUp } from '../lib/sounds';
 import { useApp } from '../lib/AppContext';
+import ProgressRing from '../components/ProgressRing';
 import SpeakButton from '../components/SpeakButton';
 
 function fmt(sec) {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+}
+
+function getEmojiFeedback(acc) {
+  if (acc >= 100) return { emoji: '🏆', text: 'Perfect! 太厉害了!', color: '#FFD700' };
+  if (acc >= 80)  return { emoji: '🌟', text: '很棒，继续加油!', color: C.success };
+  if (acc >= 60)  return { emoji: '💪', text: '不错，再练练会更好!', color: C.accent };
+  return { emoji: '🤗', text: '没关系，我们一起再来一次!', color: '#8E99A4' };
+}
+
+function useCountUp(target, duration = 800) {
+  const anim = useRef(new Animated.Value(0)).current;
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    anim.setValue(0);
+    const listener = anim.addListener(({ value }) => setDisplay(Math.round(value)));
+    Animated.timing(anim, { toValue: target, duration, useNativeDriver: false }).start();
+    return () => anim.removeListener(listener);
+  }, [target]);
+
+  return display;
 }
 
 export default function ResultsScreen() {
@@ -33,15 +55,15 @@ export default function ResultsScreen() {
 
   const {
     total = 0, correct = 0, wrong = 0, elapsed = 0, pointsEarned = 0, accuracy = 0,
-    subject, levelUp, newLevel, newAchievements = [], wrongList = [],
+    subject, levelUp, newLevel, newAchievements = [], wrongList = [], taskBonus = 0,
   } = data;
 
-  const perfect = wrong === 0 && total > 0;
+  const isMath = !subject?.startsWith('eng') && !subject?.startsWith('chn_');
   const isEng = subject && subject.startsWith('eng');
   const isChn = subject && subject.startsWith('chn_');
-  const engTopicObj = isEng
-    ? Object.values(ENG_TOPICS).find((t) => t.key === subject)
-    : null;
+  const sc = isEng ? SUBJECT_COLORS.english : isChn ? SUBJECT_COLORS.chinese : SUBJECT_COLORS.math;
+
+  const engTopicObj = isEng ? Object.values(ENG_TOPICS).find((t) => t.key === subject) : null;
   const chnTopicKey = isChn ? subject.replace('chn_', '') : null;
   const chnTopicObj = chnTopicKey ? CHN_TOPICS[chnTopicKey] : null;
   const sub = engTopicObj
@@ -49,6 +71,10 @@ export default function ResultsScreen() {
     : chnTopicObj
     ? { icon: chnTopicObj.icon, label: chnTopicObj.label, color: chnTopicObj.color }
     : SUBJECTS[subject] || { icon: '📝', label: '错题练习', color: C.primary };
+
+  const fb = getEmojiFeedback(accuracy);
+  const accDisplay = useCountUp(accuracy, 900);
+  const ptsDisplay = useCountUp(pointsEarned, 800);
 
   const ptAnim = useRef(new Animated.Value(0)).current;
   const starScale = useRef(new Animated.Value(0)).current;
@@ -69,37 +95,39 @@ export default function ResultsScreen() {
 
   return (
     <ScrollView style={st.scroll} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
-      <Text style={st.title}>练习完成!</Text>
+      {/* Big accuracy ring */}
+      <View style={st.ringWrap}>
+        <ProgressRing size={120} strokeWidth={10} progress={accuracy} color={sc.primary}>
+          <Text style={[st.ringPct, { color: sc.primary }]}>{accDisplay}%</Text>
+        </ProgressRing>
+      </View>
+
+      {/* Emoji feedback */}
+      <View style={[st.fbBanner, { backgroundColor: fb.color + '15' }]}>
+        <Text style={st.fbEmoji}>{fb.emoji}</Text>
+        <Text style={[st.fbText, { color: fb.color }]}>{fb.text}</Text>
+      </View>
+
       <View style={[st.subBadge, { backgroundColor: sub.color + '18' }]}>
         <Text style={{ color: sub.color, fontWeight: '700', fontSize: 14 }}>{sub.icon} {sub.label}</Text>
       </View>
 
-      {perfect && (
-        <View style={st.praise}>
-          <Text style={st.praiseEmoji}>🏆</Text>
-          <Text style={st.praiseTxt}>全部正确, 太棒了!</Text>
-        </View>
-      )}
-
       {/* Stats */}
       <View style={st.row}>
         <View style={st.stat}><Text style={st.statV}>{fmt(elapsed)}</Text><Text style={st.statL}>用时</Text></View>
-        <View style={st.stat}><Text style={st.statV}>{accuracy}%</Text><Text style={st.statL}>正确率</Text></View>
-      </View>
-      <View style={st.row}>
         <View style={[st.stat, { borderTopColor: C.success, borderTopWidth: 3 }]}>
           <Text style={[st.statV, { color: C.success }]}>{correct}</Text><Text style={st.statL}>正确</Text>
         </View>
-        <View style={[st.stat, wrong > 0 && { borderTopColor: C.error, borderTopWidth: 3 }]}>
-          <Text style={[st.statV, wrong > 0 && { color: C.error }]}>{wrong}</Text><Text style={st.statL}>错误</Text>
+        <View style={[st.stat, wrong > 0 ? { borderTopColor: C.error, borderTopWidth: 3 } : null]}>
+          <Text style={[st.statV, wrong > 0 ? { color: C.error } : null]}>{wrong}</Text><Text style={st.statL}>错误</Text>
         </View>
-        <View style={st.stat}><Text style={st.statV}>{total}</Text><Text style={st.statL}>总题数</Text></View>
       </View>
 
-      {/* Points earned */}
+      {/* Points earned (animated) */}
       <Animated.View style={[st.ptCard, { opacity: ptOpacity, transform: [{ translateY: ptTransY }] }]}>
         <Text style={st.ptLabel}>本次获得</Text>
-        <Text style={st.ptVal}>+{pointsEarned} 积分 🪙</Text>
+        <Text style={st.ptVal}>+{ptsDisplay} 积分 🪙</Text>
+        {taskBonus > 0 && <Text style={st.ptBonus}>含任务奖励 +{taskBonus}</Text>}
       </Animated.View>
 
       {/* Level up */}
@@ -133,7 +161,7 @@ export default function ResultsScreen() {
       {/* Wrong list */}
       {wrongList.length > 0 && (
         <View style={st.wrongSec}>
-          <Text style={st.wrongTitle}>错题回顾</Text>
+          <Text style={st.wrongTitle}>错题回顾 ({wrongList.length}题)</Text>
           {wrongList.map((w, i) => {
             const wIsEng = w.op && (w.op.startsWith('eng') || w.op.startsWith('chn_'));
             if (wIsEng) {
@@ -195,11 +223,11 @@ export default function ResultsScreen() {
       )}
 
       {/* Buttons */}
-      <TouchableOpacity style={st.homeBtn} onPress={onHome} activeOpacity={0.8}>
+      <TouchableOpacity style={[st.homeBtn, { backgroundColor: sc.primary }]} onPress={onHome} activeOpacity={0.8}>
         <Text style={st.homeBtnTxt}>返回主页</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={st.retryBtn} onPress={onRetry} activeOpacity={0.8}>
-        <Text style={st.retryBtnTxt}>再来一次</Text>
+      <TouchableOpacity style={[st.retryBtn, { borderColor: sc.primary }]} onPress={onRetry} activeOpacity={0.8}>
+        <Text style={[st.retryBtnTxt, { color: sc.primary }]}>再来一次</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -207,44 +235,48 @@ export default function ResultsScreen() {
 
 const st = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 20, paddingBottom: 40 },
-  title: { fontSize: 26, fontWeight: '800', color: C.text, textAlign: 'center', marginBottom: 8 },
-  subBadge: { alignSelf: 'center', paddingHorizontal: 14, paddingVertical: 4, borderRadius: 14, marginBottom: 16 },
+  content: { padding: 20, paddingBottom: 40, alignItems: 'center' },
 
-  praise: { backgroundColor: C.successBg, borderRadius: 16, padding: 18, alignItems: 'center', marginBottom: 16 },
-  praiseEmoji: { fontSize: 40, marginBottom: 4 },
-  praiseTxt: { fontSize: 18, fontWeight: '700', color: C.success },
+  ringWrap: { marginTop: 8, marginBottom: 16 },
+  ringPct: { fontSize: 28, fontWeight: '800' },
 
-  row: { flexDirection: 'row', marginBottom: 10 },
+  fbBanner: { borderRadius: 16, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center', marginBottom: 12, width: '100%' },
+  fbEmoji: { fontSize: 36, marginBottom: 4 },
+  fbText: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
+
+  subBadge: { paddingHorizontal: 14, paddingVertical: 4, borderRadius: 14, marginBottom: 16 },
+
+  row: { flexDirection: 'row', marginBottom: 10, width: '100%' },
   stat: {
-    flex: 1, backgroundColor: C.card, borderRadius: RADIUS, padding: 14, alignItems: 'center',
+    flex: 1, backgroundColor: C.cardWhite, borderRadius: RADIUS, padding: 14, alignItems: 'center',
     marginHorizontal: 4,
   },
-  statV: { fontSize: 24, fontWeight: '800', color: C.text },
-  statL: { fontSize: 12, color: C.textMid, marginTop: 3 },
+  statV: { fontSize: 22, fontWeight: '800', color: C.text },
+  statL: { fontSize: 11, color: C.textMid, marginTop: 3 },
 
   ptCard: {
     backgroundColor: C.accentBg, borderRadius: 16, padding: 16, alignItems: 'center',
-    marginTop: 8, marginBottom: 8,
+    marginTop: 4, marginBottom: 8, width: '100%',
   },
   ptLabel: { fontSize: 14, color: C.textMid },
   ptVal: { fontSize: 24, fontWeight: '800', color: C.accent, marginTop: 4 },
+  ptBonus: { fontSize: 12, color: C.success, marginTop: 2, fontWeight: '600' },
 
   lvUp: { alignItems: 'center', marginVertical: 8 },
   lvEmoji: { fontSize: 44 },
   lvTxt: { fontSize: 18, fontWeight: '700', color: C.accent, marginTop: 4 },
 
-  achSec: { marginTop: 12 },
+  achSec: { marginTop: 12, width: '100%' },
   achTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 8 },
   achItem: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: C.card,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.cardWhite,
     borderRadius: RADIUS, padding: 12, marginBottom: 8,
   },
   achIcon: { fontSize: 28, marginRight: 12 },
   achName: { fontSize: 15, fontWeight: '700', color: C.text },
   achDesc: { fontSize: 12, color: C.textMid, marginTop: 2 },
 
-  wrongSec: { marginTop: 16 },
+  wrongSec: { marginTop: 16, width: '100%' },
   wrongTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 10 },
   wrongCard: { backgroundColor: C.errorBg, borderRadius: 14, padding: 14, marginBottom: 8 },
   wrongQRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
@@ -254,13 +286,13 @@ const st = StyleSheet.create({
   wrongExpl: { fontSize: 12, color: C.accent, marginTop: 6, backgroundColor: C.accentBg, padding: 6, borderRadius: 8 },
 
   homeBtn: {
-    height: 54, borderRadius: 14, backgroundColor: C.primary,
+    height: 54, borderRadius: 14, width: '100%',
     alignItems: 'center', justifyContent: 'center', marginTop: 16,
   },
   homeBtnTxt: { fontSize: 17, fontWeight: '700', color: '#fff' },
   retryBtn: {
-    height: 48, borderRadius: 14, backgroundColor: C.card, borderWidth: 2, borderColor: C.primary,
+    height: 48, borderRadius: 14, width: '100%', backgroundColor: C.cardWhite, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center', marginTop: 10,
   },
-  retryBtnTxt: { fontSize: 16, fontWeight: '700', color: C.primary },
+  retryBtnTxt: { fontSize: 16, fontWeight: '700' },
 });

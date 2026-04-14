@@ -3,14 +3,19 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from '
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { C, RADIUS } from '../lib/theme';
 import { CHN_TOPICS, LEARN_CARDS } from '../lib/chinese';
+import { useApp } from '../lib/AppContext';
 import SpeakButton from '../components/SpeakButton';
 
 export default function ChineseLearnScreen() {
   const route = useRoute();
   const nav = useNavigation();
+  const { recordLearning } = useApp();
   const topicKey = route.params?.topicKey;
   const onBack = useCallback(() => nav.goBack(), [nav]);
-  const onPractice = useCallback((k) => nav.replace('ChnQuiz', { topicKey: k }), [nav]);
+  const onPractice = useCallback((k) => {
+    recordLearning(`chn_${k}`);
+    nav.replace('ChnQuiz', { topicKey: k });
+  }, [nav, recordLearning]);
   const topic = CHN_TOPICS[topicKey] || { icon: '📝', label: topicKey || '语文', color: C.primary };
   const cards = LEARN_CARDS[topicKey] || [];
   const [idx, setIdx] = useState(0);

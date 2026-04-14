@@ -21,7 +21,7 @@ export default function WelcomeScreen() {
         <Text style={st.rocket}>🌿🌟</Text>
         <Text style={st.welcome}>欢迎来到</Text>
         <Text style={st.title}>学习乐园</Text>
-        <Text style={st.desc}>数学 + 英语, 一起探索!</Text>
+        <Text style={st.desc}>数学 + 英语 + 语文, 一起探索!</Text>
       </View>
 
       <View style={st.card}>

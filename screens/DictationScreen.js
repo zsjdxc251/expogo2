@@ -5,7 +5,6 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { C, RADIUS } from '../lib/theme';
 import { ENG_TOPIC_KEYS, ENG_TOPICS, generateEngQuestions } from '../lib/english';
 import { CHN_TOPICS, generateChnQuestions } from '../lib/chinese';
-import { playCorrect, playWrong, playCombo } from '../lib/sounds';
 import { useApp } from '../lib/AppContext';
 import Feedback from '../components/Feedback';
 import { shuffle } from '../lib/questions';
@@ -146,17 +145,14 @@ function QuizPhase({ questions, mode, onFinish, onBack }) {
     const isOk = optIdx === q.answer;
     setAnswers((prev) => { const n = [...prev]; n[idx] = optIdx; return n; });
     if (isOk) {
-      playCorrect();
       const next = combo + 1;
       setCombo(next);
       setMaxCombo((m) => Math.max(m, next));
       if (next >= 3) {
-        playCombo();
         comboAnim.setValue(1.4);
         Animated.spring(comboAnim, { toValue: 1, friction: 4, useNativeDriver: true }).start();
       }
     } else {
-      playWrong();
       setCombo(0);
     }
     setFb(isOk ? 'correct' : 'wrong');

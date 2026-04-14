@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { C, SUBJECTS, DIFFICULTIES, OP_SYMBOL, RADIUS } from '../lib/theme';
+import { C, SUBJECTS, DIFFICULTIES, OP_SYMBOL, RADIUS, SUBJECT_COLORS } from '../lib/theme';
 import { generateQuestions, getMaxQuestions } from '../lib/questions';
 import { useApp } from '../lib/AppContext';
 import NumberPad from '../components/NumberPad';
@@ -11,12 +11,21 @@ function fmt(sec) {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 }
 
+const TIMER_PRESETS = [
+  { label: '3 分钟', value: 180 },
+  { label: '5 分钟', value: 300 },
+  { label: '10 分钟', value: 600 },
+];
+
 // ── Setup Phase ──────────────────────────────────────────
 
 function SetupPhase({ subject, onStart, onBack }) {
   const sub = SUBJECTS[subject] || { icon: '📝', label: subject || '练习', color: C.primary };
+  const sc = SUBJECT_COLORS.math;
   const [diff, setDiff] = useState('normal');
   const [count, setCount] = useState(20);
+  const [timerMode, setTimerMode] = useState('countup');
+  const [countdownSec, setCountdownSec] = useState(300);
   const max = getMaxQuestions(subject, DIFFICULTIES[diff]?.range);
   const clamped = Math.min(count, max);
 
@@ -76,12 +85,42 @@ function SetupPhase({ subject, onStart, onBack }) {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Timer mode */}
+        <Text style={[st.setupLabel, { marginTop: 20 }]}>计时模式</Text>
+        <View style={st.diffRow}>
+          <TouchableOpacity
+            style={[st.diffBtn, timerMode === 'countup' && { backgroundColor: sc.primary }]}
+            onPress={() => setTimerMode('countup')}
+          >
+            <Text style={[st.diffTxt, timerMode === 'countup' && { color: '#fff' }]}>⏱ 计时</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[st.diffBtn, timerMode === 'countdown' && { backgroundColor: C.error }]}
+            onPress={() => setTimerMode('countdown')}
+          >
+            <Text style={[st.diffTxt, timerMode === 'countdown' && { color: '#fff' }]}>⏳ 倒计时</Text>
+          </TouchableOpacity>
+        </View>
+        {timerMode === 'countdown' && (
+          <View style={[st.presetRow, { marginTop: 10 }]}>
+            {TIMER_PRESETS.map((tp) => (
+              <TouchableOpacity
+                key={tp.value}
+                style={[st.presetBtn, countdownSec === tp.value && { backgroundColor: C.error }]}
+                onPress={() => setCountdownSec(tp.value)}
+              >
+                <Text style={[st.presetTxt, countdownSec === tp.value && { color: '#fff' }]}>{tp.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
 
       <TouchableOpacity
         style={st.goBtn}
         activeOpacity={0.8}
-        onPress={() => onStart(diff, clamped)}
+        onPress={() => onStart(diff, clamped, timerMode, countdownSec)}
       >
         <Text style={st.goBtnTxt}>开始答题</Text>
       </TouchableOpacity>
@@ -92,35 +131,68 @@ function SetupPhase({ subject, onStart, onBack }) {
 
 // ── Quiz Phase ───────────────────────────────────────────
 
-function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
+function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFinish, onBack }) {
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState(() => new Array(questions.length).fill(null));
   const [elapsed, setElapsed] = useState(0);
+  const [remaining, setRemaining] = useState(countdownSec || 300);
   const [timing, setTiming] = useState(true);
   const [fb, setFb] = useState(null);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
   const [errStreak, setErrStreak] = useState(0);
   const [hint, setHint] = useState(null);
+  const [timeUp, setTimeUp] = useState(false);
   const tick = useRef(null);
   const autoRef = useRef(null);
   const comboAnim = useRef(new Animated.Value(1)).current;
 
   const q = questions[idx];
   const isMulti = !!q?.multiInput;
+  const isMCQ = !!q?.mcq;
+  const hasStem = !!q?.stem && !isMCQ;
   const answered = answers[idx] !== null;
-  const allDone = answers.every((a) => a !== null);
+  const allDone = answers.every((a) => a !== null) || timeUp;
   const sub = SUBJECTS[subject] || { icon: '📝', label: '错题练习', color: C.primary };
   const opSym = OP_SYMBOL[q?.op] || '?';
+  const isCountdown = timerMode === 'countdown';
 
   const [inputA, setInputA] = useState('');
   const [inputB, setInputB] = useState('');
   const [focus, setFocus] = useState('a');
+  const [selectedOpt, setSelectedOpt] = useState(null);
 
   useEffect(() => {
-    if (timing) tick.current = setInterval(() => setElapsed((t) => t + 1), 1000);
+    if (!timing) return;
+    tick.current = setInterval(() => {
+      if (isCountdown) {
+        setRemaining((r) => {
+          if (r <= 1) {
+            clearInterval(tick.current);
+            setTiming(false);
+            setTimeUp(true);
+            return 0;
+          }
+          return r - 1;
+        });
+      }
+      setElapsed((t) => t + 1);
+    }, 1000);
     return () => clearInterval(tick.current);
-  }, [timing]);
+  }, [timing, isCountdown]);
+
+  // Auto-finish when countdown reaches 0
+  const answersRef = useRef(answers);
+  answersRef.current = answers;
+  useEffect(() => {
+    if (timeUp) {
+      clearInterval(tick.current);
+      onFinish({ questions, answers: answersRef.current, elapsed, subject, maxCombo });
+    }
+  }, [timeUp]);
+
+  const displayTime = isCountdown ? remaining : elapsed;
+  const timerDanger = isCountdown && remaining > 0 && remaining <= (countdownSec * 0.2);
 
   const checkAnswer = useCallback((val, answer) => {
     if (typeof answer === 'object' && answer !== null) {
@@ -200,6 +272,12 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
     [fb, answered, focus],
   );
 
+  const onMCQSelect = useCallback((optIdx) => {
+    if (fb || answered) return;
+    setSelectedOpt(optIdx);
+    doSubmit(optIdx);
+  }, [fb, answered, doSubmit]);
+
   useEffect(() => {
     if (!settings?.autoSubmit || fb || answered || !q) return;
     if (isMulti) {
@@ -232,6 +310,7 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
     setInputA('');
     setInputB('');
     setFocus('a');
+    setSelectedOpt(null);
     if (idx < questions.length - 1) {
       setIdx((i) => i + 1);
     } else {
@@ -315,10 +394,12 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
     <View style={st.quizRoot}>
       <View style={st.qHeader}>
         <TouchableOpacity onPress={onBack}><Text style={st.backTxt}>←</Text></TouchableOpacity>
-        <View style={st.timerBox}>
-          <Text style={st.timerTxt}>{fmt(elapsed)}</Text>
+        <View style={[st.timerBox, timerDanger && st.timerDanger]}>
+          <Text style={[st.timerTxt, timerDanger && st.timerTxtDanger]}>{fmt(displayTime)}</Text>
         </View>
-        <Text style={st.qProg}>{allDone ? questions.length : idx + 1}/{questions.length}</Text>
+        <View style={st.progBadge}>
+          <Text style={st.progBadgeTxt}>{allDone ? questions.length : idx + 1}/{questions.length}</Text>
+        </View>
       </View>
       <View style={st.bar}><View style={[st.barFill, { width: `${pct}%`, backgroundColor: sub.color }]} /></View>
 
@@ -331,8 +412,54 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
       <View style={st.qArea}>
         {allDone ? (
           <View style={st.doneBox}>
-            <Text style={st.doneEmoji}>🎉</Text>
-            <Text style={st.doneTxt}>全部答完了!</Text>
+            <Text style={st.doneEmoji}>{timeUp ? '⏰' : '🎉'}</Text>
+            <Text style={st.doneTxt}>{timeUp ? '时间到!' : '全部答完了!'}</Text>
+          </View>
+        ) : isMCQ ? (
+          <View style={st.qCard}>
+            <Text style={st.qIdx}>第 {idx + 1} 题</Text>
+            <Text style={st.stemTxt}>{q.stem}</Text>
+            <View style={st.mcqGrid}>
+              {q.options.map((opt, oi) => {
+                const sel = selectedOpt === oi;
+                const isCorrectOpt = oi === q.answer;
+                const showResult = fb !== null;
+                const optStyle = showResult
+                  ? isCorrectOpt ? st.mcqCorrect : sel ? st.mcqWrong : st.mcqOpt
+                  : sel ? st.mcqSelected : st.mcqOpt;
+                return (
+                  <TouchableOpacity
+                    key={oi}
+                    style={[st.mcqOpt, optStyle]}
+                    activeOpacity={0.7}
+                    disabled={!!fb || answered}
+                    onPress={() => onMCQSelect(oi)}
+                  >
+                    <Text style={[st.mcqOptTxt, showResult && isCorrectOpt && { color: '#fff' }, showResult && sel && !isCorrectOpt && { color: '#fff' }]}>{opt}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {fb === 'wrong' && hint && (
+              <View style={st.hintBox}><Text style={st.hintTxt}>💡 {hint}</Text></View>
+            )}
+          </View>
+        ) : hasStem ? (
+          <View style={st.qCard}>
+            <Text style={st.qIdx}>第 {idx + 1} 题</Text>
+            <Text style={st.stemTxt}>{q.stem}</Text>
+            <View style={st.qRow}>
+              <Text style={st.qOp}>答案:</Text>
+              {SingleInputBox}
+            </View>
+            {fb === 'wrong' && hint && (
+              <View style={st.hintBox}><Text style={st.hintTxt}>💡 {hint}</Text></View>
+            )}
+            {errStreak >= 3 && (
+              <View style={st.encourageBox}>
+                <Text style={st.encourageTxt}>{ENCOURAGE[errStreak % ENCOURAGE.length]}</Text>
+              </View>
+            )}
           </View>
         ) : (
           <View style={st.qCard}>
@@ -371,7 +498,7 @@ function QuizPhase({ questions, subject, settings, onFinish, onBack }) {
       </View>
 
       <View style={st.qBottom}>
-        {!allDone && <NumberPad onPress={onKey} disabled={!!fb || answered} />}
+        {!allDone && !isMCQ && <NumberPad onPress={onKey} disabled={!!fb || answered} />}
         {allDone ? (
           <TouchableOpacity style={st.finishBtn} onPress={handleFinish} activeOpacity={0.8}>
             <Text style={st.finishTxt}>查看结果</Text>
@@ -403,10 +530,14 @@ export default function QuizScreen() {
   const [phase, setPhase] = useState(params.isReview ? 'quiz' : 'setup');
   const [questions, setQuestions] = useState(params.questions || []);
   const [diff, setDiff] = useState(params.difficulty || 'normal');
+  const [timerMode, setTimerMode] = useState('countup');
+  const [countdownSec, setCountdownSec] = useState(300);
 
   const startQuiz = useCallback(
-    (difficulty, count) => {
+    (difficulty, count, tMode, cdSec) => {
       setDiff(difficulty);
+      setTimerMode(tMode || 'countup');
+      setCountdownSec(cdSec || 300);
       const range = DIFFICULTIES[difficulty].range;
       setQuestions(generateQuestions(params.subject, count, range));
       setPhase('quiz');
@@ -428,6 +559,8 @@ export default function QuizScreen() {
       questions={questions}
       subject={params.subject}
       settings={settings}
+      timerMode={timerMode}
+      countdownSec={countdownSec}
       onFinish={handleFinish}
       onBack={onBack}
     />
@@ -476,11 +609,14 @@ const st = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6,
   },
-  timerBox: { backgroundColor: C.primaryBg, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16 },
-  timerTxt: { fontSize: 17, fontWeight: '700', color: C.primary, fontVariant: ['tabular-nums'] },
-  qProg: { fontSize: 14, fontWeight: '600', color: C.textMid },
-  bar: { height: 8, backgroundColor: 'rgba(196,196,196,0.4)', marginHorizontal: 16, borderRadius: 30, overflow: 'hidden' },
-  barFill: { height: 8, borderRadius: 30 },
+  timerBox: { backgroundColor: C.primaryBg, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 16 },
+  timerDanger: { backgroundColor: C.errorBg },
+  timerTxt: { fontSize: 18, fontWeight: '700', color: C.primary, fontVariant: ['tabular-nums'] },
+  timerTxtDanger: { color: C.error },
+  progBadge: { backgroundColor: C.primaryBg, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 14 },
+  progBadgeTxt: { fontSize: 14, fontWeight: '700', color: C.primary },
+  bar: { height: 6, backgroundColor: 'rgba(196,196,196,0.4)', marginHorizontal: 16, borderRadius: 30, overflow: 'hidden' },
+  barFill: { height: 6, borderRadius: 30 },
 
   comboBox: { alignSelf: 'center', marginTop: 8, paddingHorizontal: 14, paddingVertical: 4, borderRadius: 16, backgroundColor: C.accentBg },
   comboTxt: { fontSize: 15, fontWeight: '800', color: C.accent },
@@ -490,25 +626,37 @@ const st = StyleSheet.create({
   qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 6 },
   qHint: { fontSize: 12, color: C.primary, fontWeight: '600', marginBottom: 10, backgroundColor: C.primaryBg, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
   qRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' },
-  qNum: { fontSize: 36, fontWeight: '800', color: C.text },
-  qOp: { fontSize: 24, fontWeight: '600', color: C.textMid, marginHorizontal: 6 },
-  qDots: { fontSize: 24, fontWeight: '800', color: C.textMid, marginHorizontal: 4, letterSpacing: 2 },
+  qNum: { fontSize: 40, fontWeight: '800', color: C.text },
+  qOp: { fontSize: 26, fontWeight: '600', color: C.textMid, marginHorizontal: 6 },
+  qDots: { fontSize: 26, fontWeight: '800', color: C.textMid, marginHorizontal: 4, letterSpacing: 2 },
   qInput: {
-    minWidth: 50, height: 58, borderRadius: 14, borderWidth: 2.5,
+    minWidth: 56, height: 62, borderRadius: 14, borderWidth: 2.5,
     borderColor: C.border, borderStyle: 'dashed', backgroundColor: 'rgba(229,229,229,0.3)',
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8,
   },
   qInputFilled: { borderStyle: 'solid', backgroundColor: '#fff' },
   qInputFocus: { borderColor: C.primary, borderStyle: 'solid', backgroundColor: C.primaryBg },
   qInputLabel: { fontSize: 9, color: C.textLight, fontWeight: '600', position: 'absolute', top: 2 },
-  qInputTxt: { fontSize: 34, fontWeight: '800', color: C.primary },
-  qInputPh: { fontSize: 26, fontWeight: '700', color: C.textLight },
+  qInputTxt: { fontSize: 38, fontWeight: '800', color: C.primary },
+  qInputPh: { fontSize: 28, fontWeight: '700', color: C.textLight },
   focusHint: { marginTop: 10 },
   focusHintTxt: { fontSize: 11, color: C.textLight },
   hintBox: { marginTop: 10, backgroundColor: C.accentBg, borderRadius: 10, padding: 10 },
   hintTxt: { fontSize: 13, color: C.accent, lineHeight: 20 },
   encourageBox: { marginTop: 8, backgroundColor: C.successBg, borderRadius: 10, padding: 8 },
   encourageTxt: { fontSize: 13, color: C.success, fontWeight: '600', textAlign: 'center' },
+
+  stemTxt: { fontSize: 20, fontWeight: '700', color: C.text, textAlign: 'center', lineHeight: 30, marginBottom: 16 },
+  mcqGrid: { width: '100%' },
+  mcqOpt: {
+    width: '100%', paddingVertical: 14, paddingHorizontal: 18,
+    borderRadius: 16, borderWidth: 2, borderColor: C.border,
+    backgroundColor: C.cardWhite, marginBottom: 10,
+  },
+  mcqSelected: { borderColor: C.primary, backgroundColor: C.primaryBg },
+  mcqCorrect: { borderColor: C.success, backgroundColor: C.success },
+  mcqWrong: { borderColor: C.error, backgroundColor: C.error },
+  mcqOptTxt: { fontSize: 17, fontWeight: '600', color: C.text, textAlign: 'center' },
 
   doneBox: { alignItems: 'center' },
   doneEmoji: { fontSize: 56, marginBottom: 10 },
