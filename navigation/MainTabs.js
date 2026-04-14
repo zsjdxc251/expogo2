@@ -66,6 +66,7 @@ export default function MainTabs() {
         tabBarStyle: st.bar,
         tabBarShowLabel: false,
         tabBarIcon: ({ focused }) => <TabIcon routeName={route.name} focused={focused} />,
+        sceneStyle: { paddingBottom: 80 },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} listeners={otherListeners} />
