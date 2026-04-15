@@ -232,6 +232,7 @@ export default function SpeedChallengeScreen() {
   const nav = useNavigation();
   const { finishQuiz } = useApp();
   const directBack = useCallback(() => nav.goBack(), [nav]);
+  const finishedRef = useRef(false);
 
   const [phase, setPhase] = useState('setup');
   const [showExit, setShowExit] = useState(false);
@@ -241,7 +242,9 @@ export default function SpeedChallengeScreen() {
   useEffect(() => {
     if (!inRace) return;
     const unsub = nav.addListener('beforeRemove', (e) => {
-      if (!showExit) { e.preventDefault(); setShowExit(true); }
+      if (finishedRef.current || showExit) return;
+      e.preventDefault();
+      setShowExit(true);
     });
     return unsub;
   }, [nav, inRace, showExit]);
@@ -268,6 +271,7 @@ export default function SpeedChallengeScreen() {
   }, []);
 
   const onComplete = useCallback(async (correct, maxCombo) => {
+    finishedRef.current = true;
     let newBest = best;
     if (correct > best) {
       newBest = correct;

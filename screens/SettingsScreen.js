@@ -216,6 +216,22 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        <View style={st.divider} />
+        <View style={st.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={st.rowTitle}>任务完成奖励</Text>
+            <Text style={st.rowDesc}>每完成一个每日任务的积分</Text>
+          </View>
+          <View style={st.stepper}>
+            <TouchableOpacity style={st.stepBtn} onPress={() => updateReward({ taskReward: Math.max(1, (rc.taskReward || 10) - 1) })}>
+              <Text style={st.stepTxt}>−</Text>
+            </TouchableOpacity>
+            <Text style={st.stepVal}>{rc.taskReward || 10}分</Text>
+            <TouchableOpacity style={st.stepBtn} onPress={() => updateReward({ taskReward: Math.min(100, (rc.taskReward || 10) + 1) })}>
+              <Text style={st.stepTxt}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       {/* Visibility / Permissions */}

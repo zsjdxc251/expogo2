@@ -560,6 +560,7 @@ export default function QuizScreen() {
   const { settings, finishQuiz } = useApp();
   const params = route.params || {};
   const directBack = useCallback(() => nav.goBack(), [nav]);
+  const finishedRef = useRef(false);
 
   const [phase, setPhase] = useState(params.isReview ? 'quiz' : 'setup');
   const [showExit, setShowExit] = useState(false);
@@ -569,7 +570,9 @@ export default function QuizScreen() {
   useEffect(() => {
     if (!inQuiz) return;
     const unsub = nav.addListener('beforeRemove', (e) => {
-      if (!showExit) { e.preventDefault(); setShowExit(true); }
+      if (finishedRef.current || showExit) return;
+      e.preventDefault();
+      setShowExit(true);
     });
     return unsub;
   }, [nav, inQuiz, showExit]);
@@ -591,6 +594,7 @@ export default function QuizScreen() {
   );
 
   const handleFinish = useCallback(async (data) => {
+    finishedRef.current = true;
     await finishQuiz({ ...data, difficulty: diff });
     nav.replace('Results');
   }, [finishQuiz, diff, nav]);

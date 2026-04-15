@@ -57,7 +57,7 @@ function getWeakestTopic(history, subjects, prefix) {
 }
 
 export default function HomeScreen() {
-  const { user, streak, achievements, history, dailyTasks, saveQuizRoute, visibility } = useApp();
+  const { user, streak, achievements, history, dailyTasks, saveQuizRoute, visibility, rewardConfig } = useApp();
   const vis = visibility || {};
   const nav = useNavigation();
   const scrollRef = useRef(null);
@@ -89,6 +89,29 @@ export default function HomeScreen() {
 
   const sc = SUBJECT_COLORS[activeTab] || SUBJECT_COLORS.math;
   const taskDone = getCompletedCount(dailyTasks);
+
+  const navigateTask = useCallback((task) => {
+    if (task.completed) return;
+    setShowTasks(false);
+    const t = task.tpl;
+    if (t === 'math_all' || t === 'math_add') go('Quiz', { subject: t === 'math_add' ? 'add' : 'mulForward' });
+    else if (t === 'math_mul') go('Quiz', { subject: 'mulForward' });
+    else if (t === 'math_div') go('Quiz', { subject: 'divide' });
+    else if (t === 'eng_learn' || t === 'eng_quiz') {
+      const keys = Object.keys(ENG_TOPICS);
+      if (keys.length > 0) {
+        if (t === 'eng_learn') nav.navigate('EngLearn', { topicKey: keys[0] });
+        else go('EngQuiz', { topicKey: keys[0] });
+      }
+    } else if (t === 'chn_learn' || t === 'chn_quiz') {
+      const keys = Object.keys(CHN_TOPICS);
+      if (keys.length > 0) {
+        if (t === 'chn_learn') nav.navigate('ChnLearn', { topicKey: keys[0] });
+        else go('ChnQuiz', { topicKey: keys[0] });
+      }
+    } else if (t === 'speed') go('Speed', {});
+    else if (t === 'dictation') go('Dictation', { mode: 'eng' });
+  }, [go, nav]);
 
   const allEngTopics = Object.keys(ENG_TOPICS);
   const allChnTopics = Object.keys(CHN_TOPICS);
@@ -389,7 +412,12 @@ export default function HomeScreen() {
               <Text style={st.modalCelebrate}>今日任务全部完成! 🎉</Text>
             )}
             {dailyTasks.map((t) => (
-              <View key={t.id} style={[st.taskItem, t.completed && st.taskItemDone]}>
+              <TouchableOpacity
+                key={t.id}
+                style={[st.taskItem, t.completed && st.taskItemDone]}
+                activeOpacity={t.completed ? 1 : 0.7}
+                onPress={() => navigateTask(t)}
+              >
                 <Text style={st.taskItemIcon}>{t.completed ? '✅' : '⬜'}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={[st.taskItemText, t.completed && st.taskItemTextDone]}>{t.text}</Text>
@@ -397,8 +425,9 @@ export default function HomeScreen() {
                     <View style={[st.taskBarFill, { width: `${t.target > 0 ? Math.min(100, (t.progress / t.target) * 100) : 0}%`, backgroundColor: sc.primary }]} />
                   </View>
                 </View>
-                <Text style={st.taskItemReward}>+20</Text>
-              </View>
+                {!t.completed && <Text style={[st.taskGoBtn, { color: sc.primary }]}>GO →</Text>}
+                <Text style={st.taskItemReward}>+{rewardConfig?.taskReward || 10}</Text>
+              </TouchableOpacity>
             ))}
             <TouchableOpacity style={[st.modalClose, { backgroundColor: sc.primary }]} onPress={() => setShowTasks(false)}>
               <Text style={st.modalCloseTxt}>关闭</Text>
@@ -505,6 +534,7 @@ const st = StyleSheet.create({
   taskItemTextDone: { textDecorationLine: 'line-through', color: C.textMid },
   taskBar: { height: 4, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.06)', overflow: 'hidden' },
   taskBarFill: { height: 4, borderRadius: 2 },
+  taskGoBtn: { fontSize: 12, fontWeight: '800', marginRight: 6 },
   taskItemReward: { fontSize: 13, fontWeight: '700', color: C.gold, marginLeft: 8 },
   modalClose: { marginTop: 12, paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
   modalCloseTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },

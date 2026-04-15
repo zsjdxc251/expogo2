@@ -285,8 +285,10 @@ export default function DictationScreen() {
   const { finishQuiz } = useApp();
   const mode = route.params?.mode || 'eng';
   const directBack = useCallback(() => nav.goBack(), [nav]);
+  const finishedRef = useRef(false);
 
   const handleFinish = useCallback(async (data) => {
+    finishedRef.current = true;
     await finishQuiz(data);
     nav.replace('Results');
   }, [finishQuiz, nav]);
@@ -300,7 +302,9 @@ export default function DictationScreen() {
   useEffect(() => {
     if (!inQuiz) return;
     const unsub = nav.addListener('beforeRemove', (e) => {
-      if (!showExit) { e.preventDefault(); setShowExit(true); }
+      if (finishedRef.current || showExit) return;
+      e.preventDefault();
+      setShowExit(true);
     });
     return unsub;
   }, [nav, inQuiz, showExit]);
