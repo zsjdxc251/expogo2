@@ -57,7 +57,8 @@ function getWeakestTopic(history, subjects, prefix) {
 }
 
 export default function HomeScreen() {
-  const { user, streak, achievements, history, dailyTasks, saveQuizRoute } = useApp();
+  const { user, streak, achievements, history, dailyTasks, saveQuizRoute, visibility } = useApp();
+  const vis = visibility || {};
   const nav = useNavigation();
   const scrollRef = useRef(null);
   const go = useCallback((name, params) => {
@@ -76,9 +77,11 @@ export default function HomeScreen() {
   const lv = getLevel(totalPts);
   const nxt = nextLevel(totalPts);
   const pct = nxt ? Math.round(((totalPts - lv.min) / (nxt.min - lv.min)) * 100) : 100;
-  const [activeTab, setActiveTab] = useState('math');
+  const visTabs = SUBJECT_TABS.filter((t) => vis[t.key] !== false);
+  const [activeTab, setActiveTab] = useState(() => visTabs[0]?.key || 'math');
   const [openLevel, setOpenLevel] = useState('beginner');
   const [openChnLevel, setOpenChnLevel] = useState('pinyin');
+  const visMath = MATH_SUBJECTS.filter((k) => vis[`math_${k}`] !== false);
   const [showTasks, setShowTasks] = useState(false);
   const [showAch, setShowAch] = useState(false);
   const toggleLevel = (k) => setOpenLevel(openLevel === k ? null : k);
@@ -146,7 +149,7 @@ export default function HomeScreen() {
           { key: 'math', icon: '📐', label: '数学', prog: mathProg, sc: SUBJECT_COLORS.math },
           { key: 'english', icon: '📖', label: '英语', prog: engProg, sc: SUBJECT_COLORS.english },
           { key: 'chinese', icon: '📝', label: '语文', prog: chnProg, sc: SUBJECT_COLORS.chinese },
-        ].map((s) => (
+        ].filter((s) => vis[s.key] !== false).map((s) => (
           <PressableCard
             key={s.key}
             style={[st.subjectCard, { backgroundColor: s.sc.bg, borderColor: activeTab === s.key ? s.sc.primary : 'transparent' }]}
@@ -163,7 +166,7 @@ export default function HomeScreen() {
 
       {/* Subject tabs */}
       <View style={st.tabRow}>
-        {SUBJECT_TABS.map((t) => {
+        {visTabs.map((t) => {
           const tsc = SUBJECT_COLORS[t.key];
           const on = activeTab === t.key;
           return (
@@ -181,7 +184,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Smart Quick Start */}
-      {activeTab === 'math' && weakMath && (
+      {activeTab === 'math' && weakMath && vis[`math_${weakMath}`] !== false && (
         <TouchableOpacity style={[st.quickStart, { backgroundColor: sc.bg, borderLeftColor: sc.primary }]} onPress={() => onSubject(weakMath)}>
           <Text style={st.quickIcon}>🎯</Text>
           <View style={{ flex: 1 }}>
@@ -217,7 +220,7 @@ export default function HomeScreen() {
         <>
           <Text style={[st.secTitle, { color: sc.dark }]}>数学练习</Text>
           <View style={st.grid}>
-            {MATH_SUBJECTS.map((key) => {
+            {visMath.map((key) => {
               const sub = SUBJECTS[key];
               const prog = calcSubjectProgress(history, key);
               return (

@@ -15,10 +15,10 @@ function fmt(sec) {
 }
 
 function getEmojiFeedback(acc) {
-  if (acc >= 100) return { emoji: '🏆', text: 'Perfect! 太厉害了!', color: '#FFD700' };
-  if (acc >= 80)  return { emoji: '🌟', text: '很棒，继续加油!', color: C.success };
-  if (acc >= 60)  return { emoji: '💪', text: '不错，再练练会更好!', color: C.accent };
-  return { emoji: '🤗', text: '没关系，我们一起再来一次!', color: '#8E99A4' };
+  if (acc >= 100) return { emoji: '🏆', text: '全部答对！你太棒了，给你一个大大的赞！👍', color: '#FFD700' };
+  if (acc >= 80)  return { emoji: '🌟', text: '非常棒！再加把劲就能全对啦！', color: C.success };
+  if (acc >= 60)  return { emoji: '💪', text: '不错哦，继续努力你会更厉害的！', color: C.accent };
+  return { emoji: '🤗', text: '没关系，错误是进步的阶梯，再来一次吧！', color: '#8E99A4' };
 }
 
 function useCountUp(target, duration = 800) {
@@ -56,6 +56,7 @@ export default function ResultsScreen() {
   const {
     total = 0, correct = 0, wrong = 0, elapsed = 0, pointsEarned = 0, accuracy = 0,
     subject, levelUp, newLevel, newAchievements = [], wrongList = [], taskBonus = 0,
+    isPerfect = false, perfectBonusValue = 0,
   } = data;
 
   const isMath = !subject?.startsWith('eng') && !subject?.startsWith('chn_');
@@ -124,9 +125,14 @@ export default function ResultsScreen() {
       </View>
 
       {/* Points earned (animated) */}
-      <Animated.View style={[st.ptCard, { opacity: ptOpacity, transform: [{ translateY: ptTransY }] }]}>
+      <Animated.View style={[st.ptCard, isPerfect && st.ptCardPerfect, { opacity: ptOpacity, transform: [{ translateY: ptTransY }] }]}>
         <Text style={st.ptLabel}>本次获得</Text>
         <Text style={st.ptVal}>+{ptsDisplay} 积分 🪙</Text>
+        {isPerfect && perfectBonusValue > 0 && (
+          <View style={st.perfectRow}>
+            <Text style={st.perfectTxt}>🎉 全对奖励 +{perfectBonusValue} 积分</Text>
+          </View>
+        )}
         {taskBonus > 0 && <Text style={st.ptBonus}>含任务奖励 +{taskBonus}</Text>}
       </Animated.View>
 
@@ -260,6 +266,9 @@ const st = StyleSheet.create({
   },
   ptLabel: { fontSize: 14, color: C.textMid },
   ptVal: { fontSize: 24, fontWeight: '800', color: C.accent, marginTop: 4 },
+  ptCardPerfect: { borderWidth: 2, borderColor: '#FFD700' },
+  perfectRow: { backgroundColor: 'rgba(255,215,0,0.15)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, marginTop: 6 },
+  perfectTxt: { fontSize: 14, fontWeight: '700', color: '#D4A017' },
   ptBonus: { fontSize: 12, color: C.success, marginTop: 2, fontWeight: '600' },
 
   lvUp: { alignItems: 'center', marginVertical: 8 },

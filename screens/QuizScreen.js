@@ -6,6 +6,7 @@ import { generateQuestions, getMaxQuestions } from '../lib/questions';
 import { useApp } from '../lib/AppContext';
 import NumberPad from '../components/NumberPad';
 import Feedback from '../components/Feedback';
+import ExitConfirmModal from '../components/ExitConfirmModal';
 
 function fmt(sec) {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
@@ -558,9 +559,20 @@ export default function QuizScreen() {
   const nav = useNavigation();
   const { settings, finishQuiz } = useApp();
   const params = route.params || {};
-  const onBack = useCallback(() => nav.goBack(), [nav]);
+  const directBack = useCallback(() => nav.goBack(), [nav]);
 
   const [phase, setPhase] = useState(params.isReview ? 'quiz' : 'setup');
+  const [showExit, setShowExit] = useState(false);
+  const inQuiz = phase === 'quiz';
+  const onBack = useCallback(() => { if (inQuiz) setShowExit(true); else nav.goBack(); }, [inQuiz, nav]);
+
+  useEffect(() => {
+    if (!inQuiz) return;
+    const unsub = nav.addListener('beforeRemove', (e) => {
+      if (!showExit) { e.preventDefault(); setShowExit(true); }
+    });
+    return unsub;
+  }, [nav, inQuiz, showExit]);
   const [questions, setQuestions] = useState(params.questions || []);
   const [diff, setDiff] = useState(params.difficulty || 'normal');
   const [timerMode, setTimerMode] = useState('countup');
@@ -588,15 +600,18 @@ export default function QuizScreen() {
   }
 
   return (
-    <QuizPhase
-      questions={questions}
-      subject={params.subject}
-      settings={settings}
-      timerMode={timerMode}
-      countdownSec={countdownSec}
-      onFinish={handleFinish}
-      onBack={onBack}
-    />
+    <>
+      <QuizPhase
+        questions={questions}
+        subject={params.subject}
+        settings={settings}
+        timerMode={timerMode}
+        countdownSec={countdownSec}
+        onFinish={handleFinish}
+        onBack={onBack}
+      />
+      <ExitConfirmModal visible={showExit} onCancel={() => setShowExit(false)} onConfirm={directBack} />
+    </>
   );
 }
 

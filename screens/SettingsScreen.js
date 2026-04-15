@@ -2,8 +2,13 @@ import { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, Switch, TextInput, ScrollView, StyleSheet, Alert, Platform,
 } from 'react-native';
-import { C, AVATARS, RADIUS } from '../lib/theme';
+import { C, AVATARS, RADIUS, SUBJECTS } from '../lib/theme';
 import { useApp } from '../lib/AppContext';
+
+const MATH_VIS_KEYS = [
+  'mulForward','mulBlank','add','subtract','divide','divRem','divReverse',
+  'addTwo','subtractTwo','mulReverse','compare','wordProblem','pattern',
+];
 
 function showConfirm(title, msg, onOk) {
   if (Platform.OS === 'web') {
@@ -17,14 +22,25 @@ function showConfirm(title, msg, onOk) {
 }
 
 export default function SettingsScreen() {
-  const { user, settings, updateUser: onUpdate, resetAll, requestPin } = useApp();
+  const { user, settings, rewardConfig, visibility, updateUser: onUpdate, resetAll, requestPin } = useApp();
   const onClear = resetAll;
   const onChangePin = useCallback(() => requestPin('setup'), [requestPin]);
   const [editing, setEditing] = useState(null);
   const [tmpName, setTmpName] = useState(user?.name || '');
   const [tmpAvatar, setTmpAvatar] = useState(user?.avatar || '');
+  const [mathExpanded, setMathExpanded] = useState(false);
 
   const breakConfig = user?.breakConfig || { usageMinutes: 20, breakMinutes: 5 };
+  const rc = rewardConfig || { perCorrect: 5, perfectBonus: 10 };
+  const vis = visibility || {};
+
+  const updateReward = (patch) => {
+    onUpdate({ rewardConfig: { ...rc, ...patch } });
+  };
+
+  const toggleVis = (key, val) => {
+    onUpdate({ visibility: { ...vis, [key]: val } });
+  };
 
   const saveName = () => {
     if (tmpName.trim()) {
@@ -166,6 +182,110 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* Reward Settings */}
+      <Text style={st.secLabel}>积分设置</Text>
+      <View style={st.card}>
+        <View style={st.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={st.rowTitle}>每题正确积分</Text>
+            <Text style={st.rowDesc}>答对一题获得的积分</Text>
+          </View>
+          <View style={st.stepper}>
+            <TouchableOpacity style={st.stepBtn} onPress={() => updateReward({ perCorrect: Math.max(1, rc.perCorrect - 1) })}>
+              <Text style={st.stepTxt}>−</Text>
+            </TouchableOpacity>
+            <Text style={st.stepVal}>{rc.perCorrect}分</Text>
+            <TouchableOpacity style={st.stepBtn} onPress={() => updateReward({ perCorrect: Math.min(50, rc.perCorrect + 1) })}>
+              <Text style={st.stepTxt}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={st.divider} />
+        <View style={st.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={st.rowTitle}>全对额外奖励</Text>
+            <Text style={st.rowDesc}>一次练习全部答对的额外积分</Text>
+          </View>
+          <View style={st.stepper}>
+            <TouchableOpacity style={st.stepBtn} onPress={() => updateReward({ perfectBonus: Math.max(0, rc.perfectBonus - 5) })}>
+              <Text style={st.stepTxt}>−</Text>
+            </TouchableOpacity>
+            <Text style={st.stepVal}>{rc.perfectBonus}分</Text>
+            <TouchableOpacity style={st.stepBtn} onPress={() => updateReward({ perfectBonus: Math.min(200, rc.perfectBonus + 5) })}>
+              <Text style={st.stepTxt}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* Visibility / Permissions */}
+      <Text style={st.secLabel}>科目权限</Text>
+      <View style={st.card}>
+        <View style={st.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={st.rowTitle}>📐 数学</Text>
+          </View>
+          <Switch
+            value={vis.math !== false}
+            onValueChange={(v) => toggleVis('math', v)}
+            trackColor={{ true: C.primary, false: C.border }}
+            thumbColor="#fff"
+          />
+        </View>
+        {vis.math !== false && (
+          <>
+            <View style={st.divider} />
+            <TouchableOpacity style={st.row} onPress={() => setMathExpanded(!mathExpanded)}>
+              <Text style={[st.rowDesc, { flex: 1 }]}>
+                {mathExpanded ? '收起题型设置 ▲' : '展开题型设置 ▼'}
+              </Text>
+            </TouchableOpacity>
+            {mathExpanded && MATH_VIS_KEYS.map((k) => {
+              const sub = SUBJECTS[k];
+              if (!sub) return null;
+              return (
+                <View key={k}>
+                  <View style={st.divider} />
+                  <View style={st.subRow}>
+                    <Text style={st.subLabel}>{sub.icon} {sub.label}</Text>
+                    <Switch
+                      value={vis[`math_${k}`] !== false}
+                      onValueChange={(v) => toggleVis(`math_${k}`, v)}
+                      trackColor={{ true: C.primary, false: C.border }}
+                      thumbColor="#fff"
+                    />
+                  </View>
+                </View>
+              );
+            })}
+          </>
+        )}
+        <View style={st.divider} />
+        <View style={st.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={st.rowTitle}>📖 英语</Text>
+          </View>
+          <Switch
+            value={vis.english !== false}
+            onValueChange={(v) => toggleVis('english', v)}
+            trackColor={{ true: C.primary, false: C.border }}
+            thumbColor="#fff"
+          />
+        </View>
+        <View style={st.divider} />
+        <View style={st.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={st.rowTitle}>📝 语文</Text>
+          </View>
+          <Switch
+            value={vis.chinese !== false}
+            onValueChange={(v) => toggleVis('chinese', v)}
+            trackColor={{ true: C.primary, false: C.border }}
+            thumbColor="#fff"
+          />
+        </View>
+      </View>
+
       {/* Danger Zone */}
       <Text style={st.secLabel}>管理</Text>
       <View style={st.card}>
@@ -251,6 +371,9 @@ const st = StyleSheet.create({
   },
   avatarOn: { borderColor: C.primary, backgroundColor: C.primaryBg },
   avatarTxt: { fontSize: 26 },
+
+  subRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 12, paddingLeft: 36 },
+  subLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: C.text },
 
   ver: { textAlign: 'center', fontSize: 12, color: C.textLight, marginTop: 24 },
 });

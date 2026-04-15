@@ -6,6 +6,7 @@ import { generateQuestions } from '../lib/questions';
 import { playCorrect, playWrong, playCombo } from '../lib/sounds';
 import { useApp } from '../lib/AppContext';
 import NumberPad from '../components/NumberPad';
+import ExitConfirmModal from '../components/ExitConfirmModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TOTAL_TIME = 60;
@@ -230,9 +231,20 @@ function ResultPhase({ correct, best, onRetry, onBack }) {
 export default function SpeedChallengeScreen() {
   const nav = useNavigation();
   const { finishQuiz } = useApp();
-  const onBack = useCallback(() => nav.goBack(), [nav]);
+  const directBack = useCallback(() => nav.goBack(), [nav]);
 
   const [phase, setPhase] = useState('setup');
+  const [showExit, setShowExit] = useState(false);
+  const inRace = phase === 'race';
+  const onBack = useCallback(() => { if (inRace) setShowExit(true); else nav.goBack(); }, [inRace, nav]);
+
+  useEffect(() => {
+    if (!inRace) return;
+    const unsub = nav.addListener('beforeRemove', (e) => {
+      if (!showExit) { e.preventDefault(); setShowExit(true); }
+    });
+    return unsub;
+  }, [nav, inRace, showExit]);
   const [questions, setQuestions] = useState([]);
   const [diff, setDiff] = useState('easy');
   const [result, setResult] = useState(null);
@@ -285,7 +297,12 @@ export default function SpeedChallengeScreen() {
   }
 
   if (phase === 'race' && !result) {
-    return <RacingPhase questions={questions} onComplete={onComplete} onBack={onBack} />;
+    return (
+      <>
+        <RacingPhase questions={questions} onComplete={onComplete} onBack={onBack} />
+        <ExitConfirmModal visible={showExit} onCancel={() => setShowExit(false)} onConfirm={directBack} />
+      </>
+    );
   }
 
   if (result) {

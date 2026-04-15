@@ -30,7 +30,7 @@ function LoadingScreen() {
 
 export default function RootNavigator() {
   const {
-    ready, hasUser, showBreak, breakConfig, onBreakDone,
+    ready, hasUser, showBreak, breakConfig, onBreakDone, requestBreakUnlock,
     showPin, pinMode, user, onPinSuccess, onPinCancel,
   } = useApp();
   const insets = useSafeAreaInsets();
@@ -65,7 +65,11 @@ export default function RootNavigator() {
 
       {showBreak && (
         <View style={StyleSheet.absoluteFill}>
-          <BreakScreen breakMinutes={breakConfig.breakMinutes} onDone={onBreakDone} />
+          <BreakScreen
+            breakMinutes={breakConfig.breakMinutes}
+            onDone={onBreakDone}
+            onParentUnlock={user?.parentPin ? requestBreakUnlock : null}
+          />
         </View>
       )}
 

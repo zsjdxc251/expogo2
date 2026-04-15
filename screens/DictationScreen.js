@@ -7,6 +7,7 @@ import { ENG_TOPIC_KEYS, ENG_TOPICS, generateEngQuestions } from '../lib/english
 import { CHN_TOPICS, generateChnQuestions } from '../lib/chinese';
 import { useApp } from '../lib/AppContext';
 import Feedback from '../components/Feedback';
+import ExitConfirmModal from '../components/ExitConfirmModal';
 import { shuffle } from '../lib/questions';
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
@@ -283,7 +284,7 @@ export default function DictationScreen() {
   const nav = useNavigation();
   const { finishQuiz } = useApp();
   const mode = route.params?.mode || 'eng';
-  const onBack = useCallback(() => nav.goBack(), [nav]);
+  const directBack = useCallback(() => nav.goBack(), [nav]);
 
   const handleFinish = useCallback(async (data) => {
     await finishQuiz(data);
@@ -292,6 +293,17 @@ export default function DictationScreen() {
 
   const [phase, setPhase] = useState('setup');
   const [questions, setQuestions] = useState([]);
+  const [showExit, setShowExit] = useState(false);
+  const inQuiz = phase === 'quiz';
+  const onBack = useCallback(() => { if (inQuiz) setShowExit(true); else nav.goBack(); }, [inQuiz, nav]);
+
+  useEffect(() => {
+    if (!inQuiz) return;
+    const unsub = nav.addListener('beforeRemove', (e) => {
+      if (!showExit) { e.preventDefault(); setShowExit(true); }
+    });
+    return unsub;
+  }, [nav, inQuiz, showExit]);
 
   const startQuiz = useCallback((count) => {
     setQuestions(generateDictationQuestions(mode, count));
@@ -303,12 +315,15 @@ export default function DictationScreen() {
   }
 
   return (
-    <QuizPhase
-      questions={questions}
-      mode={mode}
-      onFinish={handleFinish}
-      onBack={onBack}
-    />
+    <>
+      <QuizPhase
+        questions={questions}
+        mode={mode}
+        onFinish={handleFinish}
+        onBack={onBack}
+      />
+      <ExitConfirmModal visible={showExit} onCancel={() => setShowExit(false)} onConfirm={directBack} />
+    </>
   );
 }
 

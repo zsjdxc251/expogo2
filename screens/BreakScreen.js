@@ -16,7 +16,7 @@ const EYE_STEPS = [
 const STEP_DURATION = 8000;
 const BREAK_REWARD = 10;
 
-export default function BreakScreen({ breakMinutes, onDone }) {
+export default function BreakScreen({ breakMinutes, onDone, onParentUnlock }) {
   const totalSec = breakMinutes * 60;
   const [remaining, setRemaining] = useState(totalSec);
   const [stepIdx, setStepIdx] = useState(0);
@@ -172,6 +172,11 @@ export default function BreakScreen({ breakMinutes, onDone }) {
           <View style={st.lockBox}>
             <Text style={st.lockTxt}>🔒 休息期间不可关闭</Text>
             <Text style={st.lockSub}>完成休息可获得 {BREAK_REWARD} 积分奖励哦！</Text>
+            {onParentUnlock && (
+              <TouchableOpacity style={st.unlockBtn} onPress={onParentUnlock} activeOpacity={0.7}>
+                <Text style={st.unlockTxt}>家长解锁</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -241,4 +246,6 @@ const st = StyleSheet.create({
   },
   lockTxt: { fontSize: 14, color: '#66BB6A', fontWeight: '600' },
   lockSub: { fontSize: 12, color: '#81C784', marginTop: 4 },
+  unlockBtn: { marginTop: 12, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: '#A5D6A7' },
+  unlockTxt: { fontSize: 12, color: '#66BB6A', fontWeight: '600' },
 });

@@ -5,6 +5,7 @@ import { C, RADIUS } from '../lib/theme';
 import { CHN_TOPICS, generateChnQuestions, getChnMaxQuestions } from '../lib/chinese';
 import { useApp } from '../lib/AppContext';
 import Feedback from '../components/Feedback';
+import ExitConfirmModal from '../components/ExitConfirmModal';
 
 function fmt(sec) {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
@@ -225,7 +226,7 @@ export default function ChineseQuizScreen() {
   const nav = useNavigation();
   const { finishQuiz } = useApp();
   const topicKey = route.params?.topicKey;
-  const onBack = useCallback(() => nav.goBack(), [nav]);
+  const directBack = useCallback(() => nav.goBack(), [nav]);
 
   const handleFinish = useCallback(async (data) => {
     await finishQuiz(data);
@@ -234,6 +235,17 @@ export default function ChineseQuizScreen() {
 
   const [phase, setPhase] = useState('setup');
   const [questions, setQuestions] = useState([]);
+  const [showExit, setShowExit] = useState(false);
+  const inQuiz = phase === 'quiz';
+  const onBack = useCallback(() => { if (inQuiz) setShowExit(true); else nav.goBack(); }, [inQuiz, nav]);
+
+  useEffect(() => {
+    if (!inQuiz) return;
+    const unsub = nav.addListener('beforeRemove', (e) => {
+      if (!showExit) { e.preventDefault(); setShowExit(true); }
+    });
+    return unsub;
+  }, [nav, inQuiz, showExit]);
 
   const startQuiz = useCallback((count) => {
     setQuestions(generateChnQuestions(topicKey, count));
@@ -245,12 +257,15 @@ export default function ChineseQuizScreen() {
   }
 
   return (
-    <QuizPhase
-      questions={questions}
-      topicKey={topicKey}
-      onFinish={handleFinish}
-      onBack={onBack}
-    />
+    <>
+      <QuizPhase
+        questions={questions}
+        topicKey={topicKey}
+        onFinish={handleFinish}
+        onBack={onBack}
+      />
+      <ExitConfirmModal visible={showExit} onCancel={() => setShowExit(false)} onConfirm={directBack} />
+    </>
   );
 }
 
