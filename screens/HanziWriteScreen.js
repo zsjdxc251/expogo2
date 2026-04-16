@@ -3,35 +3,17 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from '
 import * as Speech from 'expo-speech';
 import { useNavigation } from '@react-navigation/native';
 import { C, RADIUS, SUBJECT_COLORS } from '../lib/theme';
-import {
-  HANZI_UNITS, getMaxQuestions,
-  genAssembleQuestions, genHalfQuestions, genPinyinPickQuestions, genMixedQuestions,
-} from '../lib/hanziData';
+import { HANZI_UNITS, getMaxQuestions, genDictQuestions } from '../lib/hanziData';
 import { useApp } from '../lib/AppContext';
 import Feedback from '../components/Feedback';
 import ExitConfirmModal from '../components/ExitConfirmModal';
 
 const sc = SUBJECT_COLORS.chinese;
 
-const Q_MODES = [
-  { key: 'mixed', label: '综合', desc: '混合全部题型' },
-  { key: 'assemble', label: '拼字', desc: '选部件组装汉字' },
-  { key: 'half', label: '找另一半', desc: '给一半选另一半' },
-  { key: 'pinyinPick', label: '选字', desc: '看拼音选汉字' },
-];
-
-const GEN_MAP = {
-  mixed: genMixedQuestions,
-  assemble: genAssembleQuestions,
-  half: genHalfQuestions,
-  pinyinPick: genPinyinPickQuestions,
-};
-
 // ── Setup ────────────────────────────────────────────────
 
 function SetupPhase({ onStart, onBack }) {
   const [unitIdx, setUnitIdx] = useState(0);
-  const [modeIdx, setModeIdx] = useState(0);
   const [count, setCount] = useState(10);
 
   const unit = HANZI_UNITS[unitIdx];
@@ -40,19 +22,19 @@ function SetupPhase({ onStart, onBack }) {
 
   useEffect(() => { if (count > max) setCount(max); }, [unitIdx]);
 
-  const PRESETS = [5, 8, 10].filter((n) => n <= max).concat(max > 10 ? [max] : []);
+  const PRESETS = [5, 8, 10, 15].filter((n) => n <= max);
 
   return (
     <ScrollView style={st.scroll} contentContainerStyle={st.setupRoot} showsVerticalScrollIndicator={false}>
       <TouchableOpacity style={st.backBtn} onPress={onBack}>
         <Text style={st.backTxt}>← 返回</Text>
       </TouchableOpacity>
-      <Text style={st.setupEmoji}>✍️</Text>
+      <Text style={st.setupEmoji}>📖</Text>
       <Text style={st.setupTitle}>看拼音写字</Text>
-      <Text style={st.setupDesc}>选部件拼出正确的汉字</Text>
+      <Text style={st.setupDesc}>像查字典一样，先找偏旁再找字</Text>
 
       <View style={st.card}>
-        <Text style={st.label}>选择字组</Text>
+        <Text style={st.label}>选择范围</Text>
         {HANZI_UNITS.map((u, i) => (
           <TouchableOpacity
             key={u.key}
@@ -64,23 +46,8 @@ function SetupPhase({ onStart, onBack }) {
               <Text style={[st.unitLabel, unitIdx === i && { color: '#fff' }]}>{u.label}</Text>
               <Text style={[st.unitDesc, unitIdx === i && { color: 'rgba(255,255,255,0.8)' }]}>{u.desc}</Text>
             </View>
-            <Text style={[st.unitCount, unitIdx === i && { color: '#fff' }]}>{u.chars.length}字</Text>
           </TouchableOpacity>
         ))}
-
-        <Text style={[st.label, { marginTop: 18 }]}>题目类型</Text>
-        <View style={st.modeRow}>
-          {Q_MODES.map((m, i) => (
-            <TouchableOpacity
-              key={m.key}
-              style={[st.modeBtn, modeIdx === i && st.modeBtnOn]}
-              onPress={() => setModeIdx(i)}
-            >
-              <Text style={[st.modeLbl, modeIdx === i && { color: '#fff' }]}>{m.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <Text style={st.modeDesc}>{Q_MODES[modeIdx].desc}</Text>
 
         <Text style={[st.label, { marginTop: 18 }]}>题数</Text>
         <View style={st.countRow}>
@@ -105,154 +72,179 @@ function SetupPhase({ onStart, onBack }) {
         </View>
       </View>
 
-      <TouchableOpacity style={st.goBtn} activeOpacity={0.8} onPress={() => onStart(unit.key, Q_MODES[modeIdx].key, clamped)}>
+      <TouchableOpacity style={st.goBtn} activeOpacity={0.8} onPress={() => onStart(unit.key, clamped)}>
         <Text style={st.goBtnTxt}>开始练习</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-// ── Assemble question (select parts) ─────────────────────
+// ── Two-step Dict Question ───────────────────────────────
 
-function AssembleQ({ q, onAnswer, disabled }) {
-  const [picked, setPicked] = useState([]);
+function DictQuestion({ q, onComplete, questionNum }) {
+  const [step, setStep] = useState(1);
+  const [step1Wrong, setStep1Wrong] = useState(false);
+  const [step2Wrong, setStep2Wrong] = useState(false);
+  const [done, setDone] = useState(false);
+  const [mistakes, setMistakes] = useState(0);
+  const [pickedRadical, setPickedRadical] = useState(null);
+  const [pickedChar, setPickedChar] = useState(null);
+  const stepAnim = useRef(new Animated.Value(1)).current;
 
-  const toggle = (part) => {
-    if (disabled) return;
-    setPicked((prev) => prev.includes(part) ? prev.filter((p) => p !== part) : [...prev, part]);
+  useEffect(() => {
+    setStep(1);
+    setStep1Wrong(false);
+    setStep2Wrong(false);
+    setDone(false);
+    setMistakes(0);
+    setPickedRadical(null);
+    setPickedChar(null);
+    stepAnim.setValue(1);
+  }, [q]);
+
+  useEffect(() => {
+    Speech.speak(q.pinyin, { language: 'zh-CN', rate: 0.7 });
+  }, [q]);
+
+  const animateStep2 = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(stepAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(stepAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+    ]).start();
+  }, [stepAnim]);
+
+  const onPickRadical = useCallback((idx) => {
+    if (done) return;
+    setPickedRadical(idx);
+    if (idx === q.correctRadicalIdx) {
+      setStep1Wrong(false);
+      setTimeout(() => {
+        setStep(2);
+        animateStep2();
+      }, 400);
+    } else {
+      setStep1Wrong(true);
+      setMistakes((m) => m + 1);
+      setTimeout(() => { setPickedRadical(null); setStep1Wrong(false); }, 800);
+    }
+  }, [q, done, animateStep2]);
+
+  const onPickChar = useCallback((idx) => {
+    if (done) return;
+    setPickedChar(idx);
+    if (idx === q.correctCharIdx) {
+      setStep2Wrong(false);
+      setDone(true);
+      setTimeout(() => onComplete(mistakes === 0 && step === 2), 600);
+    } else {
+      setStep2Wrong(true);
+      setMistakes((m) => m + 1);
+      setTimeout(() => { setPickedChar(null); setStep2Wrong(false); }, 800);
+    }
+  }, [q, done, mistakes, step, onComplete]);
+
+  const radicalColor = (idx) => {
+    if (pickedRadical === null) return null;
+    if (idx === q.correctRadicalIdx && pickedRadical === idx) return C.success;
+    if (idx === pickedRadical && pickedRadical !== q.correctRadicalIdx) return C.error;
+    return null;
   };
 
-  const submit = () => {
-    if (disabled || picked.length === 0) return;
-    const sorted = [...picked].sort();
-    const correct = [...q.correctParts].sort();
-    const isOk = sorted.length === correct.length && sorted.every((v, i) => v === correct[i]);
-    onAnswer(isOk, picked);
+  const charColor = (idx) => {
+    if (pickedChar === null) return null;
+    if (idx === q.correctCharIdx && pickedChar === idx) return C.success;
+    if (idx === pickedChar && pickedChar !== q.correctCharIdx) return C.error;
+    return null;
   };
-
-  useEffect(() => { setPicked([]); }, [q]);
 
   return (
     <View style={st.qBody}>
-      <Text style={st.qLabel}>选出正确的部件拼成这个字</Text>
-      <View style={st.pinyinBubble}>
+      {/* Pinyin display */}
+      <TouchableOpacity
+        style={st.pinyinBubble}
+        onPress={() => Speech.speak(q.pinyin, { language: 'zh-CN', rate: 0.7 })}
+        activeOpacity={0.7}
+      >
+        <Text style={st.listenHint}>🔊 点击听发音</Text>
         <Text style={st.pinyinBig}>{q.pinyin}</Text>
         <Text style={st.meaningSmall}>{q.meaning}</Text>
-      </View>
+      </TouchableOpacity>
 
-      {picked.length > 0 && (
-        <View style={st.assemblePreview}>
-          {picked.map((p, i) => (
-            <TouchableOpacity key={i} style={st.previewChip} onPress={() => toggle(p)}>
-              <Text style={st.previewTxt}>{p}</Text>
-            </TouchableOpacity>
-          ))}
-          <Text style={st.assembleArrow}> → </Text>
-          <Text style={st.assembleResult}>?</Text>
+      {/* Step indicator */}
+      <View style={st.stepRow}>
+        <View style={[st.stepDot, step >= 1 && st.stepDotActive]}>
+          <Text style={[st.stepNum, step >= 1 && st.stepNumActive]}>1</Text>
         </View>
-      )}
-
-      <View style={st.partsGrid}>
-        {q.options.map((part, i) => {
-          const on = picked.includes(part);
-          return (
-            <TouchableOpacity
-              key={i}
-              style={[st.partBtn, on && st.partBtnOn]}
-              onPress={() => toggle(part)}
-              disabled={disabled}
-              activeOpacity={0.7}
-            >
-              <Text style={[st.partTxt, on && st.partTxtOn]}>{part}</Text>
-            </TouchableOpacity>
-          );
-        })}
+        <View style={[st.stepLine, step >= 2 && st.stepLineActive]} />
+        <View style={[st.stepDot, step >= 2 && st.stepDotActive]}>
+          <Text style={[st.stepNum, step >= 2 && st.stepNumActive]}>2</Text>
+        </View>
       </View>
 
-      {!disabled && (
-        <TouchableOpacity
-          style={[st.submitBtn, picked.length === 0 && st.submitOff]}
-          onPress={submit}
-          disabled={picked.length === 0}
-        >
-          <Text style={[st.submitTxt, picked.length === 0 && { color: C.textLight }]}>确认拼字</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
-// ── Half question (pick the other half) ──────────────────
-
-function HalfQ({ q, onAnswer, disabled }) {
-  return (
-    <View style={st.qBody}>
-      <Text style={st.qLabel}>
-        {q.showFirst ? '已有左边，选右边的部件' : '已有右边，选左边的部件'}
-      </Text>
-      <View style={st.pinyinBubble}>
-        <Text style={st.pinyinBig}>{q.pinyin}</Text>
-        <Text style={st.meaningSmall}>{q.meaning}</Text>
-      </View>
-
-      <View style={st.halfRow}>
-        {q.showFirst ? (
+      <Animated.View style={{ opacity: stepAnim, width: '100%', alignItems: 'center' }}>
+        {step === 1 ? (
           <>
-            <View style={st.givenBox}><Text style={st.givenTxt}>{q.givenPart}</Text></View>
-            <Text style={st.plusSign}>+</Text>
-            <View style={[st.givenBox, st.missingBox]}><Text style={st.missingTxt}>?</Text></View>
+            <Text style={st.stepLabel}>第一步：这个字的偏旁部首是什么？</Text>
+            <View style={st.optGrid}>
+              {q.radicalOptions.map((r, i) => {
+                const bg = radicalColor(i);
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[st.radicalBtn, bg && { borderColor: bg, backgroundColor: bg + '18' }]}
+                    onPress={() => onPickRadical(i)}
+                    disabled={pickedRadical !== null}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[st.radicalTxt, bg && { color: bg }]}>{r}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {step1Wrong && (
+              <Text style={st.wrongHint}>不对哦，再想想这个字的偏旁</Text>
+            )}
           </>
         ) : (
           <>
-            <View style={[st.givenBox, st.missingBox]}><Text style={st.missingTxt}>?</Text></View>
-            <Text style={st.plusSign}>+</Text>
-            <View style={st.givenBox}><Text style={st.givenTxt}>{q.givenPart}</Text></View>
+            <View style={st.step2Header}>
+              <Text style={st.stepLabel}>第二步：偏旁 </Text>
+              <View style={st.radicalTag}>
+                <Text style={st.radicalTagTxt}>{q.radical}</Text>
+              </View>
+              <Text style={st.stepLabel}> 下面哪个字是它？</Text>
+            </View>
+            <View style={st.charGrid}>
+              {q.charOptions.map((ch, i) => {
+                const bg = charColor(i);
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[st.charBtn, bg && { borderColor: bg, backgroundColor: bg + '18' }]}
+                    onPress={() => onPickChar(i)}
+                    disabled={pickedChar !== null}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[st.charTxt, bg && { color: bg }]}>{ch}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {step2Wrong && (
+              <Text style={st.wrongHint}>不是这个字，再看看拼音想一想</Text>
+            )}
           </>
         )}
-        <Text style={st.equalsSign}>=</Text>
-        <View style={st.resultBox}><Text style={st.resultCharSmall}>{q.char}</Text></View>
-      </View>
+      </Animated.View>
 
-      <View style={st.optGrid4}>
-        {q.options.map((opt, i) => (
-          <TouchableOpacity
-            key={i}
-            style={st.opt4Btn}
-            onPress={() => !disabled && onAnswer(i === q.answer, i)}
-            disabled={disabled}
-            activeOpacity={0.7}
-          >
-            <Text style={st.opt4Txt}>{opt}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-// ── PinyinPick question ──────────────────────────────────
-
-function PinyinPickQ({ q, onAnswer, disabled }) {
-  return (
-    <View style={st.qBody}>
-      <Text style={st.qLabel}>看拼音，选出正确的汉字</Text>
-      <View style={st.pinyinBubble}>
-        <Text style={st.pinyinBig}>{q.pinyin}</Text>
-      </View>
-
-      <View style={st.optGrid4}>
-        {q.options.map((opt, i) => (
-          <TouchableOpacity
-            key={i}
-            style={st.charOptBtn}
-            onPress={() => !disabled && onAnswer(i === q.answer, i)}
-            disabled={disabled}
-            activeOpacity={0.7}
-          >
-            <Text style={st.charOptTxt}>{opt}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* Reveal on done */}
+      {done && (
+        <View style={st.revealBox}>
+          <Text style={st.revealChar}>{q.char}</Text>
+          <Text style={st.revealInfo}>偏旁: {q.radical}　结构: {q.structure}</Text>
+          {mistakes > 0 && <Text style={st.revealMistakes}>本题错误 {mistakes} 次</Text>}
+        </View>
+      )}
     </View>
   );
 }
@@ -261,19 +253,16 @@ function PinyinPickQ({ q, onAnswer, disabled }) {
 
 function QuizPhase({ questions, onFinish, onBack }) {
   const [idx, setIdx] = useState(0);
-  const [answers, setAnswers] = useState(() => new Array(questions.length).fill(null));
+  const [results, setResults] = useState([]);
   const [elapsed, setElapsed] = useState(0);
   const [timing, setTiming] = useState(true);
   const [fb, setFb] = useState(null);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
-  const [showHint, setShowHint] = useState(false);
   const tick = useRef(null);
   const comboAnim = useRef(new Animated.Value(1)).current;
 
-  const q = questions[idx];
-  const answered = answers[idx] !== null;
-  const allDone = answers.every((a) => a !== null);
+  const allDone = idx >= questions.length;
 
   function fmt(sec) {
     return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
@@ -284,15 +273,9 @@ function QuizPhase({ questions, onFinish, onBack }) {
     return () => clearInterval(tick.current);
   }, [timing]);
 
-  useEffect(() => {
-    if (q?.pinyin) Speech.speak(q.char || q.pinyin, { language: 'zh-CN', rate: 0.8 });
-    setShowHint(false);
-  }, [idx]);
-
-  const handleAnswer = useCallback((isOk, val) => {
-    if (fb || answered) return;
-    setAnswers((prev) => { const n = [...prev]; n[idx] = { isOk, val }; return n; });
-    if (isOk) {
+  const onQuestionComplete = useCallback((perfect) => {
+    setResults((prev) => [...prev, { q: questions[idx], perfect }]);
+    if (perfect) {
       const next = combo + 1;
       setCombo(next);
       setMaxCombo((m) => Math.max(m, next));
@@ -302,45 +285,42 @@ function QuizPhase({ questions, onFinish, onBack }) {
       }
     } else {
       setCombo(0);
-      setShowHint(true);
     }
-    setFb(isOk ? 'correct' : 'wrong');
-  }, [fb, answered, idx, combo, comboAnim]);
+    setFb(perfect ? 'correct' : 'wrong');
+  }, [idx, questions, combo, comboAnim]);
 
   const onFbDone = useCallback(() => {
     setFb(null);
-    setShowHint(false);
-    if (idx < questions.length - 1) setIdx((i) => i + 1);
-    else setTiming(false);
+    if (idx < questions.length - 1) {
+      setIdx((i) => i + 1);
+    } else {
+      setIdx(questions.length);
+      setTiming(false);
+    }
   }, [idx, questions.length]);
 
   const handleFinish = useCallback(() => {
     setTiming(false);
     clearInterval(tick.current);
-    const correct = answers.filter((a) => a?.isOk).length;
+    const correct = results.filter((r) => r.perfect).length;
     const total = questions.length;
-    const wrong = total - correct;
-    const wrongList = questions
-      .map((qq, i) => ({ ...qq, userAnswer: answers[i]?.val }))
-      .filter((_, i) => !answers[i]?.isOk);
+    const wrongList = results
+      .filter((r) => !r.perfect)
+      .map((r) => ({
+        ...r.q, op: 'chn_hanziWrite', left: 0, right: 0, result: 0,
+        stem: `${r.q.pinyin} → ${r.q.char}`,
+        answer: r.q.char,
+        userAnswer: '(有错误)',
+      }));
     onFinish({
-      questions, answers: answers.map((a) => a?.isOk ? a.val : null),
+      questions, answers: results.map((r) => r.perfect ? 1 : 0),
       elapsed, subject: 'chn_hanziWrite', maxCombo,
-      total, correct, wrong, wrongList,
+      total, correct, wrong: total - correct, wrongList,
     });
-  }, [questions, answers, elapsed, maxCombo, onFinish]);
+  }, [questions, results, elapsed, maxCombo, onFinish]);
 
   const pct = Math.round(((allDone ? questions.length : idx) / questions.length) * 100);
   const showCombo = combo >= 3 && !allDone;
-
-  const renderQ = () => {
-    if (!q) return null;
-    const disabled = !!fb || answered;
-    if (q.type === 'assemble') return <AssembleQ q={q} onAnswer={handleAnswer} disabled={disabled} />;
-    if (q.type === 'half') return <HalfQ q={q} onAnswer={handleAnswer} disabled={disabled} />;
-    if (q.type === 'pinyinPick') return <PinyinPickQ q={q} onAnswer={handleAnswer} disabled={disabled} />;
-    return null;
-  };
 
   return (
     <View style={st.quizRoot}>
@@ -357,36 +337,27 @@ function QuizPhase({ questions, onFinish, onBack }) {
         </Animated.View>
       )}
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.qArea} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={st.qArea}
+        showsVerticalScrollIndicator={false}
+      >
         {allDone ? (
           <View style={st.doneBox}>
             <Text style={st.doneEmoji}>🎉</Text>
             <Text style={st.doneTxt}>全部答完了!</Text>
+            <Text style={st.doneSub}>
+              {results.filter((r) => r.perfect).length}/{questions.length} 题一次答对
+            </Text>
           </View>
         ) : (
           <View style={st.qCard}>
             <Text style={st.qIdx}>第 {idx + 1} 题</Text>
-            <TouchableOpacity
-              style={st.speakRow}
-              onPress={() => Speech.speak(q.char || q.pinyin, { language: 'zh-CN', rate: 0.8 })}
-            >
-              <Text style={st.speakIcon}>🔊</Text>
-              <Text style={st.speakLabel}>听发音</Text>
-            </TouchableOpacity>
-
-            {renderQ()}
-
-            {showHint && q.hint && (
-              <View style={st.hintBox}>
-                <Text style={st.hintTxt}>💡 {q.hint}</Text>
-              </View>
-            )}
-            {fb === 'correct' && (
-              <View style={st.correctReveal}>
-                <Text style={st.revealChar}>{q.char}</Text>
-                {q.hint && <Text style={st.revealHint}>{q.hint}</Text>}
-              </View>
-            )}
+            <DictQuestion
+              q={questions[idx]}
+              questionNum={idx}
+              onComplete={onQuestionComplete}
+            />
           </View>
         )}
         <Feedback
@@ -432,9 +403,8 @@ export default function HanziWriteScreen() {
     return unsub;
   }, [nav, inQuiz, showExit]);
 
-  const startQuiz = useCallback((unitKey, mode, count) => {
-    const gen = GEN_MAP[mode] || genMixedQuestions;
-    setQuestions(gen(unitKey, count));
+  const startQuiz = useCallback((unitKey, count) => {
+    setQuestions(genDictQuestions(unitKey, count));
     setPhase('quiz');
   }, []);
 
@@ -471,28 +441,18 @@ const st = StyleSheet.create({
   label: { fontSize: 15, fontWeight: '600', color: C.textMid, marginBottom: 10, textAlign: 'center' },
 
   unitRow: {
-    flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 14,
+    flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14,
     backgroundColor: C.bg, marginBottom: 6, borderWidth: 2, borderColor: C.border,
   },
   unitRowOn: { backgroundColor: sc.primary, borderColor: sc.primary },
   unitIcon: { fontSize: 22 },
   unitLabel: { fontSize: 15, fontWeight: '700', color: C.text },
   unitDesc: { fontSize: 11, color: C.textMid, marginTop: 1 },
-  unitCount: { fontSize: 13, fontWeight: '700', color: sc.primary },
-
-  modeRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 6 },
-  modeBtn: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14,
-    backgroundColor: C.bg, marginHorizontal: 3, borderWidth: 1.5, borderColor: C.border,
-  },
-  modeBtnOn: { backgroundColor: sc.primary, borderColor: sc.primary },
-  modeLbl: { fontSize: 13, fontWeight: '700', color: C.text },
-  modeDesc: { fontSize: 12, color: C.textLight, textAlign: 'center', marginBottom: 4 },
 
   countRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   cBtn: {
     width: 44, height: 44, borderRadius: 12, backgroundColor: sc.bg,
-    alignItems: 'center', justifyContent: 'center', marginHorizontal: 8,
+    alignItems: 'center', justifyContent: 'center', marginHorizontal: 10,
   },
   cBtnTxt: { fontSize: 22, fontWeight: '700', color: sc.primary },
   countNum: { fontSize: 38, fontWeight: '800', color: sc.primary, minWidth: 50, textAlign: 'center' },
@@ -524,97 +484,70 @@ const st = StyleSheet.create({
 
   qArea: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 16, paddingBottom: 16 },
   qCard: { backgroundColor: C.card, borderRadius: RADIUS, padding: 20, alignItems: 'center' },
-  qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 4 },
+  qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 6 },
 
-  speakRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  speakIcon: { fontSize: 20, marginRight: 4 },
-  speakLabel: { fontSize: 13, color: sc.primary, fontWeight: '600' },
-
-  // Question body (shared)
+  // Question body
   qBody: { width: '100%', alignItems: 'center' },
-  qLabel: { fontSize: 14, color: C.textMid, fontWeight: '600', marginBottom: 10, textAlign: 'center' },
 
   pinyinBubble: {
     alignItems: 'center', backgroundColor: sc.bg, borderRadius: 20,
-    paddingVertical: 10, paddingHorizontal: 28, marginBottom: 14,
+    paddingVertical: 12, paddingHorizontal: 32, marginBottom: 16,
   },
-  pinyinBig: { fontSize: 36, fontWeight: '800', color: sc.primary },
-  meaningSmall: { fontSize: 13, color: sc.dark, marginTop: 2 },
+  listenHint: { fontSize: 11, color: sc.dark, marginBottom: 4 },
+  pinyinBig: { fontSize: 38, fontWeight: '800', color: sc.primary },
+  meaningSmall: { fontSize: 14, color: sc.dark, marginTop: 2 },
 
-  // Assemble
-  assemblePreview: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 14, flexWrap: 'wrap',
+  // Step indicator
+  stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  stepDot: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: C.card,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.border,
   },
-  previewChip: {
-    backgroundColor: sc.primary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6,
-    marginHorizontal: 3, marginVertical: 2,
-  },
-  previewTxt: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  assembleArrow: { fontSize: 20, color: C.textMid, fontWeight: '700', marginHorizontal: 4 },
-  assembleResult: { fontSize: 28, fontWeight: '800', color: C.textMid },
+  stepDotActive: { backgroundColor: sc.primary, borderColor: sc.primary },
+  stepNum: { fontSize: 13, fontWeight: '700', color: C.textMid },
+  stepNumActive: { color: '#fff' },
+  stepLine: { width: 40, height: 3, backgroundColor: C.border, borderRadius: 2 },
+  stepLineActive: { backgroundColor: sc.primary },
 
-  partsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginBottom: 14 },
-  partBtn: {
-    minWidth: 64, height: 64, borderRadius: 16, backgroundColor: C.cardWhite,
-    alignItems: 'center', justifyContent: 'center', margin: 6,
-    borderWidth: 2.5, borderColor: C.border,
+  // Step labels
+  stepLabel: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 12, textAlign: 'center' },
+  step2Header: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', marginBottom: 12 },
+  radicalTag: {
+    backgroundColor: sc.primary, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3,
   },
-  partBtnOn: { borderColor: sc.primary, backgroundColor: sc.bg },
-  partTxt: { fontSize: 28, fontWeight: '700', color: C.text },
-  partTxtOn: { color: sc.primary },
+  radicalTagTxt: { fontSize: 18, fontWeight: '800', color: '#fff' },
 
-  submitBtn: {
-    paddingVertical: 12, paddingHorizontal: 36, borderRadius: 14,
-    backgroundColor: sc.primary,
-  },
-  submitOff: { backgroundColor: C.border },
-  submitTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
-
-  // Half
-  halfRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  givenBox: {
-    width: 60, height: 60, borderRadius: 14, backgroundColor: sc.bg,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  givenTxt: { fontSize: 30, fontWeight: '800', color: sc.primary },
-  missingBox: { borderWidth: 2.5, borderColor: sc.primary, borderStyle: 'dashed', backgroundColor: 'rgba(255,255,255,0.5)' },
-  missingTxt: { fontSize: 28, fontWeight: '700', color: C.textLight },
-  plusSign: { fontSize: 24, fontWeight: '800', color: C.textMid, marginHorizontal: 8 },
-  equalsSign: { fontSize: 24, fontWeight: '800', color: C.textMid, marginHorizontal: 8 },
-  resultBox: {
-    width: 60, height: 60, borderRadius: 14, backgroundColor: C.accentBg,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  resultCharSmall: { fontSize: 30, fontWeight: '800', color: C.accent },
-
-  optGrid4: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
-  opt4Btn: {
+  // Radical options (step 1)
+  optGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginBottom: 8 },
+  radicalBtn: {
     width: 72, height: 72, borderRadius: 16, backgroundColor: C.cardWhite,
     alignItems: 'center', justifyContent: 'center', margin: 6,
-    borderWidth: 2, borderColor: C.border,
-  },
-  opt4Txt: { fontSize: 30, fontWeight: '700', color: C.text },
-
-  // PinyinPick
-  charOptBtn: {
-    width: 80, height: 80, borderRadius: 18, backgroundColor: C.cardWhite,
-    alignItems: 'center', justifyContent: 'center', margin: 8,
     borderWidth: 2.5, borderColor: C.border,
   },
-  charOptTxt: { fontSize: 36, fontWeight: '800', color: C.text },
+  radicalTxt: { fontSize: 32, fontWeight: '700', color: C.text },
 
-  // Hint & reveal
-  hintBox: { backgroundColor: C.accentBg, borderRadius: 12, padding: 10, marginTop: 10, width: '100%' },
-  hintTxt: { fontSize: 14, color: C.accent, lineHeight: 22, textAlign: 'center', fontWeight: '600' },
-  correctReveal: { alignItems: 'center', marginTop: 10 },
-  revealChar: { fontSize: 48, fontWeight: '800', color: C.success },
-  revealHint: { fontSize: 13, color: C.textMid, marginTop: 4 },
+  // Char options (step 2)
+  charGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginBottom: 8 },
+  charBtn: {
+    width: 76, height: 76, borderRadius: 18, backgroundColor: C.cardWhite,
+    alignItems: 'center', justifyContent: 'center', margin: 7,
+    borderWidth: 2.5, borderColor: C.border,
+  },
+  charTxt: { fontSize: 36, fontWeight: '800', color: C.text },
+
+  wrongHint: { fontSize: 13, color: C.error, fontWeight: '600', textAlign: 'center', marginTop: 4 },
+
+  // Reveal
+  revealBox: { alignItems: 'center', marginTop: 14, backgroundColor: C.successBg, borderRadius: 14, padding: 14, width: '100%' },
+  revealChar: { fontSize: 52, fontWeight: '800', color: C.success },
+  revealInfo: { fontSize: 13, color: C.textMid, marginTop: 4 },
+  revealMistakes: { fontSize: 12, color: C.accent, marginTop: 2, fontWeight: '600' },
 
   // Done
   doneBox: { alignItems: 'center', paddingVertical: 40 },
   doneEmoji: { fontSize: 56, marginBottom: 10 },
   doneTxt: { fontSize: 22, fontWeight: '700', color: C.success },
+  doneSub: { fontSize: 16, color: C.textMid, marginTop: 4 },
 
   bottomBar: { paddingHorizontal: 16, paddingBottom: 12 },
   finishBtn: { height: 54, borderRadius: 14, backgroundColor: sc.primary, alignItems: 'center', justifyContent: 'center' },
