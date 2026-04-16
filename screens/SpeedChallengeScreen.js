@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { C, DIFFICULTIES, RADIUS } from '../lib/theme';
-import { generateQuestions } from '../lib/questions';
+import { generateQuestions, generateSpeedAdd, generateSpeedSub, generateSpeedDiv } from '../lib/questions';
 import { playCorrect, playWrong, playCombo } from '../lib/sounds';
 import { useApp } from '../lib/AppContext';
 import NumberPad from '../components/NumberPad';
@@ -260,12 +260,13 @@ export default function SpeedChallengeScreen() {
 
   const onStart = useCallback((d) => {
     setDiff(d);
-    const range = DIFFICULTIES[d].range;
-    const subjects = ['add', 'subtract', 'mulForward'];
+    const diffRange = DIFFICULTIES[d].range;
+    const mulDivRange = [2, 9];
     const qs = [];
-    subjects.forEach((s) => {
-      qs.push(...generateQuestions(s, 40, range));
-    });
+    qs.push(...generateSpeedAdd(30, diffRange));
+    qs.push(...generateSpeedSub(30, diffRange));
+    qs.push(...generateQuestions('mulForward', 30, mulDivRange));
+    qs.push(...generateSpeedDiv(30, mulDivRange));
     qs.sort(() => Math.random() - 0.5);
     setQuestions(qs);
     setPhase('race');
