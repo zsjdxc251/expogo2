@@ -15,7 +15,6 @@ import ChineseQuizScreen from '../screens/ChineseQuizScreen';
 import SpeedChallengeScreen from '../screens/SpeedChallengeScreen';
 import DictationScreen from '../screens/DictationScreen';
 import HanziWriteScreen from '../screens/HanziWriteScreen';
-import WordBuildScreen from '../screens/WordBuildScreen';
 import BreakScreen from '../screens/BreakScreen';
 import PinModal from '../components/PinModal';
 
@@ -61,7 +60,6 @@ export default function RootNavigator() {
             <Stack.Screen name="Speed" component={SpeedChallengeScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="Dictation" component={DictationScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="HanziWrite" component={HanziWriteScreen} options={{ animation: 'slide_from_bottom' }} />
-            <Stack.Screen name="WordBuild" component={WordBuildScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="Results" component={ResultsScreen} options={{ gestureEnabled: false, animation: 'fade' }} />
           </>
         )}
