@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, Switch, TextInput, ScrollView, StyleSheet, Alert, Platform,
 } from 'react-native';
-import { C, AVATARS, RADIUS, SUBJECTS } from '../lib/theme';
+import { C, AVATARS, RADIUS, SUBJECTS, DIFFICULTIES } from '../lib/theme';
 import { useApp } from '../lib/AppContext';
 
 const MATH_VIS_KEYS = [
@@ -40,6 +40,15 @@ export default function SettingsScreen() {
 
   const toggleVis = (key, val) => {
     onUpdate({ visibility: { ...vis, [key]: val } });
+  };
+
+  const allowedDiffs = vis.allowedDifficulties || ['easy', 'normal', 'hard'];
+  const toggleDiff = (key) => {
+    const next = allowedDiffs.includes(key)
+      ? allowedDiffs.filter((d) => d !== key)
+      : [...allowedDiffs, key];
+    if (next.length === 0) return;
+    onUpdate({ visibility: { ...vis, allowedDifficulties: next } });
   };
 
   const saveName = () => {
@@ -234,6 +243,31 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* Difficulty Permissions */}
+      <Text style={st.secLabel}>难度权限</Text>
+      <View style={st.card}>
+        <View style={st.row}>
+          <Text style={[st.rowDesc, { flex: 1 }]}>选择允许的难度等级（至少保留一个）</Text>
+        </View>
+        {Object.values(DIFFICULTIES).map((d) => (
+          <View key={d.key}>
+            <View style={st.divider} />
+            <View style={st.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={st.rowTitle}>{d.label}</Text>
+                <Text style={st.rowDesc}>数字范围 {d.range[0]}~{d.range[1]}</Text>
+              </View>
+              <Switch
+                value={allowedDiffs.includes(d.key)}
+                onValueChange={() => toggleDiff(d.key)}
+                trackColor={{ true: d.color, false: C.border }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+        ))}
+      </View>
+
       {/* Visibility / Permissions */}
       <Text style={st.secLabel}>科目权限</Text>
       <View style={st.card}>
@@ -274,6 +308,20 @@ export default function SettingsScreen() {
                 </View>
               );
             })}
+            {mathExpanded && (
+              <View>
+                <View style={st.divider} />
+                <View style={st.subRow}>
+                  <Text style={st.subLabel}>⚡ 口算竞速</Text>
+                  <Switch
+                    value={vis.math_speed !== false}
+                    onValueChange={(v) => toggleVis('math_speed', v)}
+                    trackColor={{ true: C.primary, false: C.border }}
+                    thumbColor="#fff"
+                  />
+                </View>
+              </View>
+            )}
           </>
         )}
         <View style={st.divider} />

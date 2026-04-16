@@ -258,14 +258,16 @@ export default function HomeScreen() {
                 </PressableCard>
               );
             })}
-            <PressableCard style={[st.card, { borderTopColor: '#EB9F4A' }]} onPress={onSpeedChallenge}>
-              <Text style={st.cardIcon}>⚡</Text>
-              <Text style={st.cardTitle}>口算竞速</Text>
-              <Text style={st.cardDesc}>60秒挑战</Text>
-              <View style={st.cardBot}>
-                <Text style={{ fontSize: 12, color: C.textMid }}>🏆 挑战最高分</Text>
-              </View>
-            </PressableCard>
+            {vis.math_speed !== false && (
+              <PressableCard style={[st.card, { borderTopColor: '#EB9F4A' }]} onPress={onSpeedChallenge}>
+                <Text style={st.cardIcon}>⚡</Text>
+                <Text style={st.cardTitle}>口算竞速</Text>
+                <Text style={st.cardDesc}>60秒挑战</Text>
+                <View style={st.cardBot}>
+                  <Text style={{ fontSize: 12, color: C.textMid }}>🏆 挑战最高分</Text>
+                </View>
+              </PressableCard>
+            )}
           </View>
         </>
       )}

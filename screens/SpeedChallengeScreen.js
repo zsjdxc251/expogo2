@@ -16,8 +16,9 @@ function fmt(sec) {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 }
 
-function SetupPhase({ onStart, onBack, bestRecord }) {
-  const [diff, setDiff] = useState('easy');
+function SetupPhase({ onStart, onBack, bestRecord, allowedDiffs }) {
+  const diffs = allowedDiffs && allowedDiffs.length > 0 ? allowedDiffs : ['easy', 'normal', 'hard'];
+  const [diff, setDiff] = useState(diffs.includes('easy') ? 'easy' : diffs[0]);
 
   return (
     <View style={st.setupRoot}>
@@ -37,7 +38,7 @@ function SetupPhase({ onStart, onBack, bestRecord }) {
       <View style={st.setupCard}>
         <Text style={st.setupLabel}>选择难度</Text>
         <View style={st.diffRow}>
-          {Object.values(DIFFICULTIES).map((d) => (
+          {Object.values(DIFFICULTIES).filter((d) => diffs.includes(d.key)).map((d) => (
             <TouchableOpacity
               key={d.key}
               style={[st.diffBtn, diff === d.key && { backgroundColor: d.color }]}
@@ -230,7 +231,7 @@ function ResultPhase({ correct, best, onRetry, onBack }) {
 
 export default function SpeedChallengeScreen() {
   const nav = useNavigation();
-  const { finishQuiz } = useApp();
+  const { finishQuiz, visibility } = useApp();
   const directBack = useCallback(() => nav.goBack(), [nav]);
   const finishedRef = useRef(false);
 
@@ -297,7 +298,7 @@ export default function SpeedChallengeScreen() {
   }, []);
 
   if (phase === 'setup') {
-    return <SetupPhase onStart={onStart} onBack={onBack} bestRecord={best} />;
+    return <SetupPhase onStart={onStart} onBack={onBack} bestRecord={best} allowedDiffs={visibility?.allowedDifficulties} />;
   }
 
   if (phase === 'race' && !result) {

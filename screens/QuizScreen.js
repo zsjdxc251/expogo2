@@ -21,10 +21,11 @@ const TIMER_PRESETS = [
 
 // ── Setup Phase ──────────────────────────────────────────
 
-function SetupPhase({ subject, onStart, onBack }) {
+function SetupPhase({ subject, onStart, onBack, allowedDiffs }) {
   const sub = SUBJECTS[subject] || { icon: '📝', label: subject || '练习', color: C.primary };
   const sc = SUBJECT_COLORS.math;
-  const [diff, setDiff] = useState('normal');
+  const diffs = allowedDiffs && allowedDiffs.length > 0 ? allowedDiffs : ['easy', 'normal', 'hard'];
+  const [diff, setDiff] = useState(diffs.includes('normal') ? 'normal' : diffs[0]);
   const [count, setCount] = useState(20);
   const [timerMode, setTimerMode] = useState('countup');
   const [countdownSec, setCountdownSec] = useState(300);
@@ -46,7 +47,7 @@ function SetupPhase({ subject, onStart, onBack }) {
       <View style={st.setupCard}>
         <Text style={st.setupLabel}>选择难度</Text>
         <View style={st.diffRow}>
-          {Object.values(DIFFICULTIES).map((d) => (
+          {Object.values(DIFFICULTIES).filter((d) => diffs.includes(d.key)).map((d) => (
             <TouchableOpacity
               key={d.key}
               style={[st.diffBtn, diff === d.key && { backgroundColor: d.color }]}
@@ -557,7 +558,8 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
 export default function QuizScreen() {
   const route = useRoute();
   const nav = useNavigation();
-  const { settings, finishQuiz } = useApp();
+  const { settings, finishQuiz, visibility } = useApp();
+  const allowedDiffs = visibility?.allowedDifficulties;
   const params = route.params || {};
   const directBack = useCallback(() => nav.goBack(), [nav]);
   const finishedRef = useRef(false);
@@ -600,7 +602,7 @@ export default function QuizScreen() {
   }, [finishQuiz, diff, nav]);
 
   if (phase === 'setup') {
-    return <SetupPhase subject={params.subject} onStart={startQuiz} onBack={onBack} />;
+    return <SetupPhase subject={params.subject} onStart={startQuiz} onBack={onBack} allowedDiffs={allowedDiffs} />;
   }
 
   return (
