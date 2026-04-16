@@ -352,6 +352,18 @@ export default function HomeScreen() {
                     {topicKeys.map((key) => {
                       const topic = CHN_TOPICS[key];
                       if (!topic) return null;
+                      if (topic.nav) {
+                        return (
+                          <PressableCard key={key} style={[st.topicCard, { borderTopColor: topic.color || sc.primary }]} onPress={() => nav.navigate(topic.nav)}>
+                            <Text style={st.topicIcon}>{topic.icon}</Text>
+                            <Text style={st.topicLabel}>{topic.label}</Text>
+                            <Text style={st.topicDesc}>{topic.desc}</Text>
+                            <TouchableOpacity style={[st.topicBtn, { backgroundColor: topic.color || sc.primary, marginTop: 8, flex: 0 }]} onPress={() => nav.navigate(topic.nav)}>
+                              <Text style={st.topicBtnTxtW}>✏️ 开始</Text>
+                            </TouchableOpacity>
+                          </PressableCard>
+                        );
+                      }
                       return (
                         <View key={key} style={[st.topicCard, { borderTopColor: sc.primary }]}>
                           <Text style={st.topicIcon}>{topic.icon}</Text>
@@ -368,14 +380,16 @@ export default function HomeScreen() {
                         </View>
                       );
                     })}
-                    <PressableCard style={[st.topicCard, { borderTopColor: sc.primary }]} onPress={() => onDictation('chn')}>
-                      <Text style={st.topicIcon}>🎧</Text>
-                      <Text style={st.topicLabel}>听写模式</Text>
-                      <Text style={st.topicDesc}>听拼音选汉字</Text>
-                      <TouchableOpacity style={[st.topicBtn, { backgroundColor: sc.primary, marginTop: 8, flex: 0 }]} onPress={() => onDictation('chn')}>
-                        <Text style={st.topicBtnTxtW}>🎧 开始</Text>
-                      </TouchableOpacity>
-                    </PressableCard>
+                    {lvl.key !== 'writing' && (
+                      <PressableCard style={[st.topicCard, { borderTopColor: sc.primary }]} onPress={() => onDictation('chn')}>
+                        <Text style={st.topicIcon}>🎧</Text>
+                        <Text style={st.topicLabel}>听写模式</Text>
+                        <Text style={st.topicDesc}>听拼音选汉字</Text>
+                        <TouchableOpacity style={[st.topicBtn, { backgroundColor: sc.primary, marginTop: 8, flex: 0 }]} onPress={() => onDictation('chn')}>
+                          <Text style={st.topicBtnTxtW}>🎧 开始</Text>
+                        </TouchableOpacity>
+                      </PressableCard>
+                    )}
                   </View>
                 )}
               </View>
