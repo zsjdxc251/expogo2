@@ -331,7 +331,33 @@ export default function HomeScreen() {
       {/* Chinese content */}
       {activeTab === 'chinese' && (
         <>
-          <Text style={[st.secTitle, { color: sc.dark }]}>语文学习</Text>
+          <Text style={[st.secTitle, { color: sc.dark }]}>二年级语文下册</Text>
+          <View style={st.textbookRow}>
+            <PressableCard
+              style={[st.textbookCard, { borderLeftColor: sc.primary }]}
+              onPress={() => nav.navigate('TextbookSetup', {})}
+            >
+              <Text style={st.textbookIcon}>📖</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={st.textbookTitle}>课文学习</Text>
+                <Text style={st.textbookDesc}>识字表 · 写字表 · 词语表</Text>
+              </View>
+              <Text style={[st.quickGo, { color: sc.primary }]}>GO →</Text>
+            </PressableCard>
+            <PressableCard
+              style={[st.textbookCard, { borderLeftColor: '#EB9F4A' }]}
+              onPress={() => nav.navigate('TextbookSetup', { mode: 'dictation' })}
+            >
+              <Text style={st.textbookIcon}>✏️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={st.textbookTitle}>课文听写</Text>
+                <Text style={st.textbookDesc}>写字表 · 词语表听写练习</Text>
+              </View>
+              <Text style={[st.quickGo, { color: '#EB9F4A' }]}>GO →</Text>
+            </PressableCard>
+          </View>
+
+          <Text style={[st.secTitle, { color: sc.dark, marginTop: 20 }]}>语文知识点</Text>
           {CHN_LEVELS.map((lvl) => {
             const isOpen = openChnLevel === lvl.key;
             const topicKeys = CHN_LEVEL_KEYS[lvl.key] || [];
@@ -540,4 +566,13 @@ const st = StyleSheet.create({
   taskItemReward: { fontSize: 13, fontWeight: '700', color: C.gold, marginLeft: 8 },
   modalClose: { marginTop: 12, paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
   modalCloseTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  textbookRow: { gap: 10, marginBottom: 4 },
+  textbookCard: {
+    flexDirection: 'row', alignItems: 'center', padding: 14,
+    borderRadius: RADIUS, backgroundColor: C.card,
+    borderLeftWidth: 4,
+  },
+  textbookIcon: { fontSize: 28, marginRight: 12 },
+  textbookTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  textbookDesc: { fontSize: 12, color: C.textMid, marginTop: 1 },
 });
