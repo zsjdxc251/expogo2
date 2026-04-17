@@ -15,9 +15,15 @@ function getScatterPos(index, total) {
 
 export default function CharPuzzle({ parts, char, size = 180 }) {
   const [assembled, setAssembled] = useState(false);
-  const partAnims = useRef(parts.map(() => new Animated.Value(0))).current;
+  const animsRef = useRef([]);
   const charScale = useRef(new Animated.Value(0)).current;
   const charOpacity = useRef(new Animated.Value(0)).current;
+
+  const safeLen = parts ? parts.length : 0;
+  if (animsRef.current.length !== safeLen) {
+    animsRef.current = Array.from({ length: safeLen }, () => new Animated.Value(0));
+  }
+  const partAnims = animsRef.current;
 
   const reset = useCallback(() => {
     setAssembled(false);
@@ -26,7 +32,7 @@ export default function CharPuzzle({ parts, char, size = 180 }) {
     partAnims.forEach((a) => a.setValue(0));
   }, [partAnims, charScale, charOpacity]);
 
-  useEffect(() => { reset(); }, [char]);
+  useEffect(() => { reset(); }, [char, safeLen]);
 
   const assemble = useCallback(() => {
     Animated.stagger(100, partAnims.map((a) =>
