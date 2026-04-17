@@ -161,13 +161,25 @@ function CharCard({ char, pinyin, info, showStroke, onSpeak, sc }) {
         </Animated.View>
       ) : null}
 
-      <Text style={st.pinyin}>{pinyin}</Text>
-      <TouchableOpacity onPress={() => onSpeak(char)} activeOpacity={0.7}>
-        <Text style={st.bigChar}>{char}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[st.speakBtn, { backgroundColor: sc.bg }]} onPress={() => onSpeak(char)}>
-        <Text style={[st.speakTxt, { color: sc.primary }]}>🔊 点击朗读</Text>
-      </TouchableOpacity>
+      {showStroke ? (
+        <View style={st.strokeHero}>
+          <Text style={st.pinyin}>{pinyin}</Text>
+          <StrokeAnimation char={char} size={220} />
+          <TouchableOpacity style={[st.speakBtn, { backgroundColor: sc.bg }]} onPress={() => onSpeak(char)}>
+            <Text style={[st.speakTxt, { color: sc.primary }]}>🔊 点击朗读</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <Text style={st.pinyin}>{pinyin}</Text>
+          <TouchableOpacity onPress={() => onSpeak(char)} activeOpacity={0.7}>
+            <Text style={st.bigChar}>{char}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[st.speakBtn, { backgroundColor: sc.bg }]} onPress={() => onSpeak(char)}>
+            <Text style={[st.speakTxt, { color: sc.primary }]}>🔊 点击朗读</Text>
+          </TouchableOpacity>
+        </>
+      )}
 
       <Animated.View style={[st.meaningBox, { backgroundColor: sc.bg }, sectionStyle(0)]}>
         <Text style={st.meaningLabel}>💡 释义</Text>
@@ -215,12 +227,6 @@ function CharCard({ char, pinyin, info, showStroke, onSpeak, sc }) {
         </Animated.View>
       ) : null}
 
-      {showStroke && (
-        <View style={st.strokeSection}>
-          <Text style={st.sectionTitle}>✍️ 笔顺演示</Text>
-          <StrokeAnimation char={char} size={220} />
-        </View>
-      )}
     </View>
   );
 }
@@ -391,6 +397,7 @@ const st = StyleSheet.create({
     borderRadius: 20, marginTop: 8,
   },
   speakTxt: { fontSize: 15, fontWeight: '600' },
+  strokeHero: { alignItems: 'center', marginBottom: 4 },
   strokeSection: { marginTop: 20, alignItems: 'center' },
   section: { marginTop: 20 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 10 },
