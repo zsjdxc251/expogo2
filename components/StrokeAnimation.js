@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { HanziWriter, useHanziWriter } from '@jamsch/react-native-hanzi-writer';
 import { C, RADIUS } from '../lib/theme';
 
-export default function StrokeAnimation({ char, size = 200, autoPlay = false }) {
+export default function StrokeAnimation({ char, size = 220, autoPlay = false }) {
   const [key, setKey] = useState(0);
 
   const writer = useHanziWriter({
@@ -53,7 +53,11 @@ export default function StrokeAnimation({ char, size = 200, autoPlay = false }) 
           style={{ width: size, height: size }}
         >
           <HanziWriter.GridLines color="rgba(200,200,200,0.4)" />
-          <HanziWriter.Svg>
+          <HanziWriter.Svg
+            width={String(size)}
+            height={String(size)}
+            viewBox="0 0 300 300"
+          >
             <HanziWriter.Outline color="#ddd" />
             <HanziWriter.Character color="#333" />
           </HanziWriter.Svg>
