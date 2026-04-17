@@ -6,6 +6,7 @@ import * as Speech from 'expo-speech';
 import { C, RADIUS, SUBJECT_COLORS } from '../lib/theme';
 import { getCharsForLessons, getWordInfo, TABLE_TYPE_LABELS } from '../lib/textbookData';
 import StrokeAnimation from '../components/StrokeAnimation';
+import CharPuzzle from '../components/CharPuzzle';
 
 export default function TextbookLearnScreen() {
   const nav = useNavigation();
@@ -127,8 +128,39 @@ export default function TextbookLearnScreen() {
 }
 
 function CharCard({ char, pinyin, info, showStroke, onSpeak, sc }) {
+  const sceneAnim = useRef(new Animated.Value(0)).current;
+  const cardAnims = useRef([0, 1, 2, 3, 4].map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    sceneAnim.setValue(0);
+    cardAnims.forEach((a) => a.setValue(0));
+
+    Animated.timing(sceneAnim, {
+      toValue: 1, duration: 500, easing: Easing.out(Easing.back(1.2)), useNativeDriver: true,
+    }).start();
+
+    Animated.stagger(100, cardAnims.map((a) =>
+      Animated.timing(a, { toValue: 1, duration: 350, easing: Easing.out(Easing.quad), useNativeDriver: true })
+    )).start();
+  }, [char]);
+
+  const sceneStyle = {
+    opacity: sceneAnim,
+    transform: [{ scale: sceneAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) }],
+  };
+  const sectionStyle = (i) => ({
+    opacity: cardAnims[i],
+    transform: [{ translateY: cardAnims[i].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
+  });
+
   return (
     <View style={st.card}>
+      {info?.scene ? (
+        <Animated.View style={[st.charSceneBox, sceneStyle]}>
+          <Text style={st.charSceneEmoji}>{info.scene}</Text>
+        </Animated.View>
+      ) : null}
+
       <Text style={st.pinyin}>{pinyin}</Text>
       <TouchableOpacity onPress={() => onSpeak(char)} activeOpacity={0.7}>
         <Text style={st.bigChar}>{char}</Text>
@@ -137,25 +169,18 @@ function CharCard({ char, pinyin, info, showStroke, onSpeak, sc }) {
         <Text style={[st.speakTxt, { color: sc.primary }]}>🔊 点击朗读</Text>
       </TouchableOpacity>
 
-      {showStroke && (
-        <View style={st.strokeSection}>
-          <Text style={st.sectionTitle}>✍️ 笔顺演示</Text>
-          <StrokeAnimation char={char} size={220} />
-        </View>
-      )}
+      <Animated.View style={[st.meaningBox, { backgroundColor: sc.bg }, sectionStyle(0)]}>
+        <Text style={st.meaningLabel}>💡 释义</Text>
+        <Text style={st.meaningTxt}>{info?.meaning || `学习"${char}"`}</Text>
+      </Animated.View>
 
-      <View style={st.section}>
+      <Animated.View style={[st.section, sectionStyle(1)]}>
         <Text style={st.sectionTitle}>{info?.emoji || '📝'} 组词</Text>
         {(info?.words || []).map((w, i) => (
           <View key={i} style={st.wordRow}>
             <Text style={st.wordText}>
               {w.word.split('').map((c, ci) => (
-                <Text
-                  key={ci}
-                  style={ci === w.highlight ? st.wordHighlight : st.wordNormal}
-                >
-                  {c}
-                </Text>
+                <Text key={ci} style={ci === w.highlight ? st.wordHighlight : st.wordNormal}>{c}</Text>
               ))}
             </Text>
             <TouchableOpacity onPress={() => onSpeak(w.word)} style={st.miniSpeak}>
@@ -163,12 +188,39 @@ function CharCard({ char, pinyin, info, showStroke, onSpeak, sc }) {
             </TouchableOpacity>
           </View>
         ))}
-      </View>
+      </Animated.View>
 
-      <View style={[st.meaningBox, { backgroundColor: sc.bg }]}>
-        <Text style={st.meaningLabel}>💡 释义</Text>
-        <Text style={st.meaningTxt}>{info?.meaning || `学习"${char}"`}</Text>
-      </View>
+      {info?.memory ? (
+        <Animated.View style={[st.charMemoryBox, sectionStyle(2)]}>
+          <Text style={st.meaningLabel}>🧠 记忆小助手</Text>
+          <Text style={st.charMemoryTxt}>{info.memory}</Text>
+        </Animated.View>
+      ) : null}
+
+      {info?.example ? (
+        <Animated.View style={[st.charExampleBox, sectionStyle(3)]}>
+          <Text style={st.meaningLabel}>✏️ 造句</Text>
+          <View style={st.charExampleRow}>
+            <Text style={st.charExampleTxt}>{info.example}</Text>
+            <TouchableOpacity onPress={() => onSpeak(info.example)} style={st.miniSpeak}>
+              <Text style={{ fontSize: 18 }}>🔊</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      ) : null}
+
+      {info?.parts?.length > 0 ? (
+        <Animated.View style={sectionStyle(4)}>
+          <CharPuzzle parts={info.parts} char={char} size={180} />
+        </Animated.View>
+      ) : null}
+
+      {showStroke && (
+        <View style={st.strokeSection}>
+          <Text style={st.sectionTitle}>✍️ 笔顺演示</Text>
+          <StrokeAnimation char={char} size={220} />
+        </View>
+      )}
     </View>
   );
 }
@@ -383,6 +435,27 @@ const st = StyleSheet.create({
     backgroundColor: C.card,
   },
   doneBtnSecTxt: { fontSize: 15, fontWeight: '700' },
+
+  charSceneBox: {
+    borderRadius: 16, padding: 12, marginBottom: 12, alignItems: 'center',
+    backgroundColor: '#FFF8E1',
+  },
+  charSceneEmoji: { fontSize: 42, letterSpacing: 8 },
+
+  charMemoryBox: {
+    borderRadius: 12, padding: 14, marginTop: 12,
+    backgroundColor: '#FFFDE7', borderLeftWidth: 4, borderLeftColor: '#FFB300',
+  },
+  charMemoryTxt: { fontSize: 15, lineHeight: 24, color: '#5D4037' },
+
+  charExampleBox: {
+    borderRadius: 12, padding: 14, marginTop: 12,
+    backgroundColor: '#E8F5E9', borderLeftWidth: 4, borderLeftColor: '#43A047',
+  },
+  charExampleRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  charExampleTxt: { fontSize: 16, lineHeight: 24, color: '#2E7D32', flex: 1 },
 
   wordSceneBox: {
     borderRadius: 16, padding: 16, marginBottom: 16, alignItems: 'center',
