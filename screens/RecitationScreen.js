@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from '
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, RADIUS, SUBJECT_COLORS } from '../lib/theme';
-import recitationData from '../resources/recitation_content.json';
+import recitationData from '../lib/recitationData';
 
 const sc = SUBJECT_COLORS.chinese;
 
