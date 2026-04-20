@@ -8,6 +8,8 @@ import MainTabs from './MainTabs';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import QuizScreen from '../screens/QuizScreen';
 import ResultsScreen from '../screens/ResultsScreen';
+import StatsScreen from '../screens/StatsScreen';
+import ReportScreen from '../screens/ReportScreen';
 import EnglishLearnScreen from '../screens/EnglishLearnScreen';
 import EnglishQuizScreen from '../screens/EnglishQuizScreen';
 import ChineseLearnScreen from '../screens/ChineseLearnScreen';
@@ -73,6 +75,8 @@ export default function RootNavigator() {
             <Stack.Screen name="Recitation" component={RecitationScreen} />
             <Stack.Screen name="Battle" component={BattleScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="Results" component={ResultsScreen} options={{ gestureEnabled: false, animation: 'fade' }} />
+            <Stack.Screen name="Stats" component={StatsScreen} />
+            <Stack.Screen name="Report" component={ReportScreen} />
           </>
         )}
       </Stack.Navigator>

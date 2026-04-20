@@ -1,16 +1,51 @@
 import { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HanziWriter, useHanziWriter } from '@jamsch/react-native-hanzi-writer';
 import { C, RADIUS } from '../lib/theme';
+
+const STROKE_CACHE_PREFIX = '@stroke_cache_';
+const STROKE_INDEX_KEY = '@stroke_cache_index';
+const MAX_CACHE = 200;
+
+async function getCachedStroke(char) {
+  try {
+    const raw = await AsyncStorage.getItem(STROKE_CACHE_PREFIX + char);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+async function setCachedStroke(char, data) {
+  try {
+    await AsyncStorage.setItem(STROKE_CACHE_PREFIX + char, JSON.stringify(data));
+    let index = [];
+    try {
+      const raw = await AsyncStorage.getItem(STROKE_INDEX_KEY);
+      if (raw) index = JSON.parse(raw);
+    } catch {}
+    index = index.filter(c => c !== char);
+    index.push(char);
+    while (index.length > MAX_CACHE) {
+      const evict = index.shift();
+      await AsyncStorage.removeItem(STROKE_CACHE_PREFIX + evict);
+    }
+    await AsyncStorage.setItem(STROKE_INDEX_KEY, JSON.stringify(index));
+  } catch {}
+}
 
 export default function StrokeAnimation({ char, size = 220, autoPlay = false }) {
   const [key, setKey] = useState(0);
 
   const writer = useHanziWriter({
     character: char,
-    loader(c) {
-      return fetch(`https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/${c}.json`)
+    async loader(c) {
+      const cached = await getCachedStroke(c);
+      if (cached) return cached;
+      const data = await fetch(`https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/${c}.json`)
         .then((r) => r.json());
+      setCachedStroke(c, data);
+      return data;
     },
   });
 

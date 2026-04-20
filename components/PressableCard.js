@@ -20,6 +20,7 @@ export default function PressableCard({ style, onPress, disabled, children }) {
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         disabled={disabled}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         style={st.touch}
       >
         {children}

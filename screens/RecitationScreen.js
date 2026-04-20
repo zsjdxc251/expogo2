@@ -217,8 +217,8 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
   const dynamicFontSize = isLongContent ? 19 : 24;
   const dynamicLineHeight = isLongContent ? 38 : 44;
   const dynamicLetterSpacing = isLongContent ? 2 : 3;
-  const dynamicBlankSize = isLongContent ? 24 : 30;
-  const dynamicBlankH = isLongContent ? 28 : 34;
+  const dynamicBlankSize = isLongContent ? 28 : 36;
+  const dynamicBlankH = isLongContent ? 32 : 40;
 
   const blankedLines = useMemo(() => {
     const result = [];
@@ -514,7 +514,7 @@ const st = StyleSheet.create({
     flexDirection: 'row', gap: 8, marginTop: 14, justifyContent: 'center',
   },
   modeBtn: {
-    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 14,
+    paddingHorizontal: 24, paddingVertical: 10, borderRadius: 14,
     backgroundColor: 'rgba(0,0,0,0.05)',
   },
   modeTxt: { fontSize: 13, fontWeight: '700', color: C.textMid },

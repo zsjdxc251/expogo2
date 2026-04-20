@@ -94,14 +94,12 @@ export default function HomeScreen() {
   const visTabs = SUBJECT_TABS.filter((t) => vis[t.key] !== false);
   const [activeTab, setActiveTab] = useState(() => visTabs[0]?.key || 'math');
   const [openLevel, setOpenLevel] = useState('beginner');
-  const [openChnLevel, setOpenChnLevel] = useState('pinyin');
+  const [chnKnowledgeTab, setChnKnowledgeTab] = useState(CHN_LEVELS[0]?.key || 'pinyin');
   const visMath = MATH_SUBJECTS.filter((k) => vis[`math_${k}`] !== false);
   const [tasksExpanded, setTasksExpanded] = useState(true);
   const [showAch, setShowAch] = useState(false);
   const [showLockModal, setShowLockModal] = useState(false);
   const toggleLevel = (k) => setOpenLevel(openLevel === k ? null : k);
-  const toggleChnLevel = (k) => setOpenChnLevel(openChnLevel === k ? null : k);
-
   const sc = SUBJECT_COLORS[activeTab] || SUBJECT_COLORS.math;
   const taskDone = getCompletedCount(dailyTasks);
 
@@ -135,6 +133,7 @@ export default function HomeScreen() {
   const mathProg = calcOverallProgress(history, MATH_SUBJECTS, '');
   const engProg = calcOverallProgress(history, allEngTopics, '');
   const chnProg = calcOverallProgress(history, allChnTopics, 'chn_');
+  const chnTabTopicKeys = CHN_LEVEL_KEYS[chnKnowledgeTab] || [];
 
   const weakMath = getWeakestTopic(history, MATH_SUBJECTS, '');
   const weakEng = getWeakestTopic(history, allEngTopics, '');
@@ -172,6 +171,15 @@ export default function HomeScreen() {
           <Text style={st.xpTxt}>还需 {nxt.min - totalPts} XP 升级</Text>
         </View>
       )}
+
+      <TouchableOpacity style={st.statsRow} activeOpacity={0.85} onPress={() => nav.navigate('Stats')}>
+        <Text style={st.statsEmoji}>📊</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={st.statsTitle}>学习统计</Text>
+          <Text style={st.statsDesc}>做题趋势 · 薄弱知识点</Text>
+        </View>
+        <Text style={st.statsArrow}>→</Text>
+      </TouchableOpacity>
 
       {/* Inline Daily Tasks */}
       {dailyTasks.length > 0 && (
@@ -389,18 +397,26 @@ export default function HomeScreen() {
       {activeTab === 'chinese' && (
         <>
           <Text style={[st.secTitle, { color: sc.dark }]}>二年级语文下册</Text>
+          <PressableCard
+            style={{ marginBottom: 10 }}
+            onPress={() => nav.navigate('TextbookSetup', {})}
+          >
+            <View style={st.heroCard}>
+              <View style={st.heroLeft}>
+                <Text style={{ fontSize: 36 }}>📖</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={st.heroTitle}>课文学习</Text>
+                <Text style={st.heroDesc}>识字表 · 写字表 · 词语表</Text>
+                <View style={st.heroBarWrap}>
+                  <View style={st.heroBar}><View style={[st.heroBarFill, { width: `${chnProg}%`, backgroundColor: sc.primary }]} /></View>
+                  <Text style={[st.heroPct, { color: sc.primary }]}>{chnProg > 0 ? `${chnProg}%` : '开始学习'}</Text>
+                </View>
+              </View>
+              <Text style={[st.quickGo, { color: sc.primary }]}>GO →</Text>
+            </View>
+          </PressableCard>
           <View style={st.grid}>
-            <PressableCard
-              style={[st.topicCard, { borderTopColor: sc.primary }]}
-              onPress={() => nav.navigate('TextbookSetup', {})}
-            >
-              <Text style={st.topicIcon}>📖</Text>
-              <Text style={st.topicLabel}>课文学习</Text>
-              <Text style={st.topicDesc}>识字表 · 写字表 · 词语表</Text>
-              <TouchableOpacity style={[st.topicBtn, { backgroundColor: sc.primary, marginTop: 8, flex: 0 }]} onPress={() => nav.navigate('TextbookSetup', {})}>
-                <Text style={st.topicBtnTxtW}>GO →</Text>
-              </TouchableOpacity>
-            </PressableCard>
             <PressableCard
               style={[st.topicCard, { borderTopColor: '#EB9F4A' }]}
               onPress={() => nav.navigate('TextbookSetup', { mode: 'dictation' })}
@@ -428,55 +444,50 @@ export default function HomeScreen() {
           </PressableCard>
 
           <Text style={[st.secTitle, { color: sc.dark, marginTop: 20 }]}>语文知识点</Text>
-          {CHN_LEVELS.map((lvl) => {
-            const isOpen = openChnLevel === lvl.key;
-            const topicKeys = CHN_LEVEL_KEYS[lvl.key] || [];
-            const lProg = calcLevelProgress(history, topicKeys, 'chn_');
-            return (
-              <View key={lvl.key} style={st.levelBlock}>
-                <TouchableOpacity style={[st.levelHeader, { borderLeftColor: sc.primary }]} activeOpacity={0.7} onPress={() => toggleChnLevel(lvl.key)}>
-                  <Text style={st.levelEmoji}>{lvl.badge}</Text>
-                  <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={st.levelTitle}>{lvl.label}</Text>
-                    <Text style={st.levelDesc}>{topicKeys.length} 主题</Text>
-                  </View>
-                  <Badge text={lProg > 0 ? `${lProg}%` : '未开始'} color={sc.primary} />
-                  <Text style={st.arrow}>{isOpen ? '▾' : '▸'}</Text>
+          <View style={st.chnTabRow}>
+            {CHN_LEVELS.map((lvl) => {
+              const on = chnKnowledgeTab === lvl.key;
+              return (
+                <TouchableOpacity
+                  key={lvl.key}
+                  style={[st.chnTabBtn, on && st.chnTabBtnOn]}
+                  activeOpacity={0.7}
+                  onPress={() => setChnKnowledgeTab(lvl.key)}
+                >
+                  <Text style={[st.chnTabTxt, on && st.chnTabTxtOn]}>{lvl.label}</Text>
                 </TouchableOpacity>
-                {isOpen && (
-                  <View style={st.grid}>
-                    {topicKeys.map((key) => {
-                      const topic = CHN_TOPICS[key];
-                      if (!topic) return null;
-                      return (
-                        <View key={key} style={[st.topicCard, { borderTopColor: sc.primary }]}>
-                          <Text style={st.topicIcon}>{topic.icon}</Text>
-                          <Text style={st.topicLabel}>{topic.label}</Text>
-                          <Text style={st.topicDesc}>{topic.desc}</Text>
-                          <View style={st.topicBtns}>
-                            <TouchableOpacity style={[st.topicBtn, { backgroundColor: sc.bg }]} onPress={() => onChnLearn(key)}>
-                              <Text style={[st.topicBtnTxt, { color: sc.primary }]}>📖 学习</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[st.topicBtn, { backgroundColor: sc.primary }]} onPress={() => onChnPractice(key)}>
-                              <Text style={st.topicBtnTxtW}>✏️ 练习</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      );
-                    })}
-                    <PressableCard style={[st.topicCard, { borderTopColor: sc.primary }]} onPress={() => onDictation('chn')}>
-                      <Text style={st.topicIcon}>🎧</Text>
-                      <Text style={st.topicLabel}>听写模式</Text>
-                      <Text style={st.topicDesc}>听拼音选汉字</Text>
-                      <TouchableOpacity style={[st.topicBtn, { backgroundColor: sc.primary, marginTop: 8, flex: 0 }]} onPress={() => onDictation('chn')}>
-                        <Text style={st.topicBtnTxtW}>🎧 开始</Text>
-                      </TouchableOpacity>
-                    </PressableCard>
+              );
+            })}
+          </View>
+          <View style={st.grid}>
+            {chnTabTopicKeys.map((key) => {
+              const topic = CHN_TOPICS[key];
+              if (!topic) return null;
+              return (
+                <View key={key} style={[st.topicCard, { borderTopColor: sc.primary }]}>
+                  <Text style={st.topicIcon}>{topic.icon}</Text>
+                  <Text style={st.topicLabel}>{topic.label}</Text>
+                  <Text style={st.topicDesc}>{topic.desc}</Text>
+                  <View style={st.topicBtns}>
+                    <TouchableOpacity style={[st.topicBtn, { backgroundColor: sc.bg }]} onPress={() => onChnLearn(key)}>
+                      <Text style={[st.topicBtnTxt, { color: sc.primary }]}>📖 学习</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[st.topicBtn, { backgroundColor: sc.primary }]} onPress={() => onChnPractice(key)}>
+                      <Text style={st.topicBtnTxtW}>✏️ 练习</Text>
+                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
-            );
-          })}
+                </View>
+              );
+            })}
+            <PressableCard style={[st.topicCard, { borderTopColor: sc.primary }]} onPress={() => onDictation('chn')}>
+              <Text style={st.topicIcon}>🎧</Text>
+              <Text style={st.topicLabel}>听写模式</Text>
+              <Text style={st.topicDesc}>听拼音选汉字</Text>
+              <TouchableOpacity style={[st.topicBtn, { backgroundColor: sc.primary, marginTop: 8, flex: 0 }]} onPress={() => onDictation('chn')}>
+                <Text style={st.topicBtnTxtW}>🎧 开始</Text>
+              </TouchableOpacity>
+            </PressableCard>
+          </View>
         </>
       )}
 
@@ -553,6 +564,16 @@ const st = StyleSheet.create({
   xpFill: { height: 6, borderRadius: 3 },
   xpTxt: { fontSize: 10, color: C.textLight, marginTop: 2, textAlign: 'right' },
 
+  statsRow: {
+    flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 12,
+    paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16,
+    backgroundColor: C.cardWhite, borderWidth: 1.5, borderColor: C.border,
+  },
+  statsEmoji: { fontSize: 26, marginRight: 12 },
+  statsTitle: { fontSize: 15, fontWeight: '800', color: C.text },
+  statsDesc: { fontSize: 11, color: C.textMid, marginTop: 2, fontWeight: '600' },
+  statsArrow: { fontSize: 18, fontWeight: '800', color: C.primary },
+
   taskPill: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 12, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, backgroundColor: C.cardWhite },
   taskPillIcon: { fontSize: 16, marginRight: 6 },
   taskPillTxt: { flex: 1, fontSize: 14, fontWeight: '600', color: C.text },
@@ -578,6 +599,24 @@ const st = StyleSheet.create({
   quickTitle: { fontSize: 13, fontWeight: '700', color: C.text },
   quickDesc: { fontSize: 11, color: C.textMid, marginTop: 1 },
   quickGo: { fontSize: 14, fontWeight: '800' },
+
+  heroCard: {
+    flexDirection: 'row', alignItems: 'center', padding: 16,
+    backgroundColor: C.cardWhite, borderRadius: RADIUS, marginHorizontal: 20, marginBottom: 12,
+    borderLeftWidth: 4, borderLeftColor: SUBJECT_COLORS.chinese.primary,
+  },
+  heroLeft: { marginRight: 14 },
+  heroTitle: { fontSize: 17, fontWeight: '800', color: C.text },
+  heroDesc: { fontSize: 12, color: C.textMid, marginTop: 2 },
+  heroBarWrap: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  heroBar: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.06)', overflow: 'hidden' },
+  heroBarFill: { height: 6, borderRadius: 3 },
+  heroPct: { fontSize: 11, fontWeight: '700', marginLeft: 8 },
+  chnTabRow: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 12, flexWrap: 'wrap' },
+  chnTabBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 14, backgroundColor: C.card, marginRight: 6, marginBottom: 6 },
+  chnTabBtnOn: { backgroundColor: SUBJECT_COLORS.chinese.primary },
+  chnTabTxt: { fontSize: 12, fontWeight: '700', color: C.textMid },
+  chnTabTxtOn: { color: '#fff' },
 
   secTitle: { fontSize: 20, fontWeight: '700', paddingHorizontal: 20, marginBottom: 10 },
 

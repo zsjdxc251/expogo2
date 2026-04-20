@@ -2,8 +2,10 @@ import { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, Switch, TextInput, ScrollView, StyleSheet, Alert, Platform, Modal,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { C, AVATARS, RADIUS, SUBJECTS, DIFFICULTIES } from '../lib/theme';
 import { useApp } from '../lib/AppContext';
+import { useTheme } from '../lib/ThemeContext';
 
 const MATH_VIS_KEYS = [
   'mulForward','mulBlank','add','subtract','divide','divRem','divReverse',
@@ -43,6 +45,8 @@ function showConfirm(title, msg, onOk) {
 }
 
 export default function SettingsScreen() {
+  const nav = useNavigation();
+  const { isDark, toggleTheme } = useTheme();
   const { user, settings, rewardConfig, visibility, updateUser: onUpdate, resetAll, requestPin, adjustPoints, pointsLog, dailyTasks } = useApp();
   const onClear = resetAll;
   const onChangePin = useCallback(() => requestPin('setup'), [requestPin]);
@@ -138,6 +142,22 @@ export default function SettingsScreen() {
     <ScrollView style={st.root} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
       <Text style={st.title}>家长设置</Text>
       <Text style={st.subtitle}>仅家长可访问此页面</Text>
+
+      <Text style={st.secLabel}>外观设置</Text>
+      <View style={st.card}>
+        <View style={st.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={st.rowTitle}>🌙 深色模式</Text>
+            <Text style={st.rowDesc}>开启后使用深色主题</Text>
+          </View>
+          <Switch
+            value={isDark}
+            onValueChange={toggleTheme}
+            trackColor={{ true: C.primary, false: C.border }}
+            thumbColor="#fff"
+          />
+        </View>
+      </View>
 
       {/* Basic Settings */}
       <Text style={st.secLabel}>基本设置</Text>
@@ -624,6 +644,17 @@ export default function SettingsScreen() {
             <Text style={st.rowDesc}>清除全部练习记录、积分和成就</Text>
           </View>
           <Text style={[st.arrow, { color: C.error }]}>→</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={st.secLabel}>学习报告</Text>
+      <View style={st.card}>
+        <TouchableOpacity style={st.row} onPress={() => nav.navigate('Report')}>
+          <View style={{ flex: 1 }}>
+            <Text style={st.rowTitle}>📊 查看学习报告</Text>
+            <Text style={st.rowDesc}>本周学习情况、科目分析、进步趋势</Text>
+          </View>
+          <Text style={st.arrow}>→</Text>
         </TouchableOpacity>
       </View>
 

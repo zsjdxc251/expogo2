@@ -256,6 +256,16 @@ export default function ResultsScreen() {
               </View>
             );
           })}
+          <TouchableOpacity
+            style={[st.errorReviewBtn, { backgroundColor: sc.primary }]}
+            onPress={() => {
+              const reviewData = { questions: wrongList, subject: 'review', isReview: true };
+              nav.replace('Quiz', reviewData);
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={st.errorReviewBtnTxt}>📝 只练错题 ({wrongList.length}题)</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -321,12 +331,18 @@ const st = StyleSheet.create({
 
   wrongSec: { marginTop: 16, width: '100%' },
   wrongTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 10 },
-  wrongCard: { backgroundColor: C.errorBg, borderRadius: 14, padding: 14, marginBottom: 8 },
+  wrongCard: { backgroundColor: 'rgba(255, 183, 77, 0.15)', borderRadius: 14, padding: 14, marginBottom: 8 },
   wrongQRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   wrongQ: { fontSize: 17, fontWeight: '700', color: C.text },
   wrongRow: { flexDirection: 'row', justifyContent: 'space-between' },
   wrongLbl: { fontSize: 13, color: C.textMid },
   wrongExpl: { fontSize: 12, color: C.accent, marginTop: 6, backgroundColor: C.accentBg, padding: 6, borderRadius: 8 },
+
+  errorReviewBtn: {
+    height: 48, borderRadius: 14, width: '100%',
+    alignItems: 'center', justifyContent: 'center', marginTop: 8,
+  },
+  errorReviewBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
   homeBtn: {
     height: 54, borderRadius: 14, width: '100%',
