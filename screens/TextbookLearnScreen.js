@@ -47,7 +47,7 @@ export default function TextbookLearnScreen() {
 
   if (done) {
     return (
-      <View style={[st.root, { paddingTop: insets.top }]}>
+      <View style={st.root}>
         <View style={st.doneBox}>
           <Text style={st.doneEmoji}>🎉</Text>
           <Text style={st.doneTitle}>学习完成！</Text>
@@ -75,7 +75,7 @@ export default function TextbookLearnScreen() {
   const info = char ? getWordInfo(char) : null;
 
   return (
-    <View style={[st.root, { paddingTop: insets.top }]}>
+    <View style={st.root}>
       <View style={st.header}>
         <TouchableOpacity onPress={() => nav.goBack()}>
           <Text style={[st.back, { color: sc.primary }]}>← 返回</Text>

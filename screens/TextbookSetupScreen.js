@@ -72,7 +72,7 @@ export default function TextbookSetupScreen() {
   const allSelected = currentLessons.length > 0 && currentLessons.every((l) => selectedLessons.includes(l.key));
 
   return (
-    <View style={[st.root, { paddingTop: insets.top }]}>
+    <View style={st.root}>
       <View style={st.header}>
         <TouchableOpacity onPress={() => nav.goBack()}>
           <Text style={[st.back, { color: sc.primary }]}>← 返回</Text>

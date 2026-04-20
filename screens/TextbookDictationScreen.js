@@ -119,7 +119,7 @@ export default function TextbookDictationScreen() {
 
   if (done) {
     return (
-      <View style={[st.root, { paddingTop: insets.top }]}>
+      <View style={st.root}>
         <View style={st.doneBox}>
           <Text style={st.doneEmoji}>✏️</Text>
           <Text style={st.doneTitle}>听写完成！</Text>
@@ -136,7 +136,7 @@ export default function TextbookDictationScreen() {
   }
 
   return (
-    <View style={[st.root, { paddingTop: insets.top }]}>
+    <View style={st.root}>
       <View style={st.header}>
         <TouchableOpacity onPress={() => { Speech.stop(); nav.goBack(); }}>
           <Text style={[st.back, { color: sc.primary }]}>← 返回</Text>

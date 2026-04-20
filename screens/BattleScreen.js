@@ -16,23 +16,10 @@ const BATTLE_SUBJECTS = [
 // ── Setup Phase ──────────────────────────────────────────
 
 function SetupPhase({ onStart, onBack }) {
-  const [mode, setMode] = useState(null); // 'local' | 'host' | 'join'
+  const [mode, setMode] = useState(null);
   const [subjectIdx, setSubjectIdx] = useState(0);
   const [diff, setDiff] = useState('normal');
   const [count, setCount] = useState(10);
-  const [joinIp, setJoinIp] = useState('');
-  const [joinPort, setJoinPort] = useState('');
-  const [myIp, setMyIp] = useState('');
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const { getIpAddressAsync } = await import('expo-network');
-        const ip = await getIpAddressAsync();
-        setMyIp(ip || '未知');
-      } catch { setMyIp('获取IP失败'); }
-    })();
-  }, []);
 
   const subject = BATTLE_SUBJECTS[subjectIdx];
   const range = DIFFICULTIES[diff].range;
@@ -56,73 +43,23 @@ function SetupPhase({ onStart, onBack }) {
             <Text style={st.modeDesc}>两人同一台设备，上下分屏</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[st.modeBtn, { borderTopWidth: 1, borderTopColor: C.border }]} onPress={() => setMode('host')}>
+          <View style={[st.modeBtn, { borderTopWidth: 1, borderTopColor: C.border, opacity: 0.45 }]}>
             <Text style={st.modeIcon}>🌐</Text>
-            <Text style={st.modeLabel}>创建比赛 (主机)</Text>
-            <Text style={st.modeDesc}>你的IP: {myIp}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[st.modeBtn, { borderTopWidth: 1, borderTopColor: C.border }]} onPress={() => setMode('join')}>
-            <Text style={st.modeIcon}>🔗</Text>
-            <Text style={st.modeLabel}>加入比赛</Text>
-            <Text style={st.modeDesc}>输入对方的IP和端口</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    );
-  }
-
-  if (mode === 'join') {
-    return (
-      <ScrollView style={st.scroll} contentContainerStyle={st.setupRoot} showsVerticalScrollIndicator={false}>
-        <TouchableOpacity style={st.backBtn} onPress={() => setMode(null)}>
-          <Text style={st.backTxt}>← 返回</Text>
-        </TouchableOpacity>
-        <Text style={st.setupEmoji}>🔗</Text>
-        <Text style={st.setupTitle}>加入比赛</Text>
-
-        <View style={st.modeCard}>
-          <View style={{ padding: 16 }}>
-            <Text style={st.inputLabel}>对方 IP 地址</Text>
-            <TextInput
-              style={st.ipInput}
-              value={joinIp}
-              onChangeText={setJoinIp}
-              placeholder="192.168.1.100"
-              placeholderTextColor={C.textLight}
-              keyboardType="numeric"
-            />
-            <Text style={[st.inputLabel, { marginTop: 12 }]}>端口号</Text>
-            <TextInput
-              style={st.ipInput}
-              value={joinPort}
-              onChangeText={setJoinPort}
-              placeholder="8080"
-              placeholderTextColor={C.textLight}
-              keyboardType="numeric"
-            />
-            <Text style={st.lanNote}>
-              局域网对战需要安装额外网络库，当前版本请使用"同屏对战"模式
-            </Text>
+            <Text style={st.modeLabel}>联网对战</Text>
+            <Text style={st.modeDesc}>敬请期待，即将上线</Text>
           </View>
         </View>
-
-        <TouchableOpacity style={[st.goBtn, { opacity: 0.4 }]} disabled>
-          <Text style={st.goBtnTxt}>连接 (即将支持)</Text>
-        </TouchableOpacity>
       </ScrollView>
     );
   }
 
-  // mode === 'local' or 'host'
   return (
     <ScrollView style={st.scroll} contentContainerStyle={st.setupRoot} showsVerticalScrollIndicator={false}>
       <TouchableOpacity style={st.backBtn} onPress={() => setMode(null)}>
         <Text style={st.backTxt}>← 返回</Text>
       </TouchableOpacity>
-      <Text style={st.setupEmoji}>{mode === 'host' ? '🌐' : '📱'}</Text>
-      <Text style={st.setupTitle}>{mode === 'host' ? '创建比赛' : '同屏对战'}</Text>
-      {mode === 'host' && <Text style={st.setupDesc}>你的 IP: {myIp}  端口: 8080</Text>}
+      <Text style={st.setupEmoji}>📱</Text>
+      <Text style={st.setupTitle}>同屏对战</Text>
 
       <View style={st.modeCard}>
         <View style={{ padding: 16 }}>
@@ -166,22 +103,15 @@ function SetupPhase({ onStart, onBack }) {
               </TouchableOpacity>
             ))}
           </View>
-
-          {mode === 'host' && (
-            <Text style={st.lanNote}>
-              局域网模式需要安装额外网络库，当前版本请使用"同屏对战"
-            </Text>
-          )}
         </View>
       </View>
 
       <TouchableOpacity
-        style={[st.goBtn, mode === 'host' && { opacity: 0.4 }]}
+        style={st.goBtn}
         activeOpacity={0.8}
-        disabled={mode === 'host'}
         onPress={() => onStart(subject, diff, clamped)}
       >
-        <Text style={st.goBtnTxt}>{mode === 'host' ? '等待对手连接 (即将支持)' : '开始对战!'}</Text>
+        <Text style={st.goBtnTxt}>开始对战!</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -427,11 +357,6 @@ const st = StyleSheet.create({
   modeDesc: { fontSize: 12, color: C.textMid, width: '100%', marginTop: 2, marginLeft: 40 },
 
   inputLabel: { fontSize: 14, fontWeight: '600', color: C.textMid, marginBottom: 6 },
-  ipInput: {
-    height: 48, borderRadius: 14, backgroundColor: C.bg, paddingHorizontal: 16,
-    fontSize: 16, fontWeight: '600', color: C.text, borderWidth: 2, borderColor: C.border,
-  },
-  lanNote: { fontSize: 11, color: C.textLight, marginTop: 10, textAlign: 'center', fontStyle: 'italic' },
 
   chip: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14,
