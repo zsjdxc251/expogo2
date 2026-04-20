@@ -69,7 +69,7 @@ function Flashcard({ item, info, isFlipped, onFlip, onSpeak, showPinyin, onToggl
             onPress={(e) => { e.stopPropagation?.(); onTogglePinyin(); }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={st.pinyinToggleIcon}>{showPinyin ? '👁' : '👁‍🗨'}</Text>
+            <Text style={st.pinyinToggleIcon}>{showPinyin ? '👀' : '😑'}</Text>
           </TouchableOpacity>
           <View style={st.pinyinSlot}>
             <Text style={[st.frontPinyin, !showPinyin && st.pinyinInvisible]}>
@@ -165,7 +165,7 @@ function Flashcard({ item, info, isFlipped, onFlip, onSpeak, showPinyin, onToggl
 // ---------------------------------------------------------------------------
 // Slide-in animation wrapper for card transitions
 // ---------------------------------------------------------------------------
-function SlideWrapper({ children, direction }) {
+function SlideWrapper({ slideKey, direction, children }) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -176,7 +176,7 @@ function SlideWrapper({ children, direction }) {
       tension: 80,
       useNativeDriver: true,
     }).start();
-  }, [children]);
+  }, [slideKey]);
 
   return (
     <Animated.View style={{ flex: 1, transform: [{ translateX: anim }] }}>
@@ -554,7 +554,7 @@ export default function CharTableScreen() {
 
       {/* Flashcard */}
       {cardItem && (
-        <SlideWrapper key={`${cardItem.char}_${currentIdx}`} direction={slideDir}>
+        <SlideWrapper slideKey={`${cardItem.char}_${currentIdx}`} direction={slideDir}>
           <View style={st.cardArea}>
             <Flashcard
               item={cardItem}
