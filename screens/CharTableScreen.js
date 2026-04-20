@@ -634,35 +634,39 @@ const st = StyleSheet.create({
     width: CARD_W, height: CARD_W * 1.25, position: 'relative',
   },
   card: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    borderRadius: 24, backfaceVisibility: 'hidden',
+    position: 'absolute', top: 0, left: 0,
+    width: CARD_W, height: CARD_W * 1.25,
+    borderRadius: 24, overflow: 'hidden',
     shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
   cardFront: { backgroundColor: '#fff', borderTopWidth: 4, borderTopColor: sc.primary },
   cardBack: { backgroundColor: '#fff', borderTopWidth: 4, borderTopColor: '#EB9F4A' },
-  cardTouchable: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' },
+  cardTouchable: { flex: 1, width: '100%', padding: 20, justifyContent: 'center', alignItems: 'center' },
 
   pinyinToggle: { position: 'absolute', top: 16, right: 16, zIndex: 2, padding: 4 },
   pinyinToggleIcon: { fontSize: 22 },
-  sceneEmoji: { fontSize: 36, letterSpacing: 6, marginBottom: 8, textAlign: 'center' },
-  pinyinSlot: { height: 34, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  sceneEmoji: { fontSize: 32, marginBottom: 8, textAlign: 'center' },
+  pinyinSlot: {
+    height: 34, width: '100%', justifyContent: 'center', alignItems: 'center', marginBottom: 4,
+  },
   frontPinyin: {
     fontSize: 24, fontWeight: '600', color: '#EB9F4A', textAlign: 'center',
   },
   pinyinInvisible: { color: 'transparent' },
   pinyinDots: {
-    position: 'absolute', fontSize: 20, color: '#ccc', letterSpacing: 4,
+    position: 'absolute', fontSize: 20, color: '#ccc', letterSpacing: 4, textAlign: 'center',
   },
   frontChar: {
     fontSize: 96, fontWeight: '900', color: C.text,
     textAlign: 'center', lineHeight: 120,
   },
   speakBtn: {
+    flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20,
     backgroundColor: 'rgba(76,175,125,0.12)', marginTop: 12,
   },
-  speakTxt: { fontSize: 15, fontWeight: '600', color: sc.primary },
+  speakTxt: { fontSize: 15, fontWeight: '600', color: sc.primary, flexShrink: 0 },
   flipHint: { fontSize: 12, color: C.textLight, marginTop: 12 },
   flipHintBack: { fontSize: 12, color: C.textLight, marginTop: 8, textAlign: 'center' },
 
