@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Alert, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { C, SUBJECTS, RADIUS, SUBJECT_COLORS } from '../lib/theme';
 import { ENG_TOPICS, ENG_LEVELS, LEVEL_TOPIC_KEYS } from '../lib/english';
@@ -10,6 +10,12 @@ import { useApp } from '../lib/AppContext';
 import PressableCard from '../components/PressableCard';
 import ProgressRing from '../components/ProgressRing';
 import Badge from '../components/Badge';
+
+function showTaskAlert() {
+  const msg = '请先完成今日任务后再自由练习';
+  if (Platform.OS === 'web') { alert(msg); }
+  else { Alert.alert('任务未完成', msg); }
+}
 
 const MATH_SUBJECTS = ['mulForward', 'mulBlank', 'add', 'subtract', 'divide', 'divRem', 'divReverse', 'addTwo', 'subtractTwo', 'mulReverse', 'compare', 'wordProblem', 'pattern'];
 
@@ -57,7 +63,8 @@ function getWeakestTopic(history, subjects, prefix) {
 }
 
 export default function HomeScreen() {
-  const { user, streak, achievements, history, dailyTasks, saveQuizRoute, visibility, rewardConfig } = useApp();
+  const { user, streak, achievements, history, dailyTasks, saveQuizRoute, visibility, rewardConfig, allTasksDone, taskConfig } = useApp();
+  const locked = taskConfig.enabled && !allTasksDone;
   const vis = visibility || {};
   const nav = useNavigation();
   const scrollRef = useRef(null);
@@ -65,13 +72,24 @@ export default function HomeScreen() {
     saveQuizRoute(name, params);
     nav.navigate(name, params);
   }, [nav, saveQuizRoute]);
-  const onSubject = useCallback((s) => go('Quiz', { subject: s }), [go]);
-  const onEngLearn = useCallback((k) => nav.navigate('EngLearn', { topicKey: k }), [nav]);
-  const onEngPractice = useCallback((k) => go('EngQuiz', { topicKey: k }), [go]);
-  const onChnLearn = useCallback((k) => nav.navigate('ChnLearn', { topicKey: k }), [nav]);
-  const onChnPractice = useCallback((k) => go('ChnQuiz', { topicKey: k }), [go]);
-  const onSpeedChallenge = useCallback(() => go('Speed', {}), [go]);
-  const onDictation = useCallback((m) => go('Dictation', { mode: m }), [go]);
+  const guard = useCallback((fn) => (...args) => {
+    if (locked) { showTaskAlert(); return; }
+    fn(...args);
+  }, [locked]);
+  const onSubject = useCallback((s) => {
+    if (locked) {
+      const cfg = taskConfig.tasks || [];
+      const isTaskSubject = cfg.some((t) => t.subject === s);
+      if (!isTaskSubject) { showTaskAlert(); return; }
+    }
+    go('Quiz', { subject: s });
+  }, [go, locked, taskConfig]);
+  const onEngLearn = useCallback(guard((k) => nav.navigate('EngLearn', { topicKey: k })), [guard, nav]);
+  const onEngPractice = useCallback(guard((k) => go('EngQuiz', { topicKey: k })), [guard, go]);
+  const onChnLearn = useCallback(guard((k) => nav.navigate('ChnLearn', { topicKey: k })), [guard, nav]);
+  const onChnPractice = useCallback(guard((k) => go('ChnQuiz', { topicKey: k })), [guard, go]);
+  const onSpeedChallenge = useCallback(guard(() => go('Speed', {})), [guard, go]);
+  const onDictation = useCallback(guard((m) => go('Dictation', { mode: m })), [guard, go]);
 
   const totalPts = user?.totalPoints || 0;
   const lv = getLevel(totalPts);
@@ -165,6 +183,12 @@ export default function HomeScreen() {
         </View>
         {taskDone === dailyTasks.length && dailyTasks.length > 0 && <Text style={st.taskPillDone}>✅</Text>}
       </TouchableOpacity>
+
+      {locked && (
+        <View style={st.lockBanner}>
+          <Text style={st.lockTxt}>🔒 完成今日任务后解锁自由练习</Text>
+        </View>
+      )}
 
       {/* Three big subject cards */}
       <View style={st.subjectRow}>
@@ -268,6 +292,17 @@ export default function HomeScreen() {
                 </View>
               </PressableCard>
             )}
+            <PressableCard
+              style={[st.card, { borderTopColor: '#E06B6B' }]}
+              onPress={() => { if (locked) { showTaskAlert(); return; } nav.navigate('Battle'); }}
+            >
+              <Text style={st.cardIcon}>⚔️</Text>
+              <Text style={st.cardTitle}>比赛模式</Text>
+              <Text style={st.cardDesc}>局域网对战</Text>
+              <View style={st.cardBot}>
+                <Text style={{ fontSize: 12, color: C.textMid }}>🏅 看谁算得快</Text>
+              </View>
+            </PressableCard>
           </View>
         </>
       )}
@@ -331,7 +366,33 @@ export default function HomeScreen() {
       {/* Chinese content */}
       {activeTab === 'chinese' && (
         <>
-          <Text style={[st.secTitle, { color: sc.dark }]}>二年级语文下册</Text>
+          <Text style={[st.secTitle, { color: sc.dark }]}>认字练习</Text>
+          <View style={st.textbookRow}>
+            <PressableCard
+              style={[st.textbookCard, { borderLeftColor: '#4CAF7D' }]}
+              onPress={() => nav.navigate('CharTable')}
+            >
+              <Text style={st.textbookIcon}>📋</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={st.textbookTitle}>认字表</Text>
+                <Text style={st.textbookDesc}>遮挡拼音 · 标记陌生字</Text>
+              </View>
+              <Text style={[st.quickGo, { color: '#4CAF7D' }]}>GO →</Text>
+            </PressableCard>
+            <PressableCard
+              style={[st.textbookCard, { borderLeftColor: '#D4839A' }]}
+              onPress={() => nav.navigate('CharPractice')}
+            >
+              <Text style={st.textbookIcon}>📝</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={st.textbookTitle}>看字选拼音</Text>
+                <Text style={st.textbookDesc}>练习认字 · 相似拼音干扰</Text>
+              </View>
+              <Text style={[st.quickGo, { color: '#D4839A' }]}>GO →</Text>
+            </PressableCard>
+          </View>
+
+          <Text style={[st.secTitle, { color: sc.dark, marginTop: 16 }]}>二年级语文下册</Text>
           <View style={st.textbookRow}>
             <PressableCard
               style={[st.textbookCard, { borderLeftColor: sc.primary }]}
@@ -566,7 +627,14 @@ const st = StyleSheet.create({
   taskItemReward: { fontSize: 13, fontWeight: '700', color: C.gold, marginLeft: 8 },
   modalClose: { marginTop: 12, paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
   modalCloseTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  textbookRow: { gap: 10, marginBottom: 4 },
+  lockBanner: {
+    marginHorizontal: 20, marginBottom: 10, padding: 10, borderRadius: 12,
+    backgroundColor: 'rgba(224,107,107,0.12)', borderWidth: 1.5, borderColor: C.error,
+    alignItems: 'center',
+  },
+  lockTxt: { fontSize: 13, fontWeight: '700', color: C.error },
+
+  textbookRow: { gap: 10, marginBottom: 4, paddingHorizontal: 20 },
   textbookCard: {
     flexDirection: 'row', alignItems: 'center', padding: 14,
     borderRadius: RADIUS, backgroundColor: C.card,

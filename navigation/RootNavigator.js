@@ -17,6 +17,9 @@ import DictationScreen from '../screens/DictationScreen';
 import TextbookSetupScreen from '../screens/TextbookSetupScreen';
 import TextbookLearnScreen from '../screens/TextbookLearnScreen';
 import TextbookDictationScreen from '../screens/TextbookDictationScreen';
+import CharTableScreen from '../screens/CharTableScreen';
+import CharPracticeScreen from '../screens/CharPracticeScreen';
+import BattleScreen from '../screens/BattleScreen';
 import BreakScreen from '../screens/BreakScreen';
 import PinModal from '../components/PinModal';
 
@@ -64,6 +67,9 @@ export default function RootNavigator() {
             <Stack.Screen name="TextbookSetup" component={TextbookSetupScreen} />
             <Stack.Screen name="TextbookLearn" component={TextbookLearnScreen} />
             <Stack.Screen name="TextbookDictation" component={TextbookDictationScreen} />
+            <Stack.Screen name="CharTable" component={CharTableScreen} />
+            <Stack.Screen name="CharPractice" component={CharPracticeScreen} options={{ animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="Battle" component={BattleScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="Results" component={ResultsScreen} options={{ gestureEnabled: false, animation: 'fade' }} />
           </>
         )}
