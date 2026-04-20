@@ -110,11 +110,11 @@ export default function HomeScreen() {
 
   const navigateTask = useCallback((task) => {
     if (task.completed) return;
-    setShowTasks(false);
     const t = task.tpl;
     if (MATH_SUBJECTS.includes(t)) {
       go('Quiz', { subject: t });
-    } else if (t === 'math_all' || t === 'math_add') go('Quiz', { subject: t === 'math_add' ? 'add' : 'mulForward' });
+    } else if (t === 'math_all') go('Quiz', { subject: 'mulForward' });
+    else if (t === 'math_add') go('Quiz', { subject: 'add' });
     else if (t === 'math_mul') go('Quiz', { subject: 'mulForward' });
     else if (t === 'math_div') go('Quiz', { subject: 'divide' });
     else if (t === 'eng_learn' || t === 'eng_quiz') {
@@ -176,21 +176,45 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Daily task pill */}
-      <TouchableOpacity style={[st.taskPill, { borderColor: sc.primary }]} activeOpacity={0.7} onPress={() => setShowTasks(true)}>
-        <Text style={st.taskPillIcon}>📋</Text>
-        <Text style={st.taskPillTxt}>今日任务</Text>
-        <View style={[st.taskPillBadge, { backgroundColor: sc.primary }]}>
-          <Text style={st.taskPillCount}>{taskDone}/{dailyTasks.length}</Text>
+      {/* Inline Daily Tasks */}
+      {dailyTasks.length > 0 && (taskDone < dailyTasks.length || locked) ? (
+        <View style={st.inlineTaskBox}>
+          <View style={st.inlineTaskHeader}>
+            <Text style={st.inlineTaskTitle}>📋 今日任务</Text>
+            <View style={[st.taskPillBadge, { backgroundColor: sc.primary }]}>
+              <Text style={st.taskPillCount}>{taskDone}/{dailyTasks.length}</Text>
+            </View>
+            {locked && <Text style={st.inlineLockTag}>🔒 未完成</Text>}
+          </View>
+          {dailyTasks.map((t) => {
+            const pct = t.target > 0 ? Math.min(100, Math.round((t.progress / t.target) * 100)) : 0;
+            return (
+              <TouchableOpacity
+                key={t.id}
+                style={[st.inlineTaskItem, t.completed && st.taskItemDone]}
+                activeOpacity={t.completed ? 1 : 0.7}
+                onPress={() => navigateTask(t)}
+              >
+                <Text style={st.taskItemIcon}>{t.completed ? '✅' : '⬜'}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[st.taskItemText, t.completed && st.taskItemTextDone]}>{t.text}</Text>
+                  <View style={st.taskBar}>
+                    <View style={[st.taskBarFill, { width: `${pct}%`, backgroundColor: t.completed ? C.success : sc.primary }]} />
+                  </View>
+                </View>
+                {!t.completed && <Text style={[st.taskGoBtn, { color: sc.primary }]}>GO →</Text>}
+              </TouchableOpacity>
+            );
+          })}
+          {locked && <Text style={st.inlineLockHint}>完成以上任务后解锁自由练习</Text>}
         </View>
-        {taskDone === dailyTasks.length && dailyTasks.length > 0 && <Text style={st.taskPillDone}>✅</Text>}
-      </TouchableOpacity>
-
-      {locked && (
-        <View style={st.lockBanner}>
-          <Text style={st.lockTxt}>🔒 完成今日任务后解锁自由练习</Text>
-        </View>
-      )}
+      ) : dailyTasks.length > 0 ? (
+        <TouchableOpacity style={[st.taskPill, { borderColor: C.success }]} activeOpacity={0.7} onPress={() => setShowTasks(true)}>
+          <Text style={st.taskPillIcon}>📋</Text>
+          <Text style={st.taskPillTxt}>今日任务已全部完成!</Text>
+          <Text style={st.taskPillDone}>✅</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {/* Three big subject cards */}
       <View style={st.subjectRow}>
@@ -369,41 +393,43 @@ export default function HomeScreen() {
       {activeTab === 'chinese' && (
         <>
           <Text style={[st.secTitle, { color: sc.dark }]}>二年级语文下册</Text>
-          <View style={st.textbookRow}>
+          <View style={st.grid}>
             <PressableCard
-              style={[st.textbookCard, { borderLeftColor: sc.primary }]}
+              style={[st.topicCard, { borderTopColor: sc.primary }]}
               onPress={() => nav.navigate('TextbookSetup', {})}
             >
-              <Text style={st.textbookIcon}>📖</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={st.textbookTitle}>课文学习</Text>
-                <Text style={st.textbookDesc}>识字表 · 写字表 · 词语表</Text>
-              </View>
-              <Text style={[st.quickGo, { color: sc.primary }]}>GO →</Text>
+              <Text style={st.topicIcon}>📖</Text>
+              <Text style={st.topicLabel}>课文学习</Text>
+              <Text style={st.topicDesc}>识字表 · 写字表 · 词语表</Text>
+              <TouchableOpacity style={[st.topicBtn, { backgroundColor: sc.primary, marginTop: 8, flex: 0 }]} onPress={() => nav.navigate('TextbookSetup', {})}>
+                <Text style={st.topicBtnTxtW}>GO →</Text>
+              </TouchableOpacity>
             </PressableCard>
             <PressableCard
-              style={[st.textbookCard, { borderLeftColor: '#EB9F4A' }]}
+              style={[st.topicCard, { borderTopColor: '#EB9F4A' }]}
               onPress={() => nav.navigate('TextbookSetup', { mode: 'dictation' })}
             >
-              <Text style={st.textbookIcon}>✏️</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={st.textbookTitle}>课文听写</Text>
-                <Text style={st.textbookDesc}>写字表 · 词语表听写练习</Text>
-              </View>
-              <Text style={[st.quickGo, { color: '#EB9F4A' }]}>GO →</Text>
-            </PressableCard>
-            <PressableCard
-              style={[st.textbookCard, { borderLeftColor: '#9C27B0' }]}
-              onPress={() => nav.navigate('Recitation')}
-            >
-              <Text style={st.textbookIcon}>🎙️</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={st.textbookTitle}>课文背诵</Text>
-                <Text style={st.textbookDesc}>古诗 · 名言 · 课文背诵闯关</Text>
-              </View>
-              <Text style={[st.quickGo, { color: '#9C27B0' }]}>GO →</Text>
+              <Text style={st.topicIcon}>✏️</Text>
+              <Text style={st.topicLabel}>课文听写</Text>
+              <Text style={st.topicDesc}>写字表 · 词语表听写练习</Text>
+              <TouchableOpacity style={[st.topicBtn, { backgroundColor: '#EB9F4A', marginTop: 8, flex: 0 }]} onPress={() => nav.navigate('TextbookSetup', { mode: 'dictation' })}>
+                <Text style={st.topicBtnTxtW}>GO →</Text>
+              </TouchableOpacity>
             </PressableCard>
           </View>
+          <PressableCard
+            style={st.recitationCard}
+            onPress={() => nav.navigate('Recitation')}
+          >
+            <View style={st.recitationLeft}>
+              <Text style={{ fontSize: 28 }}>🎙️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={st.topicLabel}>课文背诵</Text>
+              <Text style={st.topicDesc}>古诗 · 名言 · 课文背诵闯关</Text>
+            </View>
+            <Text style={[st.quickGo, { color: '#9C27B0' }]}>GO →</Text>
+          </PressableCard>
 
           <Text style={[st.secTitle, { color: sc.dark, marginTop: 20 }]}>语文知识点</Text>
           {CHN_LEVELS.map((lvl) => {
@@ -478,32 +504,19 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Daily Task Modal */}
+      {/* Daily Task Done Modal */}
       <Modal visible={showTasks} transparent animationType="slide">
         <View style={st.modalOverlay}>
           <View style={st.modalSheet}>
             <View style={st.modalHandle} />
-            <Text style={st.modalTitle}>📋 今日任务</Text>
-            {taskDone === dailyTasks.length && dailyTasks.length > 0 && (
-              <Text style={st.modalCelebrate}>今日任务全部完成! 🎉</Text>
-            )}
+            <Text style={st.modalCelebrate}>今日任务全部完成! 🎉</Text>
             {dailyTasks.map((t) => (
-              <TouchableOpacity
-                key={t.id}
-                style={[st.taskItem, t.completed && st.taskItemDone]}
-                activeOpacity={t.completed ? 1 : 0.7}
-                onPress={() => navigateTask(t)}
-              >
-                <Text style={st.taskItemIcon}>{t.completed ? '✅' : '⬜'}</Text>
+              <View key={t.id} style={[st.taskItem, st.taskItemDone]}>
+                <Text style={st.taskItemIcon}>✅</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[st.taskItemText, t.completed && st.taskItemTextDone]}>{t.text}</Text>
-                  <View style={st.taskBar}>
-                    <View style={[st.taskBarFill, { width: `${t.target > 0 ? Math.min(100, (t.progress / t.target) * 100) : 0}%`, backgroundColor: sc.primary }]} />
-                  </View>
+                  <Text style={[st.taskItemText, st.taskItemTextDone]}>{t.text}</Text>
                 </View>
-                {!t.completed && <Text style={[st.taskGoBtn, { color: sc.primary }]}>GO →</Text>}
-                <Text style={st.taskItemReward}>+{rewardConfig?.taskReward || 10}</Text>
-              </TouchableOpacity>
+              </View>
             ))}
             <TouchableOpacity style={[st.modalClose, { backgroundColor: sc.primary }]} onPress={() => setShowTasks(false)}>
               <Text style={st.modalCloseTxt}>关闭</Text>
@@ -614,20 +627,30 @@ const st = StyleSheet.create({
   taskItemReward: { fontSize: 13, fontWeight: '700', color: C.gold, marginLeft: 8 },
   modalClose: { marginTop: 12, paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
   modalCloseTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  lockBanner: {
-    marginHorizontal: 20, marginBottom: 10, padding: 10, borderRadius: 12,
-    backgroundColor: 'rgba(224,107,107,0.12)', borderWidth: 1.5, borderColor: C.error,
-    alignItems: 'center',
+  inlineTaskBox: {
+    marginHorizontal: 20, marginBottom: 14, padding: 14, borderRadius: 16,
+    backgroundColor: C.cardWhite, borderWidth: 1.5, borderColor: C.border,
   },
-  lockTxt: { fontSize: 13, fontWeight: '700', color: C.error },
+  inlineTaskHeader: {
+    flexDirection: 'row', alignItems: 'center', marginBottom: 10,
+  },
+  inlineTaskTitle: { fontSize: 16, fontWeight: '700', color: C.text, flex: 1 },
+  inlineLockTag: {
+    fontSize: 11, fontWeight: '700', color: C.error, marginLeft: 8,
+    backgroundColor: 'rgba(224,107,107,0.12)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8,
+  },
+  inlineTaskItem: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg,
+    borderRadius: 12, padding: 10, marginBottom: 6,
+  },
+  inlineLockHint: {
+    fontSize: 12, color: C.error, fontWeight: '600', textAlign: 'center', marginTop: 4,
+  },
 
-  textbookRow: { gap: 10, marginBottom: 4, paddingHorizontal: 20 },
-  textbookCard: {
-    flexDirection: 'row', alignItems: 'center', padding: 14,
-    borderRadius: RADIUS, backgroundColor: C.card,
-    borderLeftWidth: 4,
+  recitationCard: {
+    flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 12,
+    padding: 14, borderRadius: RADIUS, backgroundColor: C.cardWhite,
+    borderLeftWidth: 4, borderLeftColor: '#9C27B0',
   },
-  textbookIcon: { fontSize: 28, marginRight: 12 },
-  textbookTitle: { fontSize: 15, fontWeight: '700', color: C.text },
-  textbookDesc: { fontSize: 12, color: C.textMid, marginTop: 1 },
+  recitationLeft: { marginRight: 12 },
 });
