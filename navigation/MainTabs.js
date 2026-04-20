@@ -13,7 +13,7 @@ const Tab = createBottomTabNavigator();
 
 const TAB_META = {
   Home: { icon: '🏠', label: '主页' },
-  History: { icon: '📋', label: '记录' },
+  History: { icon: '💎', label: '积分' },
   Settings: { icon: '🔒', label: '家长' },
 };
 

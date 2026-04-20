@@ -3,22 +3,23 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from '
 import * as Speech from 'expo-speech';
 import { useNavigation } from '@react-navigation/native';
 import { C, RADIUS } from '../lib/theme';
-import { HANZI_UNITS, getUnitChars, genPinyinQuestions } from '../lib/hanziData';
+import { SHIZI_TABLE, getShiziChars, genShiziPinyinQuestions } from '../lib/chinese';
 import { useApp } from '../lib/AppContext';
 import Feedback from '../components/Feedback';
 import ExitConfirmModal from '../components/ExitConfirmModal';
 
-// ── Setup ────────────────────────────────────────────────
+const UNITS = [
+  ...SHIZI_TABLE.map((u) => ({ key: u.key, label: u.label, desc: `${u.chars.length}个字`, icon: '📝' })),
+  { key: 'unfamiliar', label: '陌生字', desc: '标记的陌生字', icon: '⭐' },
+];
 
 function SetupPhase({ onStart, onBack }) {
   const { unfamiliarChars } = useApp();
   const [unitIdx, setUnitIdx] = useState(0);
   const [count, setCount] = useState(10);
 
-  const unit = HANZI_UNITS[unitIdx];
-  const chars = unit.key === 'unfamiliar'
-    ? getUnitChars('unfamiliar', unfamiliarChars)
-    : getUnitChars(unit.key);
+  const unit = UNITS[unitIdx];
+  const chars = getShiziChars(unit.key, unfamiliarChars);
   const max = chars.length;
   const clamped = Math.min(count, max);
 
@@ -32,15 +33,13 @@ function SetupPhase({ onStart, onBack }) {
         <Text style={st.backTxt}>← 返回</Text>
       </TouchableOpacity>
       <Text style={st.setupEmoji}>📝</Text>
-      <Text style={st.setupTitle}>练习认字表</Text>
+      <Text style={st.setupTitle}>看字选拼音</Text>
       <Text style={st.setupDesc}>看汉字选拼音，考考你的记忆</Text>
 
       <View style={st.card}>
         <Text style={st.label}>选择范围</Text>
-        {HANZI_UNITS.map((u, i) => {
-          const c = u.key === 'unfamiliar'
-            ? getUnitChars('unfamiliar', unfamiliarChars)
-            : getUnitChars(u.key);
+        {UNITS.map((u, i) => {
+          const c = getShiziChars(u.key, unfamiliarChars);
           return (
             <TouchableOpacity
               key={u.key}
@@ -96,10 +95,8 @@ function SetupPhase({ onStart, onBack }) {
   );
 }
 
-// ── Quiz Phase ───────────────────────────────────────────
-
 function QuizPhase({ questions, onFinish, onBack }) {
-  const { unfamiliarChars, removeUnfamiliar, addUnfamiliar } = useApp();
+  const { removeUnfamiliar, addUnfamiliar } = useApp();
   const [idx, setIdx] = useState(0);
   const [results, setResults] = useState([]);
   const [elapsed, setElapsed] = useState(0);
@@ -128,11 +125,8 @@ function QuizPhase({ questions, onFinish, onBack }) {
     setPicked(i);
     const correct = i === q.answer;
 
-    if (correct) {
-      removeUnfamiliar(q.char);
-    } else {
-      addUnfamiliar(q.char);
-    }
+    if (correct) removeUnfamiliar(q.char);
+    else addUnfamiliar(q.char);
 
     setResults((prev) => [...prev, { q, correct }]);
 
@@ -217,7 +211,6 @@ function QuizPhase({ questions, onFinish, onBack }) {
             <TouchableOpacity onPress={() => Speech.speak(q.char, { language: 'zh-CN', rate: 0.7 })} activeOpacity={0.7}>
               <Text style={st.bigChar}>{q.char}</Text>
             </TouchableOpacity>
-            <Text style={st.hintTxt}>偏旁: {q.radical}　{q.structure}</Text>
             <Text style={st.askTxt}>这个字的拼音是什么？</Text>
 
             <View style={st.optGrid}>
@@ -261,8 +254,6 @@ function QuizPhase({ questions, onFinish, onBack }) {
   );
 }
 
-// ── Main ─────────────────────────────────────────────────
-
 export default function CharPracticeScreen() {
   const nav = useNavigation();
   const { finishQuiz, unfamiliarChars } = useApp();
@@ -287,7 +278,7 @@ export default function CharPracticeScreen() {
   }, [nav, inQuiz, showExit]);
 
   const startQuiz = useCallback((unitKey, count) => {
-    setQuestions(genPinyinQuestions(unitKey, count, unfamiliarChars));
+    setQuestions(genShiziPinyinQuestions(unitKey, count, unfamiliarChars));
     setPhase('quiz');
   }, [unfamiliarChars]);
 
@@ -308,8 +299,6 @@ export default function CharPracticeScreen() {
     </>
   );
 }
-
-// ── Styles ───────────────────────────────────────────────
 
 const GRN = '#4CAF7D';
 
@@ -352,7 +341,6 @@ const st = StyleSheet.create({
   },
   goBtnTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
 
-  // Quiz
   quizRoot: { flex: 1, backgroundColor: C.paperBg },
   qHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -371,7 +359,6 @@ const st = StyleSheet.create({
   qCard: { backgroundColor: '#FFFDF7', borderRadius: RADIUS, padding: 24, alignItems: 'center' },
   qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 8 },
   bigChar: { fontSize: 72, fontWeight: '800', color: '#333', marginBottom: 4 },
-  hintTxt: { fontSize: 12, color: C.textMid, marginBottom: 12 },
   askTxt: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 16 },
 
   optGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },

@@ -112,7 +112,9 @@ export default function HomeScreen() {
     if (task.completed) return;
     setShowTasks(false);
     const t = task.tpl;
-    if (t === 'math_all' || t === 'math_add') go('Quiz', { subject: t === 'math_add' ? 'add' : 'mulForward' });
+    if (MATH_SUBJECTS.includes(t)) {
+      go('Quiz', { subject: t });
+    } else if (t === 'math_all' || t === 'math_add') go('Quiz', { subject: t === 'math_add' ? 'add' : 'mulForward' });
     else if (t === 'math_mul') go('Quiz', { subject: 'mulForward' });
     else if (t === 'math_div') go('Quiz', { subject: 'divide' });
     else if (t === 'eng_learn' || t === 'eng_quiz') {

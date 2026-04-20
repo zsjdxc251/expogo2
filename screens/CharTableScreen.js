@@ -3,10 +3,15 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { useNavigation } from '@react-navigation/native';
 import * as Speech from 'expo-speech';
 import { C, RADIUS } from '../lib/theme';
-import { SEMESTER_CHARS, HANZI_UNITS, getUnitChars } from '../lib/hanziData';
+import { SHIZI_TABLE, getShiziChars } from '../lib/chinese';
 import { useApp } from '../lib/AppContext';
 
 const COLS = 5;
+
+const UNITS = [
+  ...SHIZI_TABLE.map((u) => ({ key: u.key, label: u.label, icon: '📝' })),
+  { key: 'unfamiliar', label: '陌生字', icon: '⭐' },
+];
 
 export default function CharTableScreen() {
   const nav = useNavigation();
@@ -15,10 +20,8 @@ export default function CharTableScreen() {
   const [revealedChars, setRevealedChars] = useState({});
   const [unitIdx, setUnitIdx] = useState(0);
 
-  const unit = HANZI_UNITS[unitIdx];
-  const chars = unit.key === 'unfamiliar'
-    ? getUnitChars('unfamiliar', unfamiliarChars)
-    : getUnitChars(unit.key);
+  const unit = UNITS[unitIdx];
+  const chars = getShiziChars(unit.key, unfamiliarChars);
 
   const toggleReveal = useCallback((ch) => {
     setRevealedChars((prev) => ({ ...prev, [ch]: !prev[ch] }));
@@ -52,7 +55,7 @@ export default function CharTableScreen() {
 
       <View style={st.toolbar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.unitScroll}>
-          {HANZI_UNITS.map((u, i) => (
+          {UNITS.map((u, i) => (
             <TouchableOpacity
               key={u.key}
               style={[st.unitChip, unitIdx === i && st.unitChipOn]}
