@@ -100,6 +100,9 @@ export default function HistoryScreen() {
                 <Text style={st.cardReason}>
                   {isQuiz ? (sub?.label || '练习') : e.reason}
                 </Text>
+                {isQuiz && e.reason && (
+                  <Text style={st.cardDetail}>✓ {e.reason}</Text>
+                )}
                 {e.note ? <Text style={st.cardNote}>{e.note}</Text> : null}
                 <Text style={st.cardDate}>{fmtDate(e.date)}</Text>
               </View>
@@ -151,6 +154,7 @@ const st = StyleSheet.create({
   cardIcon: { fontSize: 24 },
   cardCenter: { flex: 1 },
   cardReason: { fontSize: 15, fontWeight: '700', color: C.text },
+  cardDetail: { fontSize: 12, fontWeight: '600', color: C.success, marginTop: 1 },
   cardNote: { fontSize: 12, color: C.textMid, marginTop: 1 },
   cardDate: { fontSize: 11, color: C.textLight, marginTop: 3 },
   cardRight: { alignItems: 'flex-end' },

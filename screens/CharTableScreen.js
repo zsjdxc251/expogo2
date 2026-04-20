@@ -1,27 +1,30 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Speech from 'expo-speech';
-import { C, RADIUS } from '../lib/theme';
-import { SHIZI_TABLE, getShiziChars } from '../lib/chinese';
+import { C } from '../lib/theme';
+import { getCharsForLessons } from '../lib/textbookData';
 import { useApp } from '../lib/AppContext';
 
 const COLS = 5;
 
-const UNITS = [
-  ...SHIZI_TABLE.map((u) => ({ key: u.key, label: u.label, icon: '📝' })),
-  { key: 'unfamiliar', label: '陌生字', icon: '⭐' },
-];
-
 export default function CharTableScreen() {
   const nav = useNavigation();
+  const route = useRoute();
   const { unfamiliarChars, toggleUnfamiliar } = useApp();
   const [showAllPinyin, setShowAllPinyin] = useState(false);
   const [revealedChars, setRevealedChars] = useState({});
-  const [unitIdx, setUnitIdx] = useState(0);
+  const [filterUnfamiliar, setFilterUnfamiliar] = useState(false);
 
-  const unit = UNITS[unitIdx];
-  const chars = getShiziChars(unit.key, unfamiliarChars);
+  const { tableType, lessonKeys } = route.params || {};
+  const allChars = useMemo(
+    () => getCharsForLessons(tableType || 'shizi', lessonKeys || []),
+    [tableType, lessonKeys],
+  );
+
+  const chars = filterUnfamiliar
+    ? allChars.filter((c) => unfamiliarChars.includes(c.char))
+    : allChars;
 
   const toggleReveal = useCallback((ch) => {
     setRevealedChars((prev) => ({ ...prev, [ch]: !prev[ch] }));
@@ -39,7 +42,7 @@ export default function CharTableScreen() {
     rows.push(chars.slice(i, i + COLS));
   }
 
-  const unfamiliarCount = unfamiliarChars.length;
+  const ufCount = allChars.filter((c) => unfamiliarChars.includes(c.char)).length;
 
   return (
     <View style={st.root}>
@@ -47,42 +50,48 @@ export default function CharTableScreen() {
         <TouchableOpacity onPress={() => nav.goBack()}>
           <Text style={st.backTxt}>← 返回</Text>
         </TouchableOpacity>
-        <Text style={st.title}>认字表</Text>
-        <TouchableOpacity onPress={() => nav.navigate('CharPractice')}>
-          <Text style={st.practiceTxt}>练习 →</Text>
+        <Text style={st.title}>认字浏览</Text>
+        <TouchableOpacity onPress={() => nav.navigate('CharPractice', { tableType, lessonKeys })}>
+          <Text style={st.practiceTxt}>选拼音 →</Text>
         </TouchableOpacity>
       </View>
 
       <View style={st.toolbar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.unitScroll}>
-          {UNITS.map((u, i) => (
-            <TouchableOpacity
-              key={u.key}
-              style={[st.unitChip, unitIdx === i && st.unitChipOn]}
-              onPress={() => setUnitIdx(i)}
-            >
-              <Text style={[st.unitChipTxt, unitIdx === i && st.unitChipTxtOn]}>
-                {u.icon} {u.label}
-                {u.key === 'unfamiliar' ? ` (${unfamiliarCount})` : ''}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <View style={st.chipRow}>
+          <TouchableOpacity
+            style={[st.unitChip, !filterUnfamiliar && st.unitChipOn]}
+            onPress={() => setFilterUnfamiliar(false)}
+          >
+            <Text style={[st.unitChipTxt, !filterUnfamiliar && st.unitChipTxtOn]}>
+              全部 ({allChars.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[st.unitChip, filterUnfamiliar && st.unitChipOn]}
+            onPress={() => setFilterUnfamiliar(true)}
+          >
+            <Text style={[st.unitChipTxt, filterUnfamiliar && st.unitChipTxtOn]}>
+              ⭐ 陌生字 ({ufCount})
+            </Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity
           style={[st.eyeBtn, showAllPinyin && st.eyeBtnOn]}
           onPress={() => setShowAllPinyin(!showAllPinyin)}
         >
           <Text style={st.eyeTxt}>{showAllPinyin ? '👁' : '👁‍🗨'}</Text>
-          <Text style={st.eyeLabel}>{showAllPinyin ? '隐藏全部' : '显示全部'}</Text>
+          <Text style={[st.eyeLabel, showAllPinyin && { color: '#fff' }]}>
+            {showAllPinyin ? '隐藏拼音' : '显示拼音'}
+          </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={st.scroll} contentContainerStyle={st.grid} showsVerticalScrollIndicator={false}>
         {chars.length === 0 ? (
           <View style={st.emptyBox}>
-            <Text style={st.emptyIcon}>📭</Text>
+            <Text style={st.emptyIcon}>{filterUnfamiliar ? '⭐' : '📭'}</Text>
             <Text style={st.emptyTxt}>
-              {unit.key === 'unfamiliar' ? '还没有标记陌生字' : '没有符合条件的字'}
+              {filterUnfamiliar ? '还没有标记陌生字' : '没有符合条件的字'}
             </Text>
           </View>
         ) : (
@@ -93,7 +102,7 @@ export default function CharTableScreen() {
                 const vis = isPinyinVisible(c.char);
                 return (
                   <TouchableOpacity
-                    key={c.char}
+                    key={`${c.char}_${c.lesson}`}
                     style={[st.cell, uf && st.cellUnfamiliar]}
                     onPress={() => speak(c.pinyin)}
                     onLongPress={() => toggleUnfamiliar(c.char)}
@@ -135,10 +144,10 @@ const st = StyleSheet.create({
   },
   backTxt: { fontSize: 15, fontWeight: '600', color: '#4CAF7D' },
   title: { fontSize: 18, fontWeight: '800', color: C.text },
-  practiceTxt: { fontSize: 15, fontWeight: '600', color: '#4CAF7D' },
+  practiceTxt: { fontSize: 15, fontWeight: '600', color: '#D4839A' },
 
   toolbar: { paddingHorizontal: 12, paddingBottom: 8 },
-  unitScroll: { paddingBottom: 8 },
+  chipRow: { flexDirection: 'row', marginBottom: 8 },
   unitChip: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
     backgroundColor: C.paperCard, marginRight: 6, borderWidth: 1.5, borderColor: 'transparent',

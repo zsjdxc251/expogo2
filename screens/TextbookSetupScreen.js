@@ -51,12 +51,23 @@ export default function TextbookSetupScreen() {
     .reduce((s, l) => s + l.count, 0);
 
   const canStart = selectedCount > 0;
+  const isShizi = tableType === 'shizi' && !isDictation;
 
   const onStart = useCallback(() => {
     if (!canStart) return;
     const target = isDictation ? 'TextbookDictation' : 'TextbookLearn';
     nav.navigate(target, { tableType, lessonKeys: selectedLessons });
   }, [canStart, isDictation, tableType, selectedLessons, nav]);
+
+  const onCharTable = useCallback(() => {
+    if (!canStart) return;
+    nav.navigate('CharTable', { tableType, lessonKeys: selectedLessons });
+  }, [canStart, tableType, selectedLessons, nav]);
+
+  const onCharPractice = useCallback(() => {
+    if (!canStart) return;
+    nav.navigate('CharPractice', { tableType, lessonKeys: selectedLessons });
+  }, [canStart, tableType, selectedLessons, nav]);
 
   const allSelected = currentLessons.length > 0 && currentLessons.every((l) => selectedLessons.includes(l.key));
 
@@ -135,6 +146,30 @@ export default function TextbookSetupScreen() {
       </ScrollView>
 
       <View style={[st.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        {isShizi && (
+          <View style={st.shiziRow}>
+            <TouchableOpacity
+              style={[st.shiziBtnAlt, { borderColor: canStart ? '#4CAF7D' : C.border }]}
+              onPress={onCharTable}
+              disabled={!canStart}
+              activeOpacity={0.8}
+            >
+              <Text style={[st.shiziBtnAltTxt, { color: canStart ? '#4CAF7D' : C.textLight }]}>
+                📋 认字浏览
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[st.shiziBtnAlt, { borderColor: canStart ? '#D4839A' : C.border }]}
+              onPress={onCharPractice}
+              disabled={!canStart}
+              activeOpacity={0.8}
+            >
+              <Text style={[st.shiziBtnAltTxt, { color: canStart ? '#D4839A' : C.textLight }]}>
+                📝 看字选拼音
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <TouchableOpacity
           style={[st.startBtn, { backgroundColor: canStart ? sc.primary : C.border }]}
           onPress={onStart}
@@ -189,6 +224,12 @@ const st = StyleSheet.create({
     paddingHorizontal: 16, paddingTop: 12,
     borderTopWidth: 1, borderColor: C.border, backgroundColor: C.bg,
   },
+  shiziRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  shiziBtnAlt: {
+    flex: 1, height: 44, borderRadius: RADIUS, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, backgroundColor: C.card,
+  },
+  shiziBtnAltTxt: { fontSize: 14, fontWeight: '700' },
   startBtn: {
     height: 52, borderRadius: RADIUS, alignItems: 'center', justifyContent: 'center',
   },

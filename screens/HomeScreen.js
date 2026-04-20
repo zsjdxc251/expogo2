@@ -368,33 +368,7 @@ export default function HomeScreen() {
       {/* Chinese content */}
       {activeTab === 'chinese' && (
         <>
-          <Text style={[st.secTitle, { color: sc.dark }]}>认字练习</Text>
-          <View style={st.textbookRow}>
-            <PressableCard
-              style={[st.textbookCard, { borderLeftColor: '#4CAF7D' }]}
-              onPress={() => nav.navigate('CharTable')}
-            >
-              <Text style={st.textbookIcon}>📋</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={st.textbookTitle}>认字表</Text>
-                <Text style={st.textbookDesc}>遮挡拼音 · 标记陌生字</Text>
-              </View>
-              <Text style={[st.quickGo, { color: '#4CAF7D' }]}>GO →</Text>
-            </PressableCard>
-            <PressableCard
-              style={[st.textbookCard, { borderLeftColor: '#D4839A' }]}
-              onPress={() => nav.navigate('CharPractice')}
-            >
-              <Text style={st.textbookIcon}>📝</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={st.textbookTitle}>看字选拼音</Text>
-                <Text style={st.textbookDesc}>练习认字 · 相似拼音干扰</Text>
-              </View>
-              <Text style={[st.quickGo, { color: '#D4839A' }]}>GO →</Text>
-            </PressableCard>
-          </View>
-
-          <Text style={[st.secTitle, { color: sc.dark, marginTop: 16 }]}>二年级语文下册</Text>
+          <Text style={[st.secTitle, { color: sc.dark }]}>二年级语文下册</Text>
           <View style={st.textbookRow}>
             <PressableCard
               style={[st.textbookCard, { borderLeftColor: sc.primary }]}
