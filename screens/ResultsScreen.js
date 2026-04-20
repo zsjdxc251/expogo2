@@ -200,17 +200,41 @@ export default function ResultsScreen() {
         <View style={st.wrongSec}>
           <Text style={st.wrongTitle}>错题回顾 ({wrongList.length}题)</Text>
           {wrongList.map((w, i) => {
+            const isCharPractice = w.op === 'chn_charPractice';
             const wIsEng = w.op && (w.op.startsWith('eng') || w.op.startsWith('chn_'));
-            if (wIsEng) {
+            const hasStem = w.stem || w.char;
+
+            if (isCharPractice) {
+              const display = w.char || w.stem || '?';
+              const correctAns = w.pinyin || w.answer || '—';
+              const userAns = (w.userAnswer !== null && w.userAnswer !== undefined && w.userAnswer !== '(错误)')
+                ? w.userAnswer : '—';
               return (
                 <View key={i} style={st.wrongCard}>
                   <View style={st.wrongQRow}>
-                    <Text style={[st.wrongQ, { flex: 1 }]}>{w.stem}</Text>
-                    <SpeakButton
-                      text={w.stem.replace(/___/g, 'blank')}
-                      size="small"
-                      language={w.op.startsWith('chn_') ? 'zh-CN' : 'en-US'}
-                    />
+                    <Text style={[st.wrongQ, { fontSize: 28 }]}>{display}</Text>
+                    <SpeakButton text={display} size="small" language="zh-CN" />
+                  </View>
+                  <View style={st.wrongRow}>
+                    <Text style={st.wrongLbl}>
+                      你的答案 <Text style={{ color: C.error, fontWeight: '700' }}>{userAns}</Text>
+                    </Text>
+                    <Text style={st.wrongLbl}>
+                      正确答案 <Text style={{ color: C.success, fontWeight: '700' }}>{correctAns}</Text>
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
+
+            if (wIsEng || hasStem) {
+              const stem = w.stem || w.char || '?';
+              const lang = w.op?.startsWith('chn_') ? 'zh-CN' : 'en-US';
+              return (
+                <View key={i} style={st.wrongCard}>
+                  <View style={st.wrongQRow}>
+                    <Text style={[st.wrongQ, { flex: 1 }]}>{stem}</Text>
+                    <SpeakButton text={stem.replace(/___/g, 'blank')} size="small" language={lang} />
                   </View>
                   <View style={st.wrongRow}>
                     <Text style={st.wrongLbl}>
@@ -226,6 +250,7 @@ export default function ResultsScreen() {
                 </View>
               );
             }
+
             const sym = OP_SYMBOL[w.op] || '?';
             const isDivMulti = w.op === 'divRem' || w.op === 'divReverse';
             const qStr = isDivMulti
