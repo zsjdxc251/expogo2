@@ -79,6 +79,10 @@ export default function ResultsScreen() {
 
   const ptAnim = useRef(new Animated.Value(0)).current;
   const starScale = useRef(new Animated.Value(0)).current;
+  const thumbScale = useRef(new Animated.Value(0)).current;
+  const thumbRotate = useRef(new Animated.Value(0)).current;
+  const thumbOpacity = useRef(new Animated.Value(0)).current;
+  const showThumb = accuracy >= 100 && total > 0;
 
   useEffect(() => {
     Animated.timing(ptAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
@@ -87,6 +91,21 @@ export default function ResultsScreen() {
       Animated.sequence([
         Animated.delay(600),
         Animated.spring(starScale, { toValue: 1, friction: 3, useNativeDriver: true }),
+      ]).start();
+    }
+    if (showThumb) {
+      Animated.sequence([
+        Animated.delay(300),
+        Animated.parallel([
+          Animated.spring(thumbScale, { toValue: 1, friction: 4, tension: 60, useNativeDriver: true }),
+          Animated.timing(thumbOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(thumbRotate, { toValue: 1, duration: 200, useNativeDriver: true }),
+          Animated.timing(thumbRotate, { toValue: -1, duration: 200, useNativeDriver: true }),
+          Animated.timing(thumbRotate, { toValue: 0.5, duration: 150, useNativeDriver: true }),
+          Animated.timing(thumbRotate, { toValue: 0, duration: 150, useNativeDriver: true }),
+        ]),
       ]).start();
     }
   }, []);
@@ -108,6 +127,18 @@ export default function ResultsScreen() {
         <Text style={st.fbEmoji}>{fb.emoji}</Text>
         <Text style={[st.fbText, { color: fb.color }]}>{fb.text}</Text>
       </View>
+
+      {showThumb && (
+        <Animated.View style={[st.thumbWrap, {
+          opacity: thumbOpacity,
+          transform: [
+            { scale: thumbScale },
+            { rotate: thumbRotate.interpolate({ inputRange: [-1, 0, 1], outputRange: ['-15deg', '0deg', '15deg'] }) },
+          ],
+        }]}>
+          <Text style={st.thumbEmoji}>👍</Text>
+        </Animated.View>
+      )}
 
       <View style={[st.subBadge, { backgroundColor: sub.color + '18' }]}>
         <Text style={{ color: sub.color, fontWeight: '700', fontSize: 14 }}>{sub.icon} {sub.label}</Text>
@@ -249,6 +280,9 @@ const st = StyleSheet.create({
   fbBanner: { borderRadius: 16, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center', marginBottom: 12, width: '100%' },
   fbEmoji: { fontSize: 36, marginBottom: 4 },
   fbText: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
+
+  thumbWrap: { marginBottom: 8 },
+  thumbEmoji: { fontSize: 72 },
 
   subBadge: { paddingHorizontal: 14, paddingVertical: 4, borderRadius: 14, marginBottom: 16 },
 

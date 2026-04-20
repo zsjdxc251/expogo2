@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Speech from 'expo-speech';
 import { C, RADIUS, SUBJECT_COLORS } from '../lib/theme';
 import recitationData from '../lib/recitationData';
 
@@ -129,8 +130,6 @@ function makeBlankContent(text) {
 
 function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
   const insets = useSafeAreaInsets();
-  const isPoem = item.type === '古诗' || item.type === '经典诵读';
-  const isShortForm = isPoem || item.type === '常识' || item.type === '名言';
   const translations = POEM_TRANSLATIONS[item.title] || null;
   const hasTranslation = translations != null;
   const tc = TYPE_COLORS[item.type] || TYPE_COLORS['课文'];
@@ -139,6 +138,8 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
   const [blankData, setBlankData] = useState(() => makeBlankContent(item.content));
   const [showTrans, setShowTrans] = useState(false);
   const [showAllBlanks, setShowAllBlanks] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingLine, setSpeakingLine] = useState(-1);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const resetBlanks = useCallback(() => {
@@ -155,14 +156,49 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
     setShowAllBlanks(true);
   }, []);
 
+  const stopSpeech = useCallback(() => {
+    Speech.stop();
+    setIsSpeaking(false);
+    setSpeakingLine(-1);
+  }, []);
+
+  const speakLine = useCallback((text, lineIdx) => {
+    Speech.stop();
+    setSpeakingLine(lineIdx);
+    setIsSpeaking(true);
+    Speech.speak(text, {
+      language: 'zh-CN',
+      rate: 0.85,
+      onDone: () => { setIsSpeaking(false); setSpeakingLine(-1); },
+      onStopped: () => { setIsSpeaking(false); setSpeakingLine(-1); },
+      onError: () => { setIsSpeaking(false); setSpeakingLine(-1); },
+    });
+  }, []);
+
+  const speakAll = useCallback(() => {
+    if (isSpeaking) { stopSpeech(); return; }
+    const allText = item.content.replace(/\n/g, '，');
+    setIsSpeaking(true);
+    setSpeakingLine(-2);
+    Speech.speak(allText, {
+      language: 'zh-CN',
+      rate: 0.85,
+      onDone: () => { setIsSpeaking(false); setSpeakingLine(-1); },
+      onStopped: () => { setIsSpeaking(false); setSpeakingLine(-1); },
+      onError: () => { setIsSpeaking(false); setSpeakingLine(-1); },
+    });
+  }, [isSpeaking, item.content, stopSpeech]);
+
   const switchMode = useCallback((m) => {
+    stopSpeech();
     fadeAnim.setValue(0);
     setMode(m);
     if (m === 'blank') resetBlanks();
     Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }).start();
-  }, [fadeAnim, resetBlanks]);
+  }, [fadeAnim, resetBlanks, stopSpeech]);
 
   useEffect(() => {
+    stopSpeech();
     fadeAnim.setValue(0);
     setMode('read');
     setShowTrans(false);
@@ -171,7 +207,19 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
     Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }).start();
   }, [item]);
 
+  useEffect(() => {
+    return () => { Speech.stop(); };
+  }, []);
+
   const lines = item.content.split('\n');
+  const totalChars = item.content.replace(/\s/g, '').length;
+  const isLongContent = totalChars > 80;
+  const dynamicFontSize = isLongContent ? 19 : 24;
+  const dynamicLineHeight = isLongContent ? 38 : 44;
+  const dynamicLetterSpacing = isLongContent ? 2 : 3;
+  const dynamicBlankSize = isLongContent ? 24 : 30;
+  const dynamicBlankH = isLongContent ? 28 : 34;
+
   const blankedLines = useMemo(() => {
     const result = [];
     let cursor = 0;
@@ -187,23 +235,33 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
 
   const renderReadMode = () => (
     <View style={st.contentBox}>
+      <TouchableOpacity style={[st.speakAllBtn, isSpeaking && st.speakAllBtnActive]} onPress={speakAll} activeOpacity={0.7}>
+        <Text style={st.speakAllTxt}>{isSpeaking ? '⏹ 停止朗读' : '🔊 朗读全文'}</Text>
+      </TouchableOpacity>
       {lines.map((line, i) => (
-        <Text key={i} style={isShortForm ? st.poemLine : st.proseLine}>{line}</Text>
+        <TouchableOpacity key={i} onPress={() => speakLine(line, i)} activeOpacity={0.7}>
+          <Text style={[st.unifiedLine, {
+            fontSize: dynamicFontSize,
+            lineHeight: dynamicLineHeight,
+            letterSpacing: dynamicLetterSpacing,
+          }, speakingLine === i && st.speakingHighlight]}>{line}</Text>
+        </TouchableOpacity>
       ))}
+      <Text style={st.speakHint}>点击任意一行可单独朗读</Text>
     </View>
   );
 
   const renderBlankMode = () => (
     <View style={st.contentBox}>
       {blankedLines.map((lineData, li) => (
-        <View key={li} style={[st.blankLine, !isShortForm && st.blankLineProse]}>
+        <View key={li} style={st.blankLine}>
           {lineData.map((b, ci) => {
             if (b.isBlank && !b.revealed) {
               const globalIdx = lines.slice(0, li).reduce((s, l) => s + l.length + 1, 0) + ci;
               return (
                 <TouchableOpacity key={ci} onPress={() => revealBlank(globalIdx)} activeOpacity={0.6}>
-                  <View style={[st.blankBox, !isShortForm && st.blankBoxProse]}>
-                    <Text style={[st.blankUnderscore, !isShortForm && st.blankUnderscoreProse]}>?</Text>
+                  <View style={[st.blankBox, { width: dynamicBlankSize, height: dynamicBlankH }]}>
+                    <Text style={[st.blankUnderscore, { fontSize: isLongContent ? 13 : 16 }]}>?</Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -211,7 +269,7 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
             const revealed = b.isBlank && b.revealed;
             return (
               <Text key={ci} style={[
-                isShortForm ? st.poemChar : st.proseChar,
+                st.unifiedChar, { fontSize: dynamicFontSize, lineHeight: dynamicLineHeight, letterSpacing: dynamicLetterSpacing },
                 revealed && st.revealedChar,
               ]}>{b.char}</Text>
             );
@@ -237,26 +295,26 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
         const chars = line.split('');
         let firstFound = false;
         return (
-          <View key={i} style={[st.blankLine, !isShortForm && st.blankLineProse]}>
+          <View key={i} style={st.blankLine}>
             {chars.map((ch, ci) => {
               const isChinese = /[\u4e00-\u9fff]/.test(ch);
               if (isChinese && !firstFound) {
                 firstFound = true;
                 return (
                   <Text key={ci} style={[
-                    isShortForm ? st.poemChar : st.proseChar,
+                    st.unifiedChar, { fontSize: dynamicFontSize, lineHeight: dynamicLineHeight, letterSpacing: dynamicLetterSpacing },
                     st.firstHintChar,
                   ]}>{ch}</Text>
                 );
               }
               if (isChinese) {
                 return (
-                  <View key={ci} style={[st.blankBox, !isShortForm && st.blankBoxProse]}>
-                    <Text style={[st.blankUnderscore, !isShortForm && st.blankUnderscoreProse]}>_</Text>
+                  <View key={ci} style={[st.blankBox, { width: dynamicBlankSize, height: dynamicBlankH }]}>
+                    <Text style={[st.blankUnderscore, { fontSize: isLongContent ? 13 : 16 }]}>_</Text>
                   </View>
                 );
               }
-              return <Text key={ci} style={isShortForm ? st.poemChar : st.proseChar}>{ch}</Text>;
+              return <Text key={ci} style={[st.unifiedChar, { fontSize: dynamicFontSize, lineHeight: dynamicLineHeight, letterSpacing: dynamicLetterSpacing }]}>{ch}</Text>;
             })}
           </View>
         );
@@ -463,42 +521,41 @@ const st = StyleSheet.create({
 
   divider: { height: 2, borderRadius: 1, marginTop: 14, opacity: 0.25 },
 
+  speakAllBtn: {
+    alignSelf: 'center', paddingHorizontal: 20, paddingVertical: 8,
+    borderRadius: 16, backgroundColor: 'rgba(66,165,245,0.12)',
+    marginBottom: 14, borderWidth: 1.5, borderColor: 'rgba(66,165,245,0.3)',
+  },
+  speakAllBtnActive: { backgroundColor: 'rgba(224,107,107,0.12)', borderColor: 'rgba(224,107,107,0.3)' },
+  speakAllTxt: { fontSize: 14, fontWeight: '700', color: '#42A5F5' },
+  speakingHighlight: { backgroundColor: 'rgba(66,165,245,0.12)', borderRadius: 8 },
+  speakHint: { fontSize: 11, color: C.textLight, textAlign: 'center', marginTop: 12 },
+
   contentBox: { marginTop: 16 },
 
-  poemLine: {
-    fontSize: 24, fontWeight: '600', color: '#333',
-    textAlign: 'center', lineHeight: 44, letterSpacing: 3,
+  unifiedLine: {
+    fontWeight: '700', color: '#333',
+    textAlign: 'center',
   },
-  proseLine: {
-    fontSize: 17, lineHeight: 32, color: '#333',
-    textIndent: 34,
+  unifiedChar: {
+    fontWeight: '700', color: '#333',
+    textAlign: 'center',
   },
 
   blankLine: {
     flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center',
-    marginBottom: 6, minHeight: 44,
+    marginBottom: 6, minHeight: 38,
     alignItems: 'center',
   },
-  blankLineProse: { justifyContent: 'flex-start' },
 
   blankBox: {
-    width: 30, height: 34, borderRadius: 6, marginHorizontal: 1,
+    borderRadius: 6, marginHorizontal: 1,
     backgroundColor: 'rgba(224,107,107,0.12)', borderWidth: 1.5,
     borderColor: 'rgba(224,107,107,0.3)', borderStyle: 'dashed',
     alignItems: 'center', justifyContent: 'center',
   },
-  blankBoxProse: { width: 24, height: 26, borderRadius: 4 },
   blankUnderscore: {
-    fontSize: 16, fontWeight: '700', color: '#E06B6B',
-  },
-  blankUnderscoreProse: { fontSize: 13 },
-
-  poemChar: {
-    fontSize: 24, fontWeight: '600', color: '#333',
-    textAlign: 'center', lineHeight: 44, letterSpacing: 3,
-  },
-  proseChar: {
-    fontSize: 17, color: '#333', lineHeight: 32,
+    fontWeight: '700', color: '#E06B6B',
   },
   revealedChar: {
     color: sc.primary, fontWeight: '800',

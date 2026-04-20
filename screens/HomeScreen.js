@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { C, SUBJECTS, RADIUS, SUBJECT_COLORS } from '../lib/theme';
 import { ENG_TOPICS, ENG_LEVELS, LEVEL_TOPIC_KEYS } from '../lib/english';
@@ -11,11 +11,7 @@ import PressableCard from '../components/PressableCard';
 import ProgressRing from '../components/ProgressRing';
 import Badge from '../components/Badge';
 
-function showTaskAlert() {
-  const msg = '请先完成今日任务后再自由练习';
-  if (Platform.OS === 'web') { alert(msg); }
-  else { Alert.alert('任务未完成', msg); }
-}
+// showTaskAlert is replaced by in-app modal (showLockModal state)
 
 const MATH_SUBJECTS = ['mulForward', 'mulBlank', 'add', 'subtract', 'divide', 'divRem', 'divReverse', 'addTwo', 'subtractTwo', 'mulReverse', 'compare', 'wordProblem', 'pattern'];
 
@@ -73,14 +69,14 @@ export default function HomeScreen() {
     nav.navigate(name, params);
   }, [nav, saveQuizRoute]);
   const guard = useCallback((fn) => (...args) => {
-    if (locked) { showTaskAlert(); return; }
+    if (locked) { setShowLockModal(true); return; }
     fn(...args);
   }, [locked]);
   const onSubject = useCallback((s) => {
     if (locked) {
       const cfg = taskConfig.tasks || [];
       const isTaskSubject = cfg.some((t) => t.subject === s);
-      if (!isTaskSubject) { showTaskAlert(); return; }
+      if (!isTaskSubject) { setShowLockModal(true); return; }
     }
     go('Quiz', { subject: s });
   }, [go, locked, taskConfig]);
@@ -100,8 +96,9 @@ export default function HomeScreen() {
   const [openLevel, setOpenLevel] = useState('beginner');
   const [openChnLevel, setOpenChnLevel] = useState('pinyin');
   const visMath = MATH_SUBJECTS.filter((k) => vis[`math_${k}`] !== false);
-  const [showTasks, setShowTasks] = useState(false);
+  const [tasksExpanded, setTasksExpanded] = useState(true);
   const [showAch, setShowAch] = useState(false);
+  const [showLockModal, setShowLockModal] = useState(false);
   const toggleLevel = (k) => setOpenLevel(openLevel === k ? null : k);
   const toggleChnLevel = (k) => setOpenChnLevel(openChnLevel === k ? null : k);
 
@@ -177,17 +174,22 @@ export default function HomeScreen() {
       )}
 
       {/* Inline Daily Tasks */}
-      {dailyTasks.length > 0 && (taskDone < dailyTasks.length || locked) ? (
-        <View style={st.inlineTaskBox}>
-          <View style={st.inlineTaskHeader}>
+      {dailyTasks.length > 0 && (
+        <View style={[st.inlineTaskBox, locked && { borderColor: C.error }]}>
+          <TouchableOpacity
+            style={st.inlineTaskHeader}
+            activeOpacity={locked ? 1 : 0.7}
+            onPress={() => { if (!locked) setTasksExpanded(!tasksExpanded); }}
+          >
             <Text style={st.inlineTaskTitle}>📋 今日任务</Text>
-            <View style={[st.taskPillBadge, { backgroundColor: sc.primary }]}>
+            <View style={[st.taskPillBadge, { backgroundColor: taskDone === dailyTasks.length ? C.success : sc.primary }]}>
               <Text style={st.taskPillCount}>{taskDone}/{dailyTasks.length}</Text>
             </View>
             {locked && <Text style={st.inlineLockTag}>🔒 未完成</Text>}
-          </View>
-          {dailyTasks.map((t) => {
-            const pct = t.target > 0 ? Math.min(100, Math.round((t.progress / t.target) * 100)) : 0;
+            {!locked && <Text style={st.arrow}>{tasksExpanded ? '▾' : '▸'}</Text>}
+          </TouchableOpacity>
+          {tasksExpanded && dailyTasks.map((t) => {
+            const pctVal = t.target > 0 ? Math.min(100, Math.round((t.progress / t.target) * 100)) : 0;
             return (
               <TouchableOpacity
                 key={t.id}
@@ -199,22 +201,16 @@ export default function HomeScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[st.taskItemText, t.completed && st.taskItemTextDone]}>{t.text}</Text>
                   <View style={st.taskBar}>
-                    <View style={[st.taskBarFill, { width: `${pct}%`, backgroundColor: t.completed ? C.success : sc.primary }]} />
+                    <View style={[st.taskBarFill, { width: `${pctVal}%`, backgroundColor: t.completed ? C.success : sc.primary }]} />
                   </View>
                 </View>
                 {!t.completed && <Text style={[st.taskGoBtn, { color: sc.primary }]}>GO →</Text>}
               </TouchableOpacity>
             );
           })}
-          {locked && <Text style={st.inlineLockHint}>完成以上任务后解锁自由练习</Text>}
+          {tasksExpanded && locked && <Text style={st.inlineLockHint}>完成以上任务后解锁自由练习</Text>}
         </View>
-      ) : dailyTasks.length > 0 ? (
-        <TouchableOpacity style={[st.taskPill, { borderColor: C.success }]} activeOpacity={0.7} onPress={() => setShowTasks(true)}>
-          <Text style={st.taskPillIcon}>📋</Text>
-          <Text style={st.taskPillTxt}>今日任务已全部完成!</Text>
-          <Text style={st.taskPillDone}>✅</Text>
-        </TouchableOpacity>
-      ) : null}
+      )}
 
       {/* Three big subject cards */}
       <View style={st.subjectRow}>
@@ -320,7 +316,7 @@ export default function HomeScreen() {
             )}
             <PressableCard
               style={[st.card, { borderTopColor: '#E06B6B' }]}
-              onPress={() => { if (locked) { showTaskAlert(); return; } nav.navigate('Battle'); }}
+              onPress={() => { if (locked) { setShowLockModal(true); return; } nav.navigate('Battle'); }}
             >
               <Text style={st.cardIcon}>⚔️</Text>
               <Text style={st.cardTitle}>比赛模式</Text>
@@ -504,23 +500,33 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Daily Task Done Modal */}
-      <Modal visible={showTasks} transparent animationType="slide">
-        <View style={st.modalOverlay}>
-          <View style={st.modalSheet}>
-            <View style={st.modalHandle} />
-            <Text style={st.modalCelebrate}>今日任务全部完成! 🎉</Text>
-            {dailyTasks.map((t) => (
-              <View key={t.id} style={[st.taskItem, st.taskItemDone]}>
-                <Text style={st.taskItemIcon}>✅</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[st.taskItemText, st.taskItemTextDone]}>{t.text}</Text>
-                </View>
-              </View>
-            ))}
-            <TouchableOpacity style={[st.modalClose, { backgroundColor: sc.primary }]} onPress={() => setShowTasks(false)}>
-              <Text style={st.modalCloseTxt}>关闭</Text>
-            </TouchableOpacity>
+      {/* Lock Modal — custom styled */}
+      <Modal visible={showLockModal} transparent animationType="fade">
+        <View style={st.lockOverlay}>
+          <View style={st.lockSheet}>
+            <Text style={st.lockEmoji}>🔒</Text>
+            <Text style={st.lockModalTitle}>任务未完成</Text>
+            <Text style={st.lockModalDesc}>请先完成今日任务后再自由练习哦！</Text>
+            <View style={st.lockBtnRow}>
+              <TouchableOpacity
+                style={[st.lockBtn, { backgroundColor: C.card }]}
+                onPress={() => setShowLockModal(false)}
+              >
+                <Text style={[st.lockBtnTxt, { color: C.textMid }]}>关闭</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[st.lockBtn, { backgroundColor: sc.primary }]}
+                onPress={() => {
+                  setShowLockModal(false);
+                  setTasksExpanded(true);
+                  scrollRef.current?.scrollTo({ y: 0, animated: true });
+                  const firstUnfinished = dailyTasks.find((t) => !t.completed);
+                  if (firstUnfinished) navigateTask(firstUnfinished);
+                }}
+              >
+                <Text style={[st.lockBtnTxt, { color: '#fff' }]}>去做任务</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -611,11 +617,19 @@ const st = StyleSheet.create({
   achName: { fontSize: 9, color: C.textMid, marginTop: 1, textAlign: 'center' },
   achNameLocked: { color: C.textLight },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: C.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 36, maxHeight: '70%' },
-  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 12 },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: C.text, marginBottom: 12 },
-  modalCelebrate: { fontSize: 16, fontWeight: '700', color: C.success, textAlign: 'center', marginBottom: 12 },
+  lockOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
+  lockSheet: {
+    width: '80%', backgroundColor: '#fff', borderRadius: 24, padding: 28,
+    alignItems: 'center',
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: 4 }, elevation: 8,
+  },
+  lockEmoji: { fontSize: 48, marginBottom: 10 },
+  lockModalTitle: { fontSize: 20, fontWeight: '800', color: C.text, marginBottom: 6 },
+  lockModalDesc: { fontSize: 14, color: C.textMid, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
+  lockBtnRow: { flexDirection: 'row', gap: 12, width: '100%' },
+  lockBtn: { flex: 1, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  lockBtnTxt: { fontSize: 15, fontWeight: '700' },
+
   taskItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.cardWhite, borderRadius: 14, padding: 12, marginBottom: 8 },
   taskItemDone: { opacity: 0.6 },
   taskItemIcon: { fontSize: 18, marginRight: 10 },
@@ -625,8 +639,6 @@ const st = StyleSheet.create({
   taskBarFill: { height: 4, borderRadius: 2 },
   taskGoBtn: { fontSize: 12, fontWeight: '800', marginRight: 6 },
   taskItemReward: { fontSize: 13, fontWeight: '700', color: C.gold, marginLeft: 8 },
-  modalClose: { marginTop: 12, paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
-  modalCloseTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
   inlineTaskBox: {
     marginHorizontal: 20, marginBottom: 14, padding: 14, borderRadius: 16,
     backgroundColor: C.cardWhite, borderWidth: 1.5, borderColor: C.border,

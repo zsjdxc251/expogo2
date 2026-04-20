@@ -4,6 +4,7 @@
 node_modules/
 resources/
 # Expo
+.cursor/
 .expo/
 dist/
 web-build/
