@@ -17,7 +17,7 @@ const GRID_COLS = 5;
 // ---------------------------------------------------------------------------
 // Flashcard with flip animation
 // ---------------------------------------------------------------------------
-function Flashcard({ item, info, isFlipped, onFlip, onSpeak }) {
+function Flashcard({ item, info, isFlipped, onFlip, onSpeak, showPinyin, onTogglePinyin }) {
   const flipAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -64,7 +64,18 @@ function Flashcard({ item, info, isFlipped, onFlip, onSpeak }) {
           {info?.scene ? (
             <Text style={st.sceneEmoji}>{info.scene}</Text>
           ) : null}
-          <Text style={st.frontPinyin}>{item.pinyin}</Text>
+          <TouchableOpacity
+            style={st.pinyinToggle}
+            onPress={(e) => { e.stopPropagation?.(); onTogglePinyin(); }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={st.pinyinToggleIcon}>{showPinyin ? '👁' : '👁‍🗨'}</Text>
+          </TouchableOpacity>
+          {showPinyin ? (
+            <Text style={st.frontPinyin}>{item.pinyin}</Text>
+          ) : (
+            <Text style={st.frontPinyinHidden}>· · ·</Text>
+          )}
           <Text style={st.frontChar}>{item.char}</Text>
           <TouchableOpacity
             style={st.speakBtn}
@@ -365,6 +376,7 @@ export default function CharTableScreen() {
   const [mode, setMode] = useState('card');
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [showPinyin, setShowPinyin] = useState(false);
   const [results, setResults] = useState({});
   const [slideDir, setSlideDir] = useState('left');
   const [isDone, setIsDone] = useState(false);
@@ -549,6 +561,8 @@ export default function CharTableScreen() {
               isFlipped={isFlipped}
               onFlip={() => setIsFlipped((f) => !f)}
               onSpeak={speak}
+              showPinyin={showPinyin}
+              onTogglePinyin={() => setShowPinyin((v) => !v)}
             />
           </View>
         </SlideWrapper>
@@ -628,10 +642,16 @@ const st = StyleSheet.create({
   cardBack: { backgroundColor: '#fff', borderTopWidth: 4, borderTopColor: '#EB9F4A' },
   cardTouchable: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' },
 
+  pinyinToggle: { position: 'absolute', top: 16, right: 16, zIndex: 2, padding: 4 },
+  pinyinToggleIcon: { fontSize: 22 },
   sceneEmoji: { fontSize: 36, letterSpacing: 6, marginBottom: 8, textAlign: 'center' },
   frontPinyin: {
     fontSize: 24, fontWeight: '600', color: '#EB9F4A',
-    textAlign: 'center', marginBottom: 4,
+    textAlign: 'center', marginBottom: 4, minHeight: 32,
+  },
+  frontPinyinHidden: {
+    fontSize: 20, color: '#ccc', textAlign: 'center', marginBottom: 4, minHeight: 32,
+    letterSpacing: 4,
   },
   frontChar: {
     fontSize: 96, fontWeight: '900', color: C.text,
