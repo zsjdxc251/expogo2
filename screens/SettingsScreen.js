@@ -4,7 +4,6 @@ import {
 } from 'react-native';
 import { C, AVATARS, RADIUS, SUBJECTS, DIFFICULTIES } from '../lib/theme';
 import { useApp } from '../lib/AppContext';
-import { rebuildTasks, saveDailyTasks } from '../lib/dailyTasks';
 
 const MATH_VIS_KEYS = [
   'mulForward','mulBlank','add','subtract','divide','divRem','divReverse',
@@ -104,35 +103,20 @@ export default function SettingsScreen() {
     onUpdate({ breakConfig: { ...breakConfig, ...patch } });
   };
 
-  const toggleTaskEnabled = async (v) => {
-    const newTc = { ...tc, enabled: v };
-    onUpdate({ taskConfig: newTc });
-    if (v && newTc.tasks.length > 0) {
-      const newTasks = rebuildTasks(newTc);
-      await saveDailyTasks(newTasks);
-    }
+  const toggleTaskEnabled = (v) => {
+    onUpdate({ taskConfig: { ...tc, enabled: v } });
   };
-  const addTask = async () => {
+  const addTask = () => {
     if (!addTaskSubject) return;
     const label = TASK_SUBJECTS.find((s) => s.key === addTaskSubject)?.label || addTaskSubject;
     const newTasks = [...tc.tasks, { subject: addTaskSubject, count: addTaskCount, label }];
-    const newTc = { ...tc, tasks: newTasks };
-    onUpdate({ taskConfig: newTc });
+    onUpdate({ taskConfig: { ...tc, tasks: newTasks } });
     setAddTaskSubject(null);
     setAddTaskCount(10);
-    if (newTc.enabled) {
-      const rebuilt = rebuildTasks(newTc);
-      await saveDailyTasks(rebuilt);
-    }
   };
-  const removeTask = async (idx) => {
+  const removeTask = (idx) => {
     const newTasks = tc.tasks.filter((_, i) => i !== idx);
-    const newTc = { ...tc, tasks: newTasks };
-    onUpdate({ taskConfig: newTc });
-    if (newTc.enabled) {
-      const rebuilt = rebuildTasks(newTc);
-      await saveDailyTasks(rebuilt);
-    }
+    onUpdate({ taskConfig: { ...tc, tasks: newTasks } });
   };
 
   const openPtModal = (type) => {

@@ -384,7 +384,7 @@ const st = StyleSheet.create({
   progBar: { height: 4, backgroundColor: C.border, marginHorizontal: 16, borderRadius: 2 },
   progFill: { height: 4, borderRadius: 2 },
   scroll: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 20 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 20 },
   card: {
     backgroundColor: C.card, borderRadius: RADIUS, padding: 24,
     borderTopWidth: 4, borderTopColor: '#338F9B',

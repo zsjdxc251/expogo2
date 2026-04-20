@@ -392,6 +392,17 @@ export default function HomeScreen() {
               </View>
               <Text style={[st.quickGo, { color: '#EB9F4A' }]}>GO →</Text>
             </PressableCard>
+            <PressableCard
+              style={[st.textbookCard, { borderLeftColor: '#9C27B0' }]}
+              onPress={() => nav.navigate('Recitation')}
+            >
+              <Text style={st.textbookIcon}>🎙️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={st.textbookTitle}>课文背诵</Text>
+                <Text style={st.textbookDesc}>古诗 · 名言 · 课文背诵闯关</Text>
+              </View>
+              <Text style={[st.quickGo, { color: '#9C27B0' }]}>GO →</Text>
+            </PressableCard>
           </View>
 
           <Text style={[st.secTitle, { color: sc.dark, marginTop: 20 }]}>语文知识点</Text>
