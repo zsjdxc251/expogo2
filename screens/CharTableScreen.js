@@ -71,11 +71,12 @@ function Flashcard({ item, info, isFlipped, onFlip, onSpeak, showPinyin, onToggl
           >
             <Text style={st.pinyinToggleIcon}>{showPinyin ? '👁' : '👁‍🗨'}</Text>
           </TouchableOpacity>
-          {showPinyin ? (
-            <Text style={st.frontPinyin}>{item.pinyin}</Text>
-          ) : (
-            <Text style={st.frontPinyinHidden}>· · ·</Text>
-          )}
+          <View style={st.pinyinSlot}>
+            <Text style={[st.frontPinyin, !showPinyin && st.pinyinInvisible]}>
+              {item.pinyin}
+            </Text>
+            {!showPinyin && <Text style={st.pinyinDots}>· · ·</Text>}
+          </View>
           <Text style={st.frontChar}>{item.char}</Text>
           <TouchableOpacity
             style={st.speakBtn}
@@ -645,13 +646,13 @@ const st = StyleSheet.create({
   pinyinToggle: { position: 'absolute', top: 16, right: 16, zIndex: 2, padding: 4 },
   pinyinToggleIcon: { fontSize: 22 },
   sceneEmoji: { fontSize: 36, letterSpacing: 6, marginBottom: 8, textAlign: 'center' },
+  pinyinSlot: { height: 34, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   frontPinyin: {
-    fontSize: 24, fontWeight: '600', color: '#EB9F4A',
-    textAlign: 'center', marginBottom: 4, minHeight: 32,
+    fontSize: 24, fontWeight: '600', color: '#EB9F4A', textAlign: 'center',
   },
-  frontPinyinHidden: {
-    fontSize: 20, color: '#ccc', textAlign: 'center', marginBottom: 4, minHeight: 32,
-    letterSpacing: 4,
+  pinyinInvisible: { color: 'transparent' },
+  pinyinDots: {
+    position: 'absolute', fontSize: 20, color: '#ccc', letterSpacing: 4,
   },
   frontChar: {
     fontSize: 96, fontWeight: '900', color: C.text,
