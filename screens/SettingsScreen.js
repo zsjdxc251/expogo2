@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { C, SHADOW, SHADOW_SM, AVATARS, SUBJECTS, DIFFICULTIES, SUBJECT_COLORS } from '../lib/theme';
+import { FONT_OPTIONS } from '../App';
 import { useApp } from '../lib/AppContext';
 
 const MATH_VIS_KEYS = [
@@ -243,6 +244,47 @@ export default function SettingsScreen() {
                 value={settings.autoSubmit}
                 onValueChange={(v) => onUpdate({ settings: { ...settings, autoSubmit: v } })}
               />
+            </View>
+
+            <View style={st.fontSection}>
+              <View style={{ marginBottom: 8 }}>
+                <Text style={st.bodyMdMed}>全局字体</Text>
+                <Text style={st.rowDesc}>切换应用内的显示字体</Text>
+              </View>
+              <View style={st.fontGrid}>
+                {FONT_OPTIONS.map((f) => {
+                  const active = (settings.fontKey || 'default') === f.key;
+                  return (
+                    <TouchableOpacity
+                      key={f.key}
+                      style={[st.fontChip, active && st.fontChipActive]}
+                      onPress={() => onUpdate({ settings: { ...settings, fontKey: f.key } })}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[
+                        st.fontChipLabel,
+                        active && st.fontChipLabelActive,
+                        f.family && { fontFamily: f.family },
+                      ]}>
+                        {f.label}
+                      </Text>
+                      <Text style={[st.fontChipDesc, active && st.fontChipDescActive]}>
+                        {f.desc}
+                      </Text>
+                      {active && (
+                        <MaterialIcons name="check-circle" size={16} color={C.primary} style={{ position: 'absolute', top: 6, right: 6 }} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <Text style={[
+                st.fontPreview,
+                FONT_OPTIONS.find((f) => f.key === (settings.fontKey || 'default'))?.family
+                  && { fontFamily: FONT_OPTIONS.find((f) => f.key === (settings.fontKey || 'default')).family },
+              ]}>
+                预览: 你好世界 Hello World 123
+              </Text>
             </View>
 
             {editing === 'name' ? (
@@ -825,6 +867,24 @@ const st = StyleSheet.create({
   },
   bodyMdMed: { fontSize: 16, fontWeight: '500', color: C.text },
   rowDesc: { fontSize: 13, color: C.textLight, marginTop: 2 },
+  fontSection: { paddingTop: 4 },
+  fontGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  fontChip: {
+    width: '47%', position: 'relative',
+    backgroundColor: C.surfaceContainerLow, borderRadius: 12,
+    paddingVertical: 12, paddingHorizontal: 14,
+    borderWidth: 2, borderColor: C.border,
+  },
+  fontChipActive: { borderColor: C.primary, backgroundColor: C.primaryBg },
+  fontChipLabel: { fontSize: 16, fontWeight: '700', color: C.text },
+  fontChipLabelActive: { color: C.primary },
+  fontChipDesc: { fontSize: 11, color: C.textLight, marginTop: 2 },
+  fontChipDescActive: { color: C.primary },
+  fontPreview: {
+    fontSize: 15, color: C.textMid, marginTop: 10,
+    backgroundColor: C.surfaceContainerLow, borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 8, textAlign: 'center',
+  },
   toggleTrack: {
     width: 56,
     height: 32,
