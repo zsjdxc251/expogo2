@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
 import * as Speech from 'expo-speech';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { C, RADIUS } from '../lib/theme';
+import { MaterialIcons } from '@expo/vector-icons';
+import { C, RADIUS, SHADOW, SHADOW_SM } from '../lib/theme';
 import { getCharsForLessons } from '../lib/textbookData';
 import { useApp } from '../lib/AppContext';
 import Feedback from '../components/Feedback';
@@ -47,66 +48,105 @@ function SetupPhase({ pool, onStart, onBack }) {
   const ufCount = pool.filter((c) => unfamiliarChars.includes(c.char)).length;
 
   return (
-    <ScrollView style={st.scroll} contentContainerStyle={st.setupRoot} showsVerticalScrollIndicator={false}>
-      <TouchableOpacity style={st.backBtn} onPress={onBack}>
-        <Text style={st.backTxt}>← 返回</Text>
-      </TouchableOpacity>
-      <Text style={st.setupEmoji}>📝</Text>
-      <Text style={st.setupTitle}>看字选拼音</Text>
-      <Text style={st.setupDesc}>共 {pool.length} 个字可练习</Text>
-
-      <View style={st.card}>
-        <Text style={st.label}>练习范围</Text>
+    <View style={st.setupContainer}>
+      <View style={st.setupHeader}>
         <TouchableOpacity
-          style={[st.unitRow, !filterUf && st.unitRowOn]}
-          onPress={() => setFilterUf(false)}
+          style={st.headerBackCircle}
+          onPress={onBack}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Text style={st.unitIcon}>📖</Text>
-          <Text style={[st.unitLabel, !filterUf && { color: '#fff' }]}>
-            全部 ({pool.length}字)
-          </Text>
+          <MaterialIcons name="arrow-back" size={24} color={C.primary} />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[st.unitRow, filterUf && st.unitRowOn, ufCount === 0 && { opacity: 0.4 }]}
-          onPress={() => { if (ufCount > 0) setFilterUf(true); }}
-          disabled={ufCount === 0}
-        >
-          <Text style={st.unitIcon}>⭐</Text>
-          <Text style={[st.unitLabel, filterUf && { color: '#fff' }]}>
-            陌生字 ({ufCount}字)
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={[st.label, { marginTop: 18 }]}>题数</Text>
-        <View style={st.countRow}>
-          <TouchableOpacity style={st.cBtn} onPress={() => setCount((c) => Math.max(1, c - 1))}>
-            <Text style={st.cBtnTxt}>−</Text>
-          </TouchableOpacity>
-          <Text style={st.countNum}>{clamped}</Text>
-          <TouchableOpacity style={st.cBtn} onPress={() => setCount((c) => Math.min(max, c + 1))}>
-            <Text style={st.cBtnTxt}>+</Text>
-          </TouchableOpacity>
-        </View>
-        {PRESETS.length > 0 && (
-          <View style={st.presetRow}>
-            {PRESETS.map((n) => (
-              <TouchableOpacity key={n} style={[st.presetBtn, clamped === n && st.presetOn]} onPress={() => setCount(n)}>
-                <Text style={[st.presetTxt, clamped === n && { color: '#fff' }]}>{n}题</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        <Text style={st.headerTitle}>看字选拼音</Text>
+        <View style={st.headerSpacer} />
       </View>
 
-      <TouchableOpacity
-        style={[st.goBtn, max === 0 && { opacity: 0.4 }]}
-        activeOpacity={0.8}
-        disabled={max === 0}
-        onPress={() => onStart(filtered, clamped)}
+      <ScrollView
+        style={st.scroll}
+        contentContainerStyle={st.setupContent}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={st.goBtnTxt}>开始练习</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <View style={st.setupIconWrap}>
+          <MaterialIcons name="spellcheck" size={40} color={C.primary} />
+        </View>
+        <Text style={st.setupTitle}>看字选拼音</Text>
+        <Text style={st.setupDesc}>共 {pool.length} 个字可练习</Text>
+
+        <View style={st.card}>
+          <Text style={st.sectionLabel}>练习范围</Text>
+          <TouchableOpacity
+            style={[st.rangeRow, !filterUf && st.rangeRowOn]}
+            onPress={() => setFilterUf(false)}
+            activeOpacity={0.8}
+          >
+            <View style={[st.rangeIconWrap, !filterUf && st.rangeIconWrapOn]}>
+              <MaterialIcons name="menu-book" size={20} color={!filterUf ? C.onPrimary : C.primary} />
+            </View>
+            <Text style={[st.rangeLabel, !filterUf && st.rangeLabelOn]}>
+              全部 ({pool.length}字)
+            </Text>
+            {!filterUf && <MaterialIcons name="check-circle" size={20} color={C.onPrimary} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[st.rangeRow, filterUf && st.rangeRowOn, ufCount === 0 && { opacity: 0.4 }]}
+            onPress={() => { if (ufCount > 0) setFilterUf(true); }}
+            disabled={ufCount === 0}
+            activeOpacity={0.8}
+          >
+            <View style={[st.rangeIconWrap, { backgroundColor: C.secondaryFixed }, filterUf && st.rangeIconWrapOn]}>
+              <MaterialIcons name="star" size={20} color={filterUf ? C.onPrimary : C.secondary} />
+            </View>
+            <Text style={[st.rangeLabel, filterUf && st.rangeLabelOn]}>
+              陌生字 ({ufCount}字)
+            </Text>
+            {filterUf && <MaterialIcons name="check-circle" size={20} color={C.onPrimary} />}
+          </TouchableOpacity>
+
+          <Text style={[st.sectionLabel, { marginTop: 20 }]}>题数</Text>
+          <View style={st.countRow}>
+            <TouchableOpacity
+              style={st.stepperBtn}
+              onPress={() => setCount((c) => Math.max(1, c - 1))}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="remove" size={22} color={C.primary} />
+            </TouchableOpacity>
+            <Text style={st.countNum}>{clamped}</Text>
+            <TouchableOpacity
+              style={st.stepperBtn}
+              onPress={() => setCount((c) => Math.min(max, c + 1))}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="add" size={22} color={C.primary} />
+            </TouchableOpacity>
+          </View>
+          {PRESETS.length > 0 && (
+            <View style={st.presetRow}>
+              {PRESETS.map((n) => (
+                <TouchableOpacity
+                  key={n}
+                  style={[st.presetChip, clamped === n && st.presetChipOn]}
+                  onPress={() => setCount(n)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[st.presetTxt, clamped === n && st.presetTxtOn]}>{n}题</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[st.startBtn, max === 0 && { opacity: 0.4 }]}
+          activeOpacity={0.85}
+          disabled={max === 0}
+          onPress={() => onStart(filtered, clamped)}
+        >
+          <MaterialIcons name="play-arrow" size={24} color={C.onPrimary} />
+          <Text style={st.startBtnTxt}>开始练习</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -186,28 +226,56 @@ function QuizPhase({ questions, onFinish, onBack }) {
   return (
     <View style={st.quizRoot}>
       <View style={st.qHeader}>
-        <TouchableOpacity onPress={onBack}><Text style={st.backTxt}>←</Text></TouchableOpacity>
-        <View style={st.timerBox}><Text style={st.timerTxt}>{fmt(elapsed)}</Text></View>
-        <Text style={st.progTxt}>{allDone ? questions.length : idx + 1}/{questions.length}</Text>
+        <TouchableOpacity
+          style={st.headerBackCircle}
+          onPress={onBack}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <MaterialIcons name="arrow-back" size={24} color={C.primary} />
+        </TouchableOpacity>
+        <View style={st.timerChip}>
+          <MaterialIcons name="timer" size={16} color={C.primary} />
+          <Text style={st.timerTxt}>{fmt(elapsed)}</Text>
+        </View>
+        <View style={st.progChip}>
+          <Text style={st.progTxt}>{allDone ? questions.length : idx + 1}/{questions.length}</Text>
+        </View>
       </View>
-      <View style={st.bar}><View style={[st.barFill, { width: `${pct}%` }]} /></View>
+
+      <View style={st.progressBarWrap}>
+        <View style={[st.progressBarFill, { width: `${pct}%` }]} />
+      </View>
+
       {showCombo && (
-        <Animated.View style={[st.comboBox, { transform: [{ scale: comboAnim }] }]}>
-          <Text style={st.comboTxt}>🔥 连击 x{combo}!</Text>
+        <Animated.View style={[st.comboChip, { transform: [{ scale: comboAnim }] }]}>
+          <MaterialIcons name="local-fire-department" size={18} color={C.accent} />
+          <Text style={st.comboTxt}>连击 x{combo}!</Text>
         </Animated.View>
       )}
+
       <ScrollView style={{ flex: 1 }} contentContainerStyle={st.qArea} showsVerticalScrollIndicator={false}>
         {allDone ? (
-          <View style={st.doneBox}>
-            <Text style={st.doneEmoji}>🎉</Text>
+          <View style={st.doneCard}>
+            <View style={st.doneIconWrap}>
+              <MaterialIcons name="celebration" size={48} color={C.primary} />
+            </View>
             <Text style={st.doneTxt}>全部答完了!</Text>
-            <Text style={st.doneSub}>{results.filter((r) => r.correct).length}/{questions.length} 题答对</Text>
+            <Text style={st.doneSub}>
+              {results.filter((r) => r.correct).length}/{questions.length} 题答对
+            </Text>
           </View>
         ) : (
           <View style={st.qCard}>
             <Text style={st.qIdx}>第 {idx + 1} 题</Text>
-            <TouchableOpacity onPress={() => Speech.speak(q.char, { language: 'zh-CN', rate: 0.7 })} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={() => Speech.speak(q.char, { language: 'zh-CN', rate: 0.7 })}
+              activeOpacity={0.7}
+              style={st.charWrap}
+            >
               <Text style={st.bigChar}>{q.char}</Text>
+              <View style={st.speakHint}>
+                <MaterialIcons name="volume-up" size={16} color={C.primary} />
+              </View>
             </TouchableOpacity>
             <Text style={st.askTxt}>这个字的拼音是什么？</Text>
             <View style={st.optGrid}>
@@ -216,27 +284,41 @@ function QuizPhase({ questions, onFinish, onBack }) {
                 return (
                   <TouchableOpacity
                     key={i}
-                    style={[st.optBtn, bg && { borderColor: bg, backgroundColor: bg + '18' }]}
+                    style={[
+                      st.optBtn,
+                      bg && { borderColor: bg, backgroundColor: bg === C.success ? C.successBg : C.errorBg },
+                    ]}
                     onPress={() => onPick(i)}
                     disabled={picked !== null}
                     activeOpacity={0.7}
                   >
                     <Text style={[st.optTxt, bg && { color: bg }]}>{opt}</Text>
+                    {picked !== null && i === q.answer && (
+                      <MaterialIcons name="check-circle" size={18} color={C.success} style={st.optIcon} />
+                    )}
+                    {picked === i && i !== q.answer && (
+                      <MaterialIcons name="cancel" size={18} color={C.error} style={st.optIcon} />
+                    )}
                   </TouchableOpacity>
                 );
               })}
             </View>
             {picked !== null && picked !== q.answer && (
-              <Text style={st.correctHint}>正确答案: {q.pinyin}</Text>
+              <View style={st.correctHintRow}>
+                <MaterialIcons name="info" size={16} color={C.primary} />
+                <Text style={st.correctHint}>正确答案: {q.pinyin}</Text>
+              </View>
             )}
           </View>
         )}
         <Feedback type={fb} points={fb === 'correct' ? 10 + (combo >= 3 ? 5 : 0) : 0} combo={combo} onDone={onFbDone} />
       </ScrollView>
+
       {allDone && (
         <View style={st.bottomBar}>
-          <TouchableOpacity style={st.finishBtn} onPress={handleFinish} activeOpacity={0.8}>
+          <TouchableOpacity style={st.finishBtn} onPress={handleFinish} activeOpacity={0.85}>
             <Text style={st.finishTxt}>查看结果</Text>
+            <MaterialIcons name="arrow-forward" size={20} color={C.onPrimary} />
           </TouchableOpacity>
         </View>
       )}
@@ -297,59 +379,157 @@ export default function CharPracticeScreen() {
   );
 }
 
-const GRN = '#4CAF7D';
-
 const st = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: C.paperBg },
-  setupRoot: { alignItems: 'center', paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
-  backBtn: { alignSelf: 'flex-start', marginBottom: 12 },
-  backTxt: { fontSize: 16, fontWeight: '600', color: GRN },
-  setupEmoji: { fontSize: 48, marginBottom: 4 },
-  setupTitle: { fontSize: 24, fontWeight: '800', color: C.text, marginBottom: 2 },
-  setupDesc: { fontSize: 14, color: C.textMid, marginBottom: 18 },
-  card: { width: '100%', backgroundColor: C.paperCard, borderRadius: 20, padding: 20 },
-  label: { fontSize: 15, fontWeight: '600', color: C.textMid, marginBottom: 10, textAlign: 'center' },
-  unitRow: {
-    flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14,
-    backgroundColor: '#FFFDF7', marginBottom: 6, borderWidth: 2, borderColor: C.border,
+  setupContainer: { flex: 1, backgroundColor: C.bg },
+  setupHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 12, paddingVertical: 10,
   },
-  unitRowOn: { backgroundColor: GRN, borderColor: GRN },
-  unitIcon: { fontSize: 22, marginRight: 10 },
-  unitLabel: { fontSize: 15, fontWeight: '700', color: C.text },
-  countRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  cBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#FFFDF7', alignItems: 'center', justifyContent: 'center', marginHorizontal: 10 },
-  cBtnTxt: { fontSize: 22, fontWeight: '700', color: GRN },
-  countNum: { fontSize: 38, fontWeight: '800', color: GRN, minWidth: 50, textAlign: 'center' },
-  presetRow: { flexDirection: 'row', justifyContent: 'center' },
-  presetBtn: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 14, backgroundColor: '#FFFDF7', marginHorizontal: 3 },
-  presetOn: { backgroundColor: GRN },
-  presetTxt: { fontSize: 13, fontWeight: '600', color: C.textMid },
-  goBtn: { marginTop: 24, width: '100%', height: 54, borderRadius: 16, backgroundColor: GRN, alignItems: 'center', justifyContent: 'center' },
-  goBtnTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  headerBackCircle: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: C.surfaceContainerHigh,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1, fontSize: 18, fontWeight: '800', color: C.text, textAlign: 'center',
+  },
+  headerSpacer: { width: 40 },
+  scroll: { flex: 1 },
+  setupContent: {
+    alignItems: 'center', paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40,
+  },
+  setupIconWrap: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: C.primaryBg,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+  },
+  setupTitle: { fontSize: 24, fontWeight: '800', color: C.text, marginBottom: 4 },
+  setupDesc: { fontSize: 14, color: C.textMid, marginBottom: 20 },
 
-  quizRoot: { flex: 1, backgroundColor: C.paperBg },
-  qHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6 },
-  timerBox: { backgroundColor: C.paperCard, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 16 },
-  timerTxt: { fontSize: 18, fontWeight: '700', color: GRN, fontVariant: ['tabular-nums'] },
+  card: {
+    width: '100%', backgroundColor: C.cardWhite, borderRadius: RADIUS, padding: 20,
+    ...SHADOW,
+  },
+  sectionLabel: {
+    fontSize: 14, fontWeight: '700', color: C.textMid, marginBottom: 10, textAlign: 'center',
+  },
+  rangeRow: {
+    flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: RADIUS,
+    backgroundColor: C.surfaceContainerLow, marginBottom: 8,
+    borderWidth: 2, borderColor: C.border,
+  },
+  rangeRowOn: { backgroundColor: C.primary, borderColor: C.primary },
+  rangeIconWrap: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: C.primaryBg,
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  rangeIconWrapOn: { backgroundColor: 'rgba(255,255,255,0.2)' },
+  rangeLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: C.text },
+  rangeLabelOn: { color: C.onPrimary },
+
+  countRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+  },
+  stepperBtn: {
+    width: 44, height: 44, borderRadius: RADIUS,
+    backgroundColor: C.surfaceContainerLow, alignItems: 'center', justifyContent: 'center',
+    marginHorizontal: 12, borderWidth: 1.5, borderColor: C.border,
+  },
+  countNum: {
+    fontSize: 38, fontWeight: '800', color: C.primary, minWidth: 50, textAlign: 'center',
+  },
+  presetRow: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  presetChip: {
+    paddingHorizontal: 16, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: C.surfaceContainerLow, borderWidth: 1, borderColor: C.border,
+  },
+  presetChipOn: { backgroundColor: C.primaryContainer, borderColor: C.primaryContainer },
+  presetTxt: { fontSize: 13, fontWeight: '600', color: C.textMid },
+  presetTxtOn: { color: C.onPrimary },
+
+  startBtn: {
+    marginTop: 24, width: '100%', height: 56, borderRadius: RADIUS,
+    backgroundColor: C.primary, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center', gap: 8,
+    ...SHADOW_SM,
+  },
+  startBtnTxt: { fontSize: 18, fontWeight: '700', color: C.onPrimary },
+
+  quizRoot: { flex: 1, backgroundColor: C.bg },
+  qHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 12, paddingTop: 8, paddingBottom: 8,
+  },
+  timerChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: C.primaryBg, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999,
+  },
+  timerTxt: {
+    fontSize: 16, fontWeight: '700', color: C.primary, fontVariant: ['tabular-nums'],
+  },
+  progChip: {
+    backgroundColor: C.surfaceContainerHigh, paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 999,
+  },
   progTxt: { fontSize: 14, fontWeight: '700', color: C.textMid },
-  bar: { height: 6, backgroundColor: 'rgba(196,196,196,0.4)', marginHorizontal: 16, borderRadius: 30, overflow: 'hidden' },
-  barFill: { height: 6, borderRadius: 30, backgroundColor: GRN },
-  comboBox: { alignSelf: 'center', marginTop: 8, paddingHorizontal: 14, paddingVertical: 4, borderRadius: 16, backgroundColor: C.accentBg },
-  comboTxt: { fontSize: 15, fontWeight: '800', color: C.accent },
+
+  progressBarWrap: {
+    height: 6, backgroundColor: C.surfaceContainer, marginHorizontal: 16,
+    borderRadius: 3, overflow: 'hidden',
+  },
+  progressBarFill: { height: 6, borderRadius: 3, backgroundColor: C.primary },
+
+  comboChip: {
+    alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 4,
+    marginTop: 10, paddingHorizontal: 14, paddingVertical: 6,
+    borderRadius: 999, backgroundColor: C.accentBg,
+  },
+  comboTxt: { fontSize: 15, fontWeight: '800', color: C.secondary },
+
   qArea: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 16, paddingBottom: 16 },
-  qCard: { backgroundColor: '#FFFDF7', borderRadius: RADIUS, padding: 24, alignItems: 'center' },
+  qCard: {
+    backgroundColor: C.cardWhite, borderRadius: RADIUS, padding: 24,
+    alignItems: 'center', ...SHADOW,
+  },
   qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 8 },
-  bigChar: { fontSize: 72, fontWeight: '800', color: '#333', marginBottom: 4 },
+  charWrap: { alignItems: 'center', position: 'relative' },
+  bigChar: { fontSize: 72, fontWeight: '800', color: C.text, marginBottom: 4 },
+  speakHint: {
+    position: 'absolute', bottom: 4, right: -24,
+    width: 28, height: 28, borderRadius: 14, backgroundColor: C.primaryBg,
+    alignItems: 'center', justifyContent: 'center',
+  },
   askTxt: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 16 },
-  optGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
-  optBtn: { width: '44%', paddingVertical: 14, borderRadius: 16, backgroundColor: C.paperCard, alignItems: 'center', margin: 6, borderWidth: 2.5, borderColor: 'rgba(0,0,0,0.08)' },
+  optGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 },
+  optBtn: {
+    width: '44%', paddingVertical: 14, borderRadius: RADIUS,
+    backgroundColor: C.surfaceContainerLow, alignItems: 'center',
+    borderWidth: 2, borderColor: C.border,
+    flexDirection: 'row', justifyContent: 'center', gap: 6,
+  },
   optTxt: { fontSize: 22, fontWeight: '700', color: C.text },
-  correctHint: { fontSize: 14, color: C.success, fontWeight: '700', marginTop: 12 },
-  doneBox: { alignItems: 'center', paddingVertical: 40 },
-  doneEmoji: { fontSize: 56, marginBottom: 10 },
-  doneTxt: { fontSize: 22, fontWeight: '700', color: C.success },
-  doneSub: { fontSize: 16, color: C.textMid, marginTop: 4 },
-  bottomBar: { paddingHorizontal: 16, paddingBottom: 12 },
-  finishBtn: { height: 54, borderRadius: 14, backgroundColor: GRN, alignItems: 'center', justifyContent: 'center' },
-  finishTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  optIcon: { marginLeft: 2 },
+  correctHintRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 14,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS,
+    backgroundColor: C.primaryBg,
+  },
+  correctHint: { fontSize: 14, color: C.primary, fontWeight: '700' },
+
+  doneCard: {
+    alignItems: 'center', backgroundColor: C.cardWhite, borderRadius: RADIUS,
+    padding: 32, ...SHADOW,
+  },
+  doneIconWrap: {
+    width: 80, height: 80, borderRadius: 40, backgroundColor: C.primaryBg,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+  },
+  doneTxt: { fontSize: 22, fontWeight: '700', color: C.primary },
+  doneSub: { fontSize: 16, color: C.textMid, marginTop: 6 },
+
+  bottomBar: { paddingHorizontal: 16, paddingBottom: 16 },
+  finishBtn: {
+    height: 56, borderRadius: RADIUS, backgroundColor: C.primary,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    ...SHADOW_SM,
+  },
+  finishTxt: { fontSize: 18, fontWeight: '700', color: C.onPrimary },
 });
