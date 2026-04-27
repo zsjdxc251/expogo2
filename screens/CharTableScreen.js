@@ -800,7 +800,7 @@ export default function CharTableScreen() {
     const k = Object.values(results).filter((v) => v === 'known').length;
     const u = Object.values(results).filter((v) => v === 'unknown').length;
     return (
-      <View style={[st.root, { paddingTop: insets.top }]}>
+      <View style={st.root}>
         <CompletionScreen
           total={totalForStats}
           knownCount={k}
@@ -815,7 +815,7 @@ export default function CharTableScreen() {
 
   if (mode === 'grid') {
     return (
-      <View style={[st.root, { paddingTop: insets.top }]}>
+      <View style={st.root}>
         <View style={st.literacyHeaderSticky}>
           <TouchableOpacity
             onPress={() => nav.goBack()}
@@ -855,7 +855,7 @@ export default function CharTableScreen() {
   const isWritingTable = tableType === 'xiezi';
 
   return (
-    <View style={[st.root, { paddingTop: insets.top }]}>
+    <View style={st.root}>
       {/* Header */}
       {isWritingTable ? (
         <View style={st.wHeaderWriting}>
