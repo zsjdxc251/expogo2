@@ -2,11 +2,10 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
-import { C, RADIUS, SUBJECT_COLORS } from '../lib/theme';
+import { C, RADIUS, SHADOW } from '../lib/theme';
 import recitationData from '../lib/recitationData';
-
-const sc = SUBJECT_COLORS.chinese;
 
 const POEM_TRANSLATIONS = {
   '咏柳': [
@@ -73,11 +72,11 @@ function LevelSelectScreen({ levels, onSelect }) {
   return (
     <View style={st.root}>
       <View style={st.header}>
-        <TouchableOpacity onPress={() => nav.goBack()}>
-          <Text style={[st.back, { color: sc.primary }]}>← 返回</Text>
+        <TouchableOpacity onPress={() => nav.goBack()} style={st.headerBackBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <MaterialIcons name="arrow-back" size={24} color={C.primary} />
         </TouchableOpacity>
         <Text style={st.headerTitle}>课文背诵</Text>
-        <View style={{ width: 50 }} />
+        <View style={{ width: 40 }} />
       </View>
       <ScrollView style={st.scroll} contentContainerStyle={st.levelContent} showsVerticalScrollIndicator={false}>
         <Text style={st.levelHint}>共 {levels.length} 关，选择要背诵的内容</Text>
@@ -214,11 +213,11 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
   const lines = item.content.split('\n');
   const totalChars = item.content.replace(/\s/g, '').length;
   const isLongContent = totalChars > 80;
-  const dynamicFontSize = isLongContent ? 19 : 24;
-  const dynamicLineHeight = isLongContent ? 38 : 44;
+  const dynamicFontSize = isLongContent ? 21 : 26;
+  const dynamicLineHeight = isLongContent ? 40 : 48;
   const dynamicLetterSpacing = isLongContent ? 2 : 3;
-  const dynamicBlankSize = isLongContent ? 24 : 30;
-  const dynamicBlankH = isLongContent ? 28 : 34;
+  const dynamicBlankSize = isLongContent ? 28 : 34;
+  const dynamicBlankH = isLongContent ? 32 : 38;
 
   const blankedLines = useMemo(() => {
     const result = [];
@@ -236,7 +235,8 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
   const renderReadMode = () => (
     <View style={st.contentBox}>
       <TouchableOpacity style={[st.speakAllBtn, isSpeaking && st.speakAllBtnActive]} onPress={speakAll} activeOpacity={0.7}>
-        <Text style={st.speakAllTxt}>{isSpeaking ? '⏹ 停止朗读' : '🔊 朗读全文'}</Text>
+        <MaterialIcons name="volume-up" size={20} color={isSpeaking ? C.error : C.primary} style={st.speakAllIcon} />
+        <Text style={[st.speakAllTxt, isSpeaking && { color: C.error }]}>{isSpeaking ? '停止朗读' : '朗读全文'}</Text>
       </TouchableOpacity>
       {lines.map((line, i) => (
         <TouchableOpacity key={i} onPress={() => speakLine(line, i)} activeOpacity={0.7}>
@@ -244,6 +244,7 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
             fontSize: dynamicFontSize,
             lineHeight: dynamicLineHeight,
             letterSpacing: dynamicLetterSpacing,
+            color: C.text,
           }, speakingLine === i && st.speakingHighlight]}>{line}</Text>
         </TouchableOpacity>
       ))}
@@ -260,8 +261,8 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
               const globalIdx = lines.slice(0, li).reduce((s, l) => s + l.length + 1, 0) + ci;
               return (
                 <TouchableOpacity key={ci} onPress={() => revealBlank(globalIdx)} activeOpacity={0.6}>
-                  <View style={[st.blankBox, { width: dynamicBlankSize, height: dynamicBlankH }]}>
-                    <Text style={[st.blankUnderscore, { fontSize: isLongContent ? 13 : 16 }]}>?</Text>
+                  <View style={[st.blankBox, { minWidth: dynamicBlankSize, height: dynamicBlankH }]}>
+                    <Text style={[st.blankUnderscore, { fontSize: isLongContent ? 14 : 17 }]}>___</Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -269,7 +270,7 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
             const revealed = b.isBlank && b.revealed;
             return (
               <Text key={ci} style={[
-                st.unifiedChar, { fontSize: dynamicFontSize, lineHeight: dynamicLineHeight, letterSpacing: dynamicLetterSpacing },
+                st.unifiedChar, { fontSize: dynamicFontSize, lineHeight: dynamicLineHeight, letterSpacing: dynamicLetterSpacing, color: C.text },
                 revealed && st.revealedChar,
               ]}>{b.char}</Text>
             );
@@ -282,9 +283,6 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
             <Text style={[st.actionTxt, { color: '#E65100' }]}>显示全部答案</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={[st.actionBtn, { backgroundColor: sc.bg }]} onPress={resetBlanks}>
-          <Text style={[st.actionTxt, { color: sc.primary }]}>重新挖空</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -302,19 +300,19 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
                 firstFound = true;
                 return (
                   <Text key={ci} style={[
-                    st.unifiedChar, { fontSize: dynamicFontSize, lineHeight: dynamicLineHeight, letterSpacing: dynamicLetterSpacing },
+                    st.unifiedChar, { fontSize: dynamicFontSize, lineHeight: dynamicLineHeight, letterSpacing: dynamicLetterSpacing, color: C.text },
                     st.firstHintChar,
                   ]}>{ch}</Text>
                 );
               }
               if (isChinese) {
                 return (
-                  <View key={ci} style={[st.blankBox, { width: dynamicBlankSize, height: dynamicBlankH }]}>
-                    <Text style={[st.blankUnderscore, { fontSize: isLongContent ? 13 : 16 }]}>_</Text>
+                  <View key={ci} style={[st.blankBox, { minWidth: dynamicBlankSize, height: dynamicBlankH }]}>
+                    <Text style={[st.blankUnderscore, { fontSize: isLongContent ? 14 : 17 }]}>___</Text>
                   </View>
                 );
               }
-              return <Text key={ci} style={[st.unifiedChar, { fontSize: dynamicFontSize, lineHeight: dynamicLineHeight, letterSpacing: dynamicLetterSpacing }]}>{ch}</Text>;
+              return <Text key={ci} style={[st.unifiedChar, { fontSize: dynamicFontSize, lineHeight: dynamicLineHeight, letterSpacing: dynamicLetterSpacing, color: C.text }]}>{ch}</Text>;
             })}
           </View>
         );
@@ -324,64 +322,111 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
 
   return (
     <View style={st.root}>
-      <View style={st.header}>
-        <TouchableOpacity onPress={onBack}>
-          <Text style={[st.back, { color: sc.primary }]}>← 返回</Text>
+      <View style={[st.header, { paddingTop: Math.max(insets.top, 8) }]}>
+        <TouchableOpacity onPress={onBack} style={st.headerBackBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <MaterialIcons name="arrow-back" size={24} color={C.primary} />
         </TouchableOpacity>
-        <Text style={st.headerTitle}>{levelTitle}</Text>
-        <View style={{ width: 50 }} />
+        <View style={st.headerTitleBlock}>
+          <Text style={st.reciteHeaderTitle} numberOfLines={1}>
+            背诵 - {item.title}
+          </Text>
+          <Text style={st.reciteHeaderSub} numberOfLines={1}>
+            {levelTitle}
+          </Text>
+        </View>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={st.scroll} contentContainerStyle={st.reciteContent} showsVerticalScrollIndicator={false}>
         <Animated.View style={{ opacity: fadeAnim }}>
-          <View style={[st.itemCard, { borderTopColor: tc.border }]}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={st.actionPillsRow}
+            style={st.actionPillsScroll}
+          >
+            <TouchableOpacity
+              style={st.actionPill}
+              onPress={() => (mode === 'blank' ? resetBlanks() : switchMode('blank'))}
+              activeOpacity={0.7}
+            >
+              <Text style={st.actionPillEmoji}>🔄</Text>
+              <Text style={st.actionPillLabel}>重新挖空</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                st.actionPill,
+                mode === 'read' && st.actionPillMode,
+              ]}
+              onPress={() => switchMode('read')}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="volume-up" size={18} color={mode === 'read' ? C.onPrimary : C.textMid} style={st.actionPillIcon} />
+              <Text style={[st.actionPillLabel, mode === 'read' && st.actionPillLabelOn]}>朗读全文</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                st.actionPill,
+                mode === 'first' && st.actionPillMode,
+              ]}
+              onPress={() => switchMode('first')}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="lightbulb" size={18} color={mode === 'first' ? C.onPrimary : C.textMid} style={st.actionPillIcon} />
+              <Text style={[st.actionPillLabel, mode === 'first' && st.actionPillLabelOn]}>首字提示</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                st.actionPill,
+                mode === 'blank' && st.actionPillMode,
+              ]}
+              onPress={() => switchMode('blank')}
+              activeOpacity={0.7}
+            >
+              <Text style={[st.actionPillEmoji, mode === 'blank' && st.actionPillLabelOn]}>🎯</Text>
+              <Text style={[st.actionPillLabel, mode === 'blank' && st.actionPillLabelOn]}>闯关练习</Text>
+            </TouchableOpacity>
+          </ScrollView>
+
+          <View style={st.poemCard}>
             <View style={st.titleRow}>
               <Text style={st.typeIcon}>{tc.icon}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={st.itemTitle}>{item.title}</Text>
                 {item.author && <Text style={st.itemAuthor}>{item.author}</Text>}
               </View>
-              <View style={[st.typeBadge, { backgroundColor: tc.bg, borderColor: tc.border }]}>
-                <Text style={[st.typeBadgeTxt, { color: tc.border }]}>{item.type}</Text>
+              <View style={[st.typeBadge, { backgroundColor: C.surfaceContainer, borderColor: C.border }]}>
+                <Text style={[st.typeBadgeTxt, { color: C.textMid }]}>{item.type}</Text>
               </View>
             </View>
-
-            <View style={st.modeRow}>
-              {[
-                { key: 'read', label: '朗读' },
-                { key: 'blank', label: '挖空' },
-                { key: 'first', label: '首字提示' },
-              ].map((m) => (
-                <TouchableOpacity
-                  key={m.key}
-                  style={[st.modeBtn, mode === m.key && { backgroundColor: tc.border }]}
-                  onPress={() => switchMode(m.key)}
-                >
-                  <Text style={[st.modeTxt, mode === m.key && { color: '#fff' }]}>{m.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={[st.divider, { backgroundColor: tc.border }]} />
+            <View style={[st.cardDivider, { backgroundColor: C.outlineVariant }]} />
 
             {mode === 'read' && renderReadMode()}
             {mode === 'blank' && renderBlankMode()}
             {mode === 'first' && renderFirstMode()}
           </View>
 
+          <View style={st.mascotBox}>
+            <Text style={st.mascotEmoji}>🦉</Text>
+            <Text style={st.mascotHint}>仔细回想一下哦！</Text>
+          </View>
+
           {hasTranslation && (
             <View style={st.transSection}>
               <TouchableOpacity
-                style={[st.transToggle, { backgroundColor: showTrans ? tc.bg : 'transparent', borderColor: tc.border }]}
+                style={[
+                  st.transToggle,
+                  { backgroundColor: showTrans ? C.primaryBg : 'transparent', borderColor: C.outline },
+                ]}
                 onPress={() => setShowTrans(!showTrans)}
                 activeOpacity={0.7}
               >
-                <Text style={[st.transToggleTxt, { color: tc.border }]}>
+                <Text style={[st.transToggleTxt, { color: C.primary }]}>
                   {showTrans ? '隐藏译文 ▲' : '查看译文 ▼'}
                 </Text>
               </TouchableOpacity>
               {showTrans && (
-                <View style={[st.transBox, { borderLeftColor: tc.border }]}>
+                <View style={[st.transBox, { borderLeftColor: C.primary }]}>
                   {translations.map((t, i) => (
                     <View key={i} style={[st.transRow, i < translations.length - 1 && st.transRowBorder]}>
                       <Text style={st.transOrig}>{t.line}</Text>
@@ -394,9 +439,9 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
           )}
 
           {!hasTranslation && (
-            <View style={[st.tipBox, { backgroundColor: tc.bg }]}>
-              <Text style={st.tipIcon}>💡</Text>
-              <Text style={[st.tipText, { color: tc.border }]}>多读几遍，试着用挖空模式背诵吧！</Text>
+            <View style={st.tipBox}>
+              <MaterialIcons name="lightbulb" size={20} color={C.primary} style={st.tipIconM} />
+              <Text style={st.tipText}>多读几遍，试着用挖空模式背诵吧！</Text>
             </View>
           )}
         </Animated.View>
@@ -404,13 +449,18 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle }) {
 
       <View style={[st.navRow, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <TouchableOpacity
-          style={[st.navBtn, { backgroundColor: isLast ? sc.primary : C.card }]}
+          style={[st.navBtn, { backgroundColor: C.primary }]}
           onPress={onNext}
           activeOpacity={0.8}
         >
-          <Text style={isLast ? st.navBtnTxtW : st.navBtnTxt}>
-            {isLast ? '完成本关 ✓' : '下一篇 →'}
-          </Text>
+          {isLast ? (
+            <Text style={st.navBtnTxtW}>完成本关</Text>
+          ) : (
+            <View style={st.navBtnInner}>
+              <Text style={st.navBtnTxtW}>下一个</Text>
+              <MaterialIcons name="arrow-forward" size={22} color={C.onPrimary} />
+            </View>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -469,35 +519,88 @@ export default function RecitationScreen() {
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingBottom: 10,
   },
+  headerBackBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: C.text, flex: 1, textAlign: 'center' },
+  headerTitleBlock: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
+  reciteHeaderTitle: { fontSize: 18, fontWeight: '800', color: C.text, textAlign: 'center' },
+  reciteHeaderSub: { fontSize: 12, fontWeight: '600', color: C.textLight, textAlign: 'center', marginTop: 2 },
   back: { fontSize: 15, fontWeight: '600' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: C.text },
   scroll: { flex: 1 },
   levelContent: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 20 },
-  reciteContent: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 20 },
+  reciteContent: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 24 },
+
+  actionPillsScroll: { marginBottom: 12, maxHeight: 48 },
+  actionPillsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingRight: 4,
+  },
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: C.surfaceContainerHigh,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: RADIUS,
+    borderWidth: 1,
+    borderColor: C.outlineVariant,
+  },
+  actionPillMode: {
+    backgroundColor: C.primary,
+    borderColor: C.primary,
+  },
+  actionPillEmoji: { fontSize: 15, marginRight: 4, color: C.textMid },
+  actionPillIcon: { marginRight: 4 },
+  actionPillLabel: { fontSize: 12, fontWeight: '700', color: C.textMid },
+  actionPillLabelOn: { color: C.onPrimary },
+
+  poemCard: {
+    backgroundColor: C.cardWhite,
+    borderRadius: RADIUS,
+    padding: 20,
+    ...SHADOW,
+  },
+  cardDivider: { height: 1, marginTop: 12, marginBottom: 4 },
+  mascotBox: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.surfaceContainerLow,
+    borderRadius: RADIUS,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  mascotEmoji: { fontSize: 22, marginRight: 8 },
+  mascotHint: { fontSize: 14, fontWeight: '600', color: C.textMid },
 
   levelHint: { fontSize: 13, color: C.textMid, marginBottom: 12, textAlign: 'center' },
   levelCard: {
     flexDirection: 'row', alignItems: 'center', padding: 14,
     borderRadius: RADIUS, backgroundColor: C.card, marginBottom: 10,
     borderLeftWidth: 4,
+    ...SHADOW,
   },
   levelBadge: {
-    width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    width: 44, height: 44, borderRadius: RADIUS, alignItems: 'center', justifyContent: 'center',
   },
   levelBadgeNum: { color: '#fff', fontSize: 18, fontWeight: '800' },
   levelSource: { fontSize: 15, fontWeight: '700', color: C.text },
   levelItems: { fontSize: 12, color: C.textMid, marginTop: 2 },
   levelGo: { fontSize: 14, fontWeight: '700' },
 
-  itemCard: {
-    backgroundColor: '#fff', borderRadius: RADIUS, padding: 20,
-    borderTopWidth: 4,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 }, elevation: 3,
-  },
   titleRow: {
     flexDirection: 'row', alignItems: 'center',
   },
@@ -510,99 +613,110 @@ const st = StyleSheet.create({
   },
   typeBadgeTxt: { fontSize: 11, fontWeight: '700' },
 
-  modeRow: {
-    flexDirection: 'row', gap: 8, marginTop: 14, justifyContent: 'center',
-  },
-  modeBtn: {
-    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-  },
-  modeTxt: { fontSize: 13, fontWeight: '700', color: C.textMid },
-
-  divider: { height: 2, borderRadius: 1, marginTop: 14, opacity: 0.25 },
-
   speakAllBtn: {
-    alignSelf: 'center', paddingHorizontal: 20, paddingVertical: 8,
-    borderRadius: 16, backgroundColor: 'rgba(66,165,245,0.12)',
-    marginBottom: 14, borderWidth: 1.5, borderColor: 'rgba(66,165,245,0.3)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: RADIUS,
+    backgroundColor: C.primaryBg,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,102,112,0.2)',
   },
-  speakAllBtnActive: { backgroundColor: 'rgba(224,107,107,0.12)', borderColor: 'rgba(224,107,107,0.3)' },
-  speakAllTxt: { fontSize: 14, fontWeight: '700', color: '#42A5F5' },
-  speakingHighlight: { backgroundColor: 'rgba(66,165,245,0.12)', borderRadius: 8 },
-  speakHint: { fontSize: 11, color: C.textLight, textAlign: 'center', marginTop: 12 },
+  speakAllIcon: { marginRight: 6 },
+  speakAllBtnActive: { backgroundColor: C.errorBg, borderColor: 'rgba(186,26,26,0.25)' },
+  speakAllTxt: { fontSize: 14, fontWeight: '700', color: C.primary },
+  speakingHighlight: { backgroundColor: C.primaryBg, borderRadius: 8, paddingVertical: 2 },
+  speakHint: { fontSize: 12, color: C.textLight, textAlign: 'center', marginTop: 12 },
 
-  contentBox: { marginTop: 16 },
+  contentBox: { marginTop: 12 },
 
   unifiedLine: {
-    fontWeight: '700', color: '#333',
+    fontWeight: '700',
     textAlign: 'center',
   },
   unifiedChar: {
-    fontWeight: '700', color: '#333',
+    fontWeight: '700',
     textAlign: 'center',
   },
 
   blankLine: {
     flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center',
-    marginBottom: 6, minHeight: 38,
+    marginBottom: 10, minHeight: 40,
     alignItems: 'center',
   },
 
   blankBox: {
-    borderRadius: 6, marginHorizontal: 1,
-    backgroundColor: 'rgba(224,107,107,0.12)', borderWidth: 1.5,
-    borderColor: 'rgba(224,107,107,0.3)', borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center',
+    borderRadius: 6,
+    marginHorizontal: 1,
+    backgroundColor: C.surfaceContainer,
+    borderWidth: 1,
+    borderColor: C.outlineVariant,
+    borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2,
   },
   blankUnderscore: {
-    fontWeight: '700', color: '#E06B6B',
+    fontWeight: '700', color: C.textMid,
   },
   revealedChar: {
-    color: sc.primary, fontWeight: '800',
-    textDecorationLine: 'underline', textDecorationColor: sc.primary,
+    color: C.primary, fontWeight: '800',
+    textDecorationLine: 'underline', textDecorationColor: C.primary,
   },
   firstHintChar: {
-    color: '#EB9F4A', fontWeight: '800',
+    color: C.secondary, fontWeight: '800',
   },
 
   blankActions: {
     flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 18,
   },
   actionBtn: {
-    paddingHorizontal: 18, paddingVertical: 9, borderRadius: 14,
+    paddingHorizontal: 18, paddingVertical: 9, borderRadius: RADIUS,
   },
   actionTxt: { fontSize: 13, fontWeight: '700' },
 
   transSection: { marginTop: 14 },
   transToggle: {
     alignSelf: 'center', paddingHorizontal: 20, paddingVertical: 9,
-    borderRadius: 16, borderWidth: 1.5,
+    borderRadius: RADIUS, borderWidth: 1,
   },
   transToggleTxt: { fontSize: 14, fontWeight: '700' },
   transBox: {
-    marginTop: 12, backgroundColor: '#FFFDE7', borderRadius: 14,
-    padding: 16, borderLeftWidth: 4,
+    marginTop: 12, backgroundColor: C.surfaceContainerLow, borderRadius: RADIUS,
+    padding: 16, borderLeftWidth: 3,
   },
   transRow: { paddingVertical: 8 },
   transRowBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.06)' },
-  transOrig: { fontSize: 16, fontWeight: '700', color: '#4E342E', lineHeight: 26 },
-  transMeaning: { fontSize: 14, color: '#8D6E63', lineHeight: 22, marginTop: 3, paddingLeft: 10 },
+  transOrig: { fontSize: 16, fontWeight: '700', color: C.text, lineHeight: 26 },
+  transMeaning: { fontSize: 14, color: C.textMid, lineHeight: 22, marginTop: 3, paddingLeft: 10 },
 
   tipBox: {
     flexDirection: 'row', alignItems: 'center', marginTop: 14,
-    borderRadius: 14, padding: 14,
+    borderRadius: RADIUS, padding: 14,
+    backgroundColor: C.primaryBg,
   },
-  tipIcon: { fontSize: 20, marginRight: 8 },
-  tipText: { fontSize: 14, flex: 1, fontWeight: '600' },
+  tipIconM: { marginRight: 8 },
+  tipText: { fontSize: 14, flex: 1, fontWeight: '600', color: C.textMid },
 
   navRow: {
-    flexDirection: 'row', paddingHorizontal: 16, paddingTop: 10, gap: 10,
-    borderTopWidth: 1, borderColor: C.border,
+    flexDirection: 'row', paddingHorizontal: 16, paddingTop: 10,
+    borderTopWidth: 1, borderColor: C.border, backgroundColor: C.bg,
   },
   navBtn: {
-    flex: 1, height: 48, borderRadius: RADIUS,
-    alignItems: 'center', justifyContent: 'center',
+    flex: 1,
+    minHeight: 52,
+    borderRadius: RADIUS,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 0,
   },
-  navBtnTxt: { fontSize: 15, fontWeight: '700', color: C.text },
-  navBtnTxtW: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  navBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  navBtnTxt: { fontSize: 16, fontWeight: '700', color: C.text },
+  navBtnTxtW: { fontSize: 16, fontWeight: '800', color: C.onPrimary },
 });

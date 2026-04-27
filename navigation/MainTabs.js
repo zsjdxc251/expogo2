@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Text, StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useNavigation } from '@react-navigation/native';
-import { C, RADIUS } from '../lib/theme';
+import { MaterialIcons } from '@expo/vector-icons';
+import { C } from '../lib/theme';
 import { useApp } from '../lib/AppContext';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -12,16 +12,20 @@ import SettingsScreen from '../screens/SettingsScreen';
 const Tab = createBottomTabNavigator();
 
 const TAB_META = {
-  Home: { icon: '🏠', label: '主页' },
-  History: { icon: '💎', label: '积分' },
-  Settings: { icon: '🔒', label: '家长' },
+  Home:     { icon: 'home',    label: '主页' },
+  History:  { icon: 'stars',   label: '积分' },
+  Settings: { icon: 'lock',    label: '家长' },
 };
 
 function TabIcon({ routeName, focused }) {
   const meta = TAB_META[routeName];
   return (
     <View style={st.tabItem}>
-      <Text style={[st.tabIcon, focused && st.tabIconOn]}>{meta.icon}</Text>
+      <MaterialIcons
+        name={meta.icon}
+        size={24}
+        color={focused ? '#fff' : 'rgba(255,255,255,0.55)'}
+      />
       <Text style={[st.tabLabel, focused && st.tabLabelOn]}>{meta.label}</Text>
     </View>
   );
@@ -83,7 +87,8 @@ export default function MainTabs() {
 function EmptySettings() {
   return (
     <View style={st.empty}>
-      <Text style={st.emptyTxt}>🔒 请验证家长密码</Text>
+      <MaterialIcons name="lock" size={48} color={C.textLight} />
+      <Text style={st.emptyTxt}>请验证家长密码</Text>
     </View>
   );
 }
@@ -93,22 +98,20 @@ const st = StyleSheet.create({
     backgroundColor: C.navBg,
     borderTopWidth: 0,
     height: 64,
-    borderTopLeftRadius: RADIUS,
-    borderTopRightRadius: RADIUS,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     position: 'absolute',
     bottom: 0,
     left: 16, right: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: -2 },
+    elevation: 6,
+    shadowColor: 'rgba(0,102,112,0.15)',
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -3 },
   },
   tabItem: { alignItems: 'center', paddingTop: 6 },
-  tabIcon: { fontSize: 22, opacity: 0.6 },
-  tabIconOn: { opacity: 1 },
-  tabLabel: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2, fontWeight: '500' },
+  tabLabel: { fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 2, fontWeight: '500' },
   tabLabelOn: { color: '#fff', fontWeight: '700' },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg },
-  emptyTxt: { fontSize: 16, color: C.textMid },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg, gap: 12 },
+  emptyTxt: { fontSize: 16, color: C.textMid, fontWeight: '600' },
 });

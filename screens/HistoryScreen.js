@@ -1,9 +1,11 @@
 import { useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { C, SUBJECTS, RADIUS } from '../lib/theme';
+import { MaterialIcons } from '@expo/vector-icons';
+import { C, SUBJECTS, RADIUS, SHADOW } from '../lib/theme';
 import { ENG_TOPICS } from '../lib/english';
 import { CHN_TOPICS } from '../lib/chinese';
+import { getLevel } from '../lib/points';
 import { useApp } from '../lib/AppContext';
 
 function getSubjectInfo(subject) {
@@ -17,9 +19,9 @@ function getSubjectInfo(subject) {
     const t = CHN_TOPICS[chnKey];
     return { icon: t.icon, label: t.label, color: t.color };
   }
-  if (subject === 'speed') return { icon: '⚡', label: '口算竞速', color: '#EB9F4A' };
-  if (subject === 'dictation_eng') return { icon: '🎧', label: '英语听写', color: '#338F9B' };
-  if (subject === 'dictation_chn') return { icon: '🎧', label: '语文听写', color: '#EB9F4A' };
+  if (subject === 'speed') return { icon: '⚡', label: '口算竞速', color: '#FF8C42' };
+  if (subject === 'dictation_eng') return { icon: '🎧', label: '英语听写', color: '#006670' };
+  if (subject === 'dictation_chn') return { icon: '🎧', label: '语文听写', color: '#FF8C42' };
   if (subject === 'chn_charPractice') return { icon: '📝', label: '看字选拼音', color: '#4CAF7D' };
   return { icon: '📝', label: subject || '其他', color: C.primary };
 }
@@ -36,9 +38,14 @@ function fmtDate(iso) {
   return `${m}/${dd} ${hh}:${mm}`;
 }
 
-const REASON_ICONS = {
-  '兑现奖励': '🎁', '做家务': '🧹', '课外阅读': '📚',
-  '表现优秀': '⭐', '违规扣分': '⚠️', '其他': '📝',
+const SOURCE_ICONS = {
+  quiz: 'quiz',
+  '兑现奖励': 'redeem',
+  '做家务': 'cleaning-services',
+  '课外阅读': 'menu-book',
+  '表现优秀': 'star',
+  '违规扣分': 'warning',
+  '其他': 'edit',
 };
 
 export default function HistoryScreen() {
@@ -58,30 +65,41 @@ export default function HistoryScreen() {
   );
 
   const totalPts = user?.totalPoints || 0;
+  const lv = getLevel(totalPts);
 
   return (
     <ScrollView style={st.root} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
-      <Text style={st.title}>积分记录</Text>
+      <Text style={st.title}>积分历史</Text>
 
       <View style={st.summaryCard}>
+        <MaterialIcons name="stars" size={32} color={C.primary} />
         <Text style={st.summaryLabel}>当前积分</Text>
-        <Text style={st.summaryPts}>{totalPts}</Text>
+        <Text style={st.summaryPts}>{totalPts.toLocaleString()}</Text>
+        <Text style={st.summaryLevel}>等级 {lv.level}</Text>
       </View>
 
       {errorCount > 0 && (
         <TouchableOpacity style={st.errBtn} activeOpacity={0.8} onPress={onErrorReview}>
-          <Text style={st.errIcon}>📖</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={st.errTitle}>错题本</Text>
-            <Text style={st.errDesc}>共 {errorCount} 道错题，点击重新练习</Text>
+          <View style={st.errIconWrap}>
+            <MaterialIcons name="assignment-late" size={24} color={C.error} />
           </View>
-          <Text style={st.errArrow}>→</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={st.errTitle}>错题复习</Text>
+            <Text style={st.errDesc}>还有 {errorCount} 道错题待复习</Text>
+          </View>
+          <TouchableOpacity style={st.errGoBtn} onPress={onErrorReview}>
+            <Text style={st.errGoBtnTxt}>立即复习</Text>
+          </TouchableOpacity>
         </TouchableOpacity>
+      )}
+
+      {pointsLog.length > 0 && (
+        <Text style={st.secTitle}>收支明细</Text>
       )}
 
       {pointsLog.length === 0 ? (
         <View style={st.empty}>
-          <Text style={st.emptyIcon}>💎</Text>
+          <MaterialIcons name="diamond" size={48} color={C.outlineVariant} />
           <Text style={st.emptyTxt}>还没有积分记录</Text>
           <Text style={st.emptyDesc}>完成练习或家长手动调整后这里会显示记录</Text>
         </View>
@@ -89,19 +107,19 @@ export default function HistoryScreen() {
         pointsLog.map((e) => {
           const isQuiz = e.source === 'quiz';
           const sub = isQuiz ? getSubjectInfo(e.subject) : null;
-          const icon = isQuiz ? sub.icon : (REASON_ICONS[e.reason] || '📝');
+          const iconName = isQuiz ? 'quiz' : (SOURCE_ICONS[e.reason] || 'edit');
           const isAdd = e.type === 'add';
           return (
             <View key={e.id} style={st.card}>
-              <View style={st.cardLeft}>
-                <Text style={st.cardIcon}>{icon}</Text>
+              <View style={[st.cardIconWrap, { backgroundColor: isAdd ? 'rgba(76,175,125,0.10)' : 'rgba(186,26,26,0.08)' }]}>
+                <MaterialIcons name={iconName} size={22} color={isAdd ? C.success : C.error} />
               </View>
               <View style={st.cardCenter}>
                 <Text style={st.cardReason}>
                   {isQuiz ? (sub?.label || '练习') : e.reason}
                 </Text>
                 {isQuiz && e.reason && (
-                  <Text style={st.cardDetail}>✓ {e.reason}</Text>
+                  <Text style={st.cardDetail}>{e.reason}</Text>
                 )}
                 {e.note ? <Text style={st.cardNote}>{e.note}</Text> : null}
                 <Text style={st.cardDate}>{fmtDate(e.date)}</Text>
@@ -110,7 +128,7 @@ export default function HistoryScreen() {
                 <Text style={[st.cardPts, { color: isAdd ? C.success : C.error }]}>
                   {isAdd ? '+' : '-'}{e.amount}
                 </Text>
-                <Text style={st.cardBalance}>余额 {e.balance}</Text>
+                <Text style={st.cardBalance}>余额: {e.balance.toLocaleString()}</Text>
               </View>
             </View>
           );
@@ -123,41 +141,54 @@ export default function HistoryScreen() {
 const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   content: { padding: 20, paddingBottom: 16 },
-  title: { fontSize: 22, fontWeight: '800', color: C.text, marginBottom: 12 },
+  title: { fontSize: 24, fontWeight: '700', color: C.text, marginBottom: 16 },
 
   summaryCard: {
-    backgroundColor: C.primaryBg, borderRadius: RADIUS, padding: 16,
-    alignItems: 'center', marginBottom: 14, borderWidth: 1.5, borderColor: C.primary + '30',
+    backgroundColor: C.cardWhite, borderRadius: RADIUS, padding: 24,
+    alignItems: 'center', marginBottom: 16,
+    ...SHADOW,
   },
-  summaryLabel: { fontSize: 13, fontWeight: '600', color: C.textMid },
-  summaryPts: { fontSize: 36, fontWeight: '800', color: C.primary, marginTop: 2 },
+  summaryLabel: { fontSize: 14, fontWeight: '600', color: C.textMid, marginTop: 8 },
+  summaryPts: { fontSize: 36, fontWeight: '700', color: C.text, marginTop: 4 },
+  summaryLevel: { fontSize: 14, color: C.textLight, marginTop: 4 },
 
   errBtn: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: C.errorBg,
-    borderRadius: 16, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: C.error + '30',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.cardWhite,
+    borderRadius: RADIUS, padding: 16, marginBottom: 16,
+    ...SHADOW,
   },
-  errIcon: { fontSize: 28, marginRight: 12 },
-  errTitle: { fontSize: 15, fontWeight: '700', color: C.error },
-  errDesc: { fontSize: 12, color: C.textMid, marginTop: 2 },
-  errArrow: { fontSize: 18, color: C.error, fontWeight: '700' },
+  errIconWrap: {
+    width: 44, height: 44, borderRadius: 12, backgroundColor: C.errorContainer,
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  errTitle: { fontSize: 16, fontWeight: '700', color: C.text },
+  errDesc: { fontSize: 13, color: C.textMid, marginTop: 2 },
+  errGoBtn: {
+    backgroundColor: C.error, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8,
+  },
+  errGoBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+
+  secTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 12 },
 
   empty: { alignItems: 'center', paddingTop: 60 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTxt: { fontSize: 17, fontWeight: '600', color: C.textMid },
+  emptyTxt: { fontSize: 17, fontWeight: '600', color: C.textMid, marginTop: 12 },
   emptyDesc: { fontSize: 13, color: C.textLight, marginTop: 4, textAlign: 'center' },
 
   card: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.card, borderRadius: RADIUS, padding: 14, marginBottom: 8,
+    backgroundColor: C.cardWhite, borderRadius: RADIUS, padding: 14, marginBottom: 8,
+    ...SHADOW,
   },
-  cardLeft: { marginRight: 12 },
-  cardIcon: { fontSize: 24 },
+  cardIconWrap: {
+    width: 40, height: 40, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
   cardCenter: { flex: 1 },
-  cardReason: { fontSize: 15, fontWeight: '700', color: C.text },
-  cardDetail: { fontSize: 12, fontWeight: '600', color: C.success, marginTop: 1 },
+  cardReason: { fontSize: 15, fontWeight: '600', color: C.text },
+  cardDetail: { fontSize: 12, fontWeight: '600', color: C.success, marginTop: 2 },
   cardNote: { fontSize: 12, color: C.textMid, marginTop: 1 },
-  cardDate: { fontSize: 11, color: C.textLight, marginTop: 3 },
+  cardDate: { fontSize: 12, color: C.textLight, marginTop: 3 },
   cardRight: { alignItems: 'flex-end' },
-  cardPts: { fontSize: 18, fontWeight: '800' },
+  cardPts: { fontSize: 18, fontWeight: '700' },
   cardBalance: { fontSize: 11, color: C.textLight, marginTop: 2 },
 });

@@ -1,14 +1,14 @@
 import { useState, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { C, SUBJECTS, RADIUS, SUBJECT_COLORS } from '../lib/theme';
+import { MaterialIcons } from '@expo/vector-icons';
+import { C, SUBJECTS, RADIUS, SUBJECT_COLORS, EMOJI_MAP, SHADOW } from '../lib/theme';
 import { ENG_TOPICS, ENG_LEVELS, LEVEL_TOPIC_KEYS } from '../lib/english';
 import { CHN_LEVELS, LEVEL_TOPIC_KEYS as CHN_LEVEL_KEYS, CHN_TOPICS } from '../lib/chinese';
 import { getLevel, nextLevel, ACH_DEFS } from '../lib/points';
 import { getCompletedCount } from '../lib/dailyTasks';
 import { useApp } from '../lib/AppContext';
 import PressableCard from '../components/PressableCard';
-import ProgressRing from '../components/ProgressRing';
 import Badge from '../components/Badge';
 
 // showTaskAlert is replaced by in-app modal (showLockModal state)
@@ -16,9 +16,9 @@ import Badge from '../components/Badge';
 const MATH_SUBJECTS = ['mulForward', 'mulBlank', 'add', 'subtract', 'divide', 'divRem', 'divReverse', 'addTwo', 'subtractTwo', 'mulReverse', 'compare', 'wordProblem', 'pattern'];
 
 const SUBJECT_TABS = [
-  { key: 'math', icon: '📐', label: '数学' },
-  { key: 'english', icon: '📖', label: '英语' },
-  { key: 'chinese', icon: '📝', label: '语文' },
+  { key: 'math', materialIcon: 'square-foot', label: '数学' },
+  { key: 'english', materialIcon: 'menu-book', label: '英语' },
+  { key: 'chinese', materialIcon: 'edit', label: '语文' },
 ];
 
 function calcOverallProgress(history, subjects, prefix) {
@@ -132,33 +132,31 @@ export default function HomeScreen() {
 
   const allEngTopics = Object.keys(ENG_TOPICS);
   const allChnTopics = Object.keys(CHN_TOPICS);
-  const mathProg = calcOverallProgress(history, MATH_SUBJECTS, '');
-  const engProg = calcOverallProgress(history, allEngTopics, '');
-  const chnProg = calcOverallProgress(history, allChnTopics, 'chn_');
-
   const weakMath = getWeakestTopic(history, MATH_SUBJECTS, '');
   const weakEng = getWeakestTopic(history, allEngTopics, '');
   const weakChn = getWeakestTopic(history, allChnTopics, 'chn_');
 
   return (
     <ScrollView ref={scrollRef} style={st.root} contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
-      {/* Compact Header */}
+      {/* Header — greeting + streak / points pills */}
       <View style={st.header}>
         <View style={st.headerLeft}>
           <Text style={st.avatar}>{user?.avatar || '🧒'}</Text>
           <View style={st.headerInfo}>
-            <Text style={st.name}>{user?.name || '同学'}</Text>
+            <Text style={st.greeting}>Hi, {user?.name || '小探险家'}! 👋</Text>
             <Badge text={`Lv.${lv.level} ${lv.title}`} color={sc.primary} icon="⭐" />
           </View>
         </View>
         <View style={st.headerRight}>
-          <View style={st.statPill}>
+          <View style={[st.statPill, st.statPillFirst]}>
             <Text style={st.statEmoji}>🔥</Text>
-            <Text style={st.statVal}>{streak.count}</Text>
+            <Text style={st.statVal}>{streak.count}天连胜</Text>
+            {locked ? <MaterialIcons name="lock" size={14} color={C.textLight} style={st.statLock} /> : null}
           </View>
           <View style={st.statPill}>
             <Text style={st.statEmoji}>💎</Text>
-            <Text style={[st.statVal, { color: sc.primary }]}>{totalPts}</Text>
+            <Text style={[st.statVal, { color: sc.primary }]}>{totalPts}积分</Text>
+            {locked ? <MaterialIcons name="lock" size={14} color={C.textLight} style={st.statLock} /> : null}
           </View>
         </View>
       </View>
@@ -181,12 +179,17 @@ export default function HomeScreen() {
             activeOpacity={locked ? 1 : 0.7}
             onPress={() => { if (!locked) setTasksExpanded(!tasksExpanded); }}
           >
-            <Text style={st.inlineTaskTitle}>📋 今日任务</Text>
+            <View style={st.inlineTaskTitleRow}>
+              <MaterialIcons name="assignment" size={20} color={C.primary} />
+              <Text style={st.inlineTaskTitle}>今日任务</Text>
+            </View>
             <View style={[st.taskPillBadge, { backgroundColor: taskDone === dailyTasks.length ? C.success : sc.primary }]}>
               <Text style={st.taskPillCount}>{taskDone}/{dailyTasks.length}</Text>
             </View>
             {locked && <Text style={st.inlineLockTag}>🔒 未完成</Text>}
-            {!locked && <Text style={st.arrow}>{tasksExpanded ? '▾' : '▸'}</Text>}
+            {!locked && (
+              <MaterialIcons name={tasksExpanded ? 'expand-more' : 'chevron-right'} size={22} color={C.textMid} style={st.inlineTaskChevron} />
+            )}
           </TouchableOpacity>
           {tasksExpanded && dailyTasks.map((t) => {
             const pctVal = t.target > 0 ? Math.min(100, Math.round((t.progress / t.target) * 100)) : 0;
@@ -199,39 +202,26 @@ export default function HomeScreen() {
               >
                 <Text style={st.taskItemIcon}>{t.completed ? '✅' : '⬜'}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={[st.taskItemText, t.completed && st.taskItemTextDone]}>{t.text}</Text>
+                  <View style={st.taskItemTitleRow}>
+                    <Text style={[st.taskItemText, t.completed && st.taskItemTextDone]}>{t.text}</Text>
+                    <Text style={st.taskItemFrac}>{t.progress}/{t.target}</Text>
+                  </View>
                   <View style={st.taskBar}>
                     <View style={[st.taskBarFill, { width: `${pctVal}%`, backgroundColor: t.completed ? C.success : sc.primary }]} />
                   </View>
                 </View>
-                {!t.completed && <Text style={[st.taskGoBtn, { color: sc.primary }]}>GO →</Text>}
+                {!t.completed && (
+                  <View style={st.taskGoRow}>
+                    <Text style={[st.taskGoBtn, { color: sc.primary }]}>GO</Text>
+                    <MaterialIcons name="arrow-forward" size={18} color={sc.primary} />
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })}
           {tasksExpanded && locked && <Text style={st.inlineLockHint}>完成以上任务后解锁自由练习</Text>}
         </View>
       )}
-
-      {/* Three big subject cards */}
-      <View style={st.subjectRow}>
-        {[
-          { key: 'math', icon: '📐', label: '数学', prog: mathProg, sc: SUBJECT_COLORS.math },
-          { key: 'english', icon: '📖', label: '英语', prog: engProg, sc: SUBJECT_COLORS.english },
-          { key: 'chinese', icon: '📝', label: '语文', prog: chnProg, sc: SUBJECT_COLORS.chinese },
-        ].filter((s) => vis[s.key] !== false).map((s) => (
-          <PressableCard
-            key={s.key}
-            style={[st.subjectCard, { backgroundColor: s.sc.bg, borderColor: activeTab === s.key ? s.sc.primary : 'transparent' }]}
-            onPress={() => setActiveTab(s.key)}
-          >
-            <ProgressRing size={56} strokeWidth={5} progress={s.prog} color={s.sc.primary}>
-              <Text style={st.subjectRingTxt}>{s.prog}%</Text>
-            </ProgressRing>
-            <Text style={st.subjectIcon}>{s.icon}</Text>
-            <Text style={[st.subjectLabel, { color: s.sc.dark }]}>{s.label}</Text>
-          </PressableCard>
-        ))}
-      </View>
 
       {/* Subject tabs */}
       <View style={st.tabRow}>
@@ -241,12 +231,17 @@ export default function HomeScreen() {
           return (
             <TouchableOpacity
               key={t.key}
-              style={[st.tabBtn, on && { backgroundColor: tsc.primary }]}
+              style={[st.tabBtn, on && { ...st.tabBtnOn, backgroundColor: C.cardWhite }]}
               activeOpacity={0.7}
               onPress={() => setActiveTab(t.key)}
             >
-              <Text style={[st.tabIcon, on && st.tabIconOn]}>{t.icon}</Text>
-              <Text style={[st.tabLabel, on && st.tabLabelOn]}>{t.label}</Text>
+              <MaterialIcons
+                name={t.materialIcon}
+                size={20}
+                color={on ? tsc.primary : C.textLight}
+                style={st.tabMIcon}
+              />
+              <Text style={[st.tabLabel, on && { color: tsc.primary, fontWeight: '700' }]}>{t.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -254,33 +249,48 @@ export default function HomeScreen() {
 
       {/* Smart Quick Start */}
       {activeTab === 'math' && weakMath && vis[`math_${weakMath}`] !== false && (
-        <TouchableOpacity style={[st.quickStart, { backgroundColor: sc.bg, borderLeftColor: sc.primary }]} onPress={() => onSubject(weakMath)}>
-          <Text style={st.quickIcon}>🎯</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={st.quickTitle}>推荐练习</Text>
-            <Text style={st.quickDesc}>{SUBJECTS[weakMath]?.label} — 正确率最低，多练练</Text>
+        <TouchableOpacity style={st.recoCard} onPress={() => onSubject(weakMath)} activeOpacity={0.8}>
+          <View style={st.recoRow}>
+            <MaterialIcons name="star" size={22} color={C.accent} style={st.recoStar} />
+            <View style={st.recoTextCol}>
+              <Text style={st.recoSectionLabel}>推荐练习</Text>
+              <Text style={st.recoTitle}>{SUBJECTS[weakMath]?.label} — 正确率最低，多练练</Text>
+            </View>
+            <View style={st.recoCta}>
+              <Text style={[st.recoCtaText, { color: sc.primary }]}>开始练习</Text>
+              <MaterialIcons name="play-arrow" size={22} color={sc.primary} />
+            </View>
           </View>
-          <Text style={[st.quickGo, { color: sc.primary }]}>GO →</Text>
         </TouchableOpacity>
       )}
       {activeTab === 'english' && weakEng && (
-        <TouchableOpacity style={[st.quickStart, { backgroundColor: sc.bg, borderLeftColor: sc.primary }]} onPress={() => onEngPractice(weakEng)}>
-          <Text style={st.quickIcon}>🎯</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={st.quickTitle}>推荐练习</Text>
-            <Text style={st.quickDesc}>{ENG_TOPICS[weakEng]?.label} — 需要加强</Text>
+        <TouchableOpacity style={st.recoCard} onPress={() => onEngPractice(weakEng)} activeOpacity={0.8}>
+          <View style={st.recoRow}>
+            <MaterialIcons name="star" size={22} color={C.accent} style={st.recoStar} />
+            <View style={st.recoTextCol}>
+              <Text style={st.recoSectionLabel}>推荐练习</Text>
+              <Text style={st.recoTitle}>{ENG_TOPICS[weakEng]?.label} — 需要加强</Text>
+            </View>
+            <View style={st.recoCta}>
+              <Text style={[st.recoCtaText, { color: sc.primary }]}>开始练习</Text>
+              <MaterialIcons name="play-arrow" size={22} color={sc.primary} />
+            </View>
           </View>
-          <Text style={[st.quickGo, { color: sc.primary }]}>GO →</Text>
         </TouchableOpacity>
       )}
       {activeTab === 'chinese' && weakChn && (
-        <TouchableOpacity style={[st.quickStart, { backgroundColor: sc.bg, borderLeftColor: sc.primary }]} onPress={() => onChnPractice(weakChn)}>
-          <Text style={st.quickIcon}>🎯</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={st.quickTitle}>推荐练习</Text>
-            <Text style={st.quickDesc}>{CHN_TOPICS[weakChn]?.label} — 需要加强</Text>
+        <TouchableOpacity style={st.recoCard} onPress={() => onChnPractice(weakChn)} activeOpacity={0.8}>
+          <View style={st.recoRow}>
+            <MaterialIcons name="star" size={22} color={C.accent} style={st.recoStar} />
+            <View style={st.recoTextCol}>
+              <Text style={st.recoSectionLabel}>推荐练习</Text>
+              <Text style={st.recoTitle}>{CHN_TOPICS[weakChn]?.label} — 需要加强</Text>
+            </View>
+            <View style={st.recoCta}>
+              <Text style={[st.recoCtaText, { color: sc.primary }]}>开始练习</Text>
+              <MaterialIcons name="play-arrow" size={22} color={sc.primary} />
+            </View>
           </View>
-          <Text style={[st.quickGo, { color: sc.primary }]}>GO →</Text>
         </TouchableOpacity>
       )}
 
@@ -294,7 +304,10 @@ export default function HomeScreen() {
               const prog = calcSubjectProgress(history, key);
               return (
                 <PressableCard key={key} style={[st.card, { borderTopColor: sc.primary }]} onPress={() => onSubject(key)}>
-                  <Text style={st.cardIcon}>{sub.icon}</Text>
+                  <View style={st.cardTopRow}>
+                    <Text style={st.cardIconEmoji}>{EMOJI_MAP[sub.icon] || '📐'}</Text>
+                    <MaterialIcons name="arrow-forward" size={20} color={C.textLight} />
+                  </View>
                   <Text style={st.cardTitle}>{sub.label}</Text>
                   {sub.desc ? <Text style={st.cardDesc}>{sub.desc}</Text> : null}
                   <View style={st.cardBot}>
@@ -305,24 +318,30 @@ export default function HomeScreen() {
               );
             })}
             {vis.math_speed !== false && (
-              <PressableCard style={[st.card, { borderTopColor: '#EB9F4A' }]} onPress={onSpeedChallenge}>
-                <Text style={st.cardIcon}>⚡</Text>
+              <PressableCard style={[st.card, { borderTopColor: C.accent }]} onPress={onSpeedChallenge}>
+                <View style={st.cardTopRow}>
+                  <Text style={st.cardIconEmoji}>⚡</Text>
+                  <MaterialIcons name="arrow-forward" size={20} color={C.textLight} />
+                </View>
                 <Text style={st.cardTitle}>口算竞速</Text>
                 <Text style={st.cardDesc}>60秒挑战</Text>
                 <View style={st.cardBot}>
-                  <Text style={{ fontSize: 12, color: C.textMid }}>🏆 挑战最高分</Text>
+                  <Text style={st.cardFootNote}>🏆 挑战最高分</Text>
                 </View>
               </PressableCard>
             )}
             <PressableCard
-              style={[st.card, { borderTopColor: '#E06B6B' }]}
+              style={[st.card, { borderTopColor: C.error }]}
               onPress={() => { if (locked) { setShowLockModal(true); return; } nav.navigate('Battle'); }}
             >
-              <Text style={st.cardIcon}>⚔️</Text>
+              <View style={st.cardTopRow}>
+                <Text style={st.cardIconEmoji}>⚔️</Text>
+                <MaterialIcons name="arrow-forward" size={20} color={C.textLight} />
+              </View>
               <Text style={st.cardTitle}>比赛模式</Text>
               <Text style={st.cardDesc}>局域网对战</Text>
               <View style={st.cardBot}>
-                <Text style={{ fontSize: 12, color: C.textMid }}>🏅 看谁算得快</Text>
+                <Text style={st.cardFootNote}>🏅 看谁算得快</Text>
               </View>
             </PressableCard>
           </View>
@@ -354,7 +373,7 @@ export default function HomeScreen() {
                       const topic = ENG_TOPICS[key];
                       if (!topic) return null;
                       return (
-                        <View key={key} style={[st.topicCard, { borderTopColor: sc.primary }]}>
+                        <View key={key} style={[st.topicCard, st.topicCardShadow, { borderTopColor: sc.primary }]}>
                           <Text style={st.topicIcon}>{topic.icon}</Text>
                           <Text style={st.topicLabel}>{topic.label}</Text>
                           <Text style={st.topicDesc}>{topic.desc}</Text>
@@ -449,7 +468,7 @@ export default function HomeScreen() {
                       const topic = CHN_TOPICS[key];
                       if (!topic) return null;
                       return (
-                        <View key={key} style={[st.topicCard, { borderTopColor: sc.primary }]}>
+                        <View key={key} style={[st.topicCard, st.topicCardShadow, { borderTopColor: sc.primary }]}>
                           <Text style={st.topicIcon}>{topic.icon}</Text>
                           <Text style={st.topicLabel}>{topic.label}</Text>
                           <Text style={st.topicDesc}>{topic.desc}</Text>
@@ -504,18 +523,20 @@ export default function HomeScreen() {
       <Modal visible={showLockModal} transparent animationType="fade">
         <View style={st.lockOverlay}>
           <View style={st.lockSheet}>
-            <Text style={st.lockEmoji}>🔒</Text>
+            <View style={st.lockIconWrap}>
+              <MaterialIcons name="lock" size={40} color={C.primary} />
+            </View>
             <Text style={st.lockModalTitle}>任务未完成</Text>
             <Text style={st.lockModalDesc}>请先完成今日任务后再自由练习哦！</Text>
             <View style={st.lockBtnRow}>
               <TouchableOpacity
-                style={[st.lockBtn, { backgroundColor: C.card }]}
+                style={[st.lockBtn, st.lockBtnLeft, { backgroundColor: C.cardWhite, borderWidth: 1, borderColor: C.border }]}
                 onPress={() => setShowLockModal(false)}
               >
                 <Text style={[st.lockBtnTxt, { color: C.textMid }]}>关闭</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[st.lockBtn, { backgroundColor: sc.primary }]}
+                style={[st.lockBtn, st.lockBtnRight, { backgroundColor: C.primary }]}
                 onPress={() => {
                   setShowLockModal(false);
                   setTasksExpanded(true);
@@ -524,7 +545,7 @@ export default function HomeScreen() {
                   if (firstUnfinished) navigateTask(firstUnfinished);
                 }}
               >
-                <Text style={[st.lockBtnTxt, { color: '#fff' }]}>去做任务</Text>
+                <Text style={[st.lockBtnTxt, { color: C.onPrimary }]}>去做任务</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -538,45 +559,50 @@ const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   content: { paddingBottom: 16 },
 
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  avatar: { fontSize: 36 },
-  headerInfo: { marginLeft: 10 },
-  name: { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 2 },
-  headerRight: { flexDirection: 'row', alignItems: 'center' },
-  statPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5, marginLeft: 6 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
+  avatar: { fontSize: 32 },
+  headerInfo: { marginLeft: 10, flex: 1 },
+  greeting: { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 4 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' },
+  statPill: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.surfaceContainer,
+    borderRadius: RADIUS, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: C.border, marginLeft: 6,
+  },
+  statPillFirst: { marginLeft: 0 },
   statEmoji: { fontSize: 14, marginRight: 3 },
-  statVal: { fontSize: 14, fontWeight: '700', color: C.text },
+  statVal: { fontSize: 12, fontWeight: '700', color: C.text, maxWidth: 120 },
+  statLock: { marginLeft: 4 },
 
-  xpWrap: { paddingHorizontal: 20, marginTop: 4, marginBottom: 8 },
-  xpBar: { height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.06)', overflow: 'hidden' },
-  xpFill: { height: 6, borderRadius: 3 },
+  xpWrap: { paddingHorizontal: 20, marginTop: 2, marginBottom: 8 },
+  xpBar: { height: 8, borderRadius: 4, backgroundColor: C.border, overflow: 'hidden' },
+  xpFill: { height: 8, borderRadius: 4 },
   xpTxt: { fontSize: 10, color: C.textLight, marginTop: 2, textAlign: 'right' },
 
-  taskPill: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 12, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, backgroundColor: C.cardWhite },
+  taskPill: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 12, paddingVertical: 10, paddingHorizontal: 14, borderRadius: RADIUS, borderWidth: 1, borderColor: C.border, backgroundColor: C.cardWhite },
   taskPillIcon: { fontSize: 16, marginRight: 6 },
   taskPillTxt: { flex: 1, fontSize: 14, fontWeight: '600', color: C.text },
-  taskPillBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  taskPillCount: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  taskPillBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS },
+  taskPillCount: { fontSize: 12, fontWeight: '700', color: C.onPrimary },
   taskPillDone: { fontSize: 16, marginLeft: 6 },
 
-  subjectRow: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 12 },
-  subjectCard: { flex: 1, marginHorizontal: 4, alignItems: 'center', paddingVertical: 14, borderWidth: 2, backgroundColor: '#fff' },
-  subjectRingTxt: { fontSize: 11, fontWeight: '700', color: C.text },
-  subjectIcon: { fontSize: 22, marginTop: 6 },
-  subjectLabel: { fontSize: 13, fontWeight: '700', marginTop: 2 },
+  tabRow: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 14, backgroundColor: C.surfaceContainer, borderRadius: RADIUS, padding: 4 },
+  tabBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: RADIUS - 2 },
+  tabBtnOn: { ...SHADOW, borderRadius: RADIUS - 2 },
+  tabMIcon: { marginRight: 4 },
+  tabLabel: { fontSize: 14, fontWeight: '600', color: C.textLight },
 
-  tabRow: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 14, backgroundColor: C.card, borderRadius: RADIUS, padding: 3 },
-  tabBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, borderRadius: RADIUS - 3 },
-  tabIcon: { fontSize: 16, marginRight: 3, opacity: 0.6 },
-  tabIconOn: { opacity: 1 },
-  tabLabel: { fontSize: 14, fontWeight: '600', color: C.textMid },
-  tabLabelOn: { color: '#fff', fontWeight: '700' },
-
-  quickStart: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 14, padding: 12, borderRadius: 14, borderLeftWidth: 4 },
-  quickIcon: { fontSize: 24, marginRight: 10 },
-  quickTitle: { fontSize: 13, fontWeight: '700', color: C.text },
-  quickDesc: { fontSize: 11, color: C.textMid, marginTop: 1 },
+  recoCard: {
+    marginHorizontal: 20, marginBottom: 14, backgroundColor: C.cardWhite, borderRadius: RADIUS, padding: 14,
+    borderWidth: 1, borderColor: C.border, ...SHADOW,
+  },
+  recoRow: { flexDirection: 'row', alignItems: 'center' },
+  recoStar: { marginRight: 10 },
+  recoTextCol: { flex: 1, minWidth: 0 },
+  recoSectionLabel: { fontSize: 11, fontWeight: '800', color: C.primary, marginBottom: 2 },
+  recoTitle: { fontSize: 14, fontWeight: '600', color: C.text, lineHeight: 20 },
+  recoCta: { flexDirection: 'row', alignItems: 'center', marginLeft: 6 },
+  recoCtaText: { fontSize: 13, fontWeight: '800', marginRight: 2 },
   quickGo: { fontSize: 14, fontWeight: '800' },
 
   secTitle: { fontSize: 20, fontWeight: '700', paddingHorizontal: 20, marginBottom: 10 },
@@ -584,76 +610,84 @@ const st = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12 },
 
   card: { width: '48%', backgroundColor: C.cardWhite, borderTopWidth: 3, padding: 14, marginBottom: 10, minHeight: 120 },
-  cardIcon: { fontSize: 30, marginBottom: 4 },
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  cardIconEmoji: { fontSize: 28 },
   cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
-  cardDesc: { fontSize: 11, color: C.textMid, marginTop: 1 },
+  cardDesc: { fontSize: 11, color: C.textMid, marginTop: 2 },
+  cardFootNote: { fontSize: 12, color: C.textMid },
   cardBot: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-  cardBar: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.06)', overflow: 'hidden' },
-  cardBarFill: { height: 6, borderRadius: 3 },
+  cardBar: { flex: 1, height: 8, borderRadius: 4, backgroundColor: C.border, overflow: 'hidden' },
+  cardBarFill: { height: 8, borderRadius: 4 },
   cardPct: { fontSize: 11, fontWeight: '700', marginLeft: 6 },
 
   levelBlock: { marginBottom: 8, paddingHorizontal: 20 },
-  levelHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.cardWhite, borderRadius: RADIUS, padding: 12, borderLeftWidth: 4 },
+  levelHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.cardWhite, borderRadius: RADIUS, padding: 12, borderLeftWidth: 4, ...SHADOW },
   levelEmoji: { fontSize: 24 },
   levelTitle: { fontSize: 16, fontWeight: '700', color: C.text },
   levelDesc: { fontSize: 11, color: C.textMid, marginTop: 1 },
   arrow: { fontSize: 16, color: C.textMid, fontWeight: '600', marginLeft: 8 },
 
   topicCard: { width: '48%', backgroundColor: C.cardWhite, borderRadius: RADIUS, borderTopWidth: 3, padding: 12, marginBottom: 10, minHeight: 140, justifyContent: 'space-between' },
+  topicCardShadow: { ...SHADOW },
   topicIcon: { fontSize: 26, marginBottom: 4 },
   topicLabel: { fontSize: 14, fontWeight: '700', color: C.text },
   topicDesc: { fontSize: 10, color: C.textMid, marginTop: 1, marginBottom: 8 },
   topicBtns: { flexDirection: 'row' },
-  topicBtn: { flex: 1, paddingVertical: 6, borderRadius: 10, alignItems: 'center', marginHorizontal: 2 },
+  topicBtn: { flex: 1, paddingVertical: 6, borderRadius: RADIUS, alignItems: 'center', marginHorizontal: 2 },
   topicBtnTxt: { fontSize: 11, fontWeight: '700' },
-  topicBtnTxtW: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  topicBtnTxtW: { fontSize: 11, fontWeight: '700', color: C.onPrimary },
 
   achHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10, marginTop: 4 },
   achTitle: { fontSize: 18, fontWeight: '700', color: C.text, flex: 1 },
   achRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20, marginBottom: 8 },
-  achItem: { alignItems: 'center', width: 60, marginRight: 8, marginBottom: 8, padding: 6, borderRadius: 12, backgroundColor: C.cardWhite },
+  achItem: { alignItems: 'center', width: 60, marginRight: 8, marginBottom: 8, padding: 6, borderRadius: RADIUS, backgroundColor: C.cardWhite, ...SHADOW },
   achLocked: { opacity: 0.25 },
   achIcon: { fontSize: 22 },
   achName: { fontSize: 9, color: C.textMid, marginTop: 1, textAlign: 'center' },
   achNameLocked: { color: C.textLight },
 
-  lockOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
+  lockOverlay: { flex: 1, backgroundColor: 'rgba(24,28,29,0.45)', justifyContent: 'center', alignItems: 'center' },
   lockSheet: {
-    width: '80%', backgroundColor: '#fff', borderRadius: 24, padding: 28,
-    alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: 4 }, elevation: 8,
+    width: '80%', maxWidth: 340, backgroundColor: C.cardWhite, borderRadius: RADIUS, padding: 24,
+    alignItems: 'center', ...SHADOW,
   },
-  lockEmoji: { fontSize: 48, marginBottom: 10 },
+  lockIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: C.primaryBg, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   lockModalTitle: { fontSize: 20, fontWeight: '800', color: C.text, marginBottom: 6 },
   lockModalDesc: { fontSize: 14, color: C.textMid, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
-  lockBtnRow: { flexDirection: 'row', gap: 12, width: '100%' },
-  lockBtn: { flex: 1, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  lockBtnRow: { flexDirection: 'row', width: '100%' },
+  lockBtnLeft: { marginRight: 6 },
+  lockBtnRight: { marginLeft: 6 },
+  lockBtn: { flex: 1, height: 46, borderRadius: RADIUS, alignItems: 'center', justifyContent: 'center' },
   lockBtnTxt: { fontSize: 15, fontWeight: '700' },
 
-  taskItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.cardWhite, borderRadius: 14, padding: 12, marginBottom: 8 },
+  taskItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.cardWhite, borderRadius: RADIUS, padding: 12, marginBottom: 8 },
   taskItemDone: { opacity: 0.6 },
   taskItemIcon: { fontSize: 18, marginRight: 10 },
-  taskItemText: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 4 },
+  taskItemTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 },
+  taskItemText: { flex: 1, fontSize: 14, fontWeight: '600', color: C.text, marginRight: 8 },
   taskItemTextDone: { textDecorationLine: 'line-through', color: C.textMid },
-  taskBar: { height: 4, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.06)', overflow: 'hidden' },
-  taskBarFill: { height: 4, borderRadius: 2 },
-  taskGoBtn: { fontSize: 12, fontWeight: '800', marginRight: 6 },
+  taskItemFrac: { fontSize: 12, fontWeight: '800', color: C.textLight },
+  taskBar: { height: 8, borderRadius: 4, backgroundColor: C.border, overflow: 'hidden' },
+  taskBarFill: { height: 8, borderRadius: 4 },
+  taskGoRow: { flexDirection: 'row', alignItems: 'center', marginLeft: 4 },
+  taskGoBtn: { fontSize: 12, fontWeight: '800', marginRight: 0 },
   taskItemReward: { fontSize: 13, fontWeight: '700', color: C.gold, marginLeft: 8 },
   inlineTaskBox: {
-    marginHorizontal: 20, marginBottom: 14, padding: 14, borderRadius: 16,
-    backgroundColor: C.cardWhite, borderWidth: 1.5, borderColor: C.border,
+    marginHorizontal: 20, marginBottom: 14, padding: 14, borderRadius: RADIUS, backgroundColor: C.cardWhite,
+    borderWidth: 1, borderColor: C.border, ...SHADOW,
   },
   inlineTaskHeader: {
     flexDirection: 'row', alignItems: 'center', marginBottom: 10,
   },
-  inlineTaskTitle: { fontSize: 16, fontWeight: '700', color: C.text, flex: 1 },
+  inlineTaskTitleRow: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  inlineTaskTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginLeft: 8, flex: 1 },
+  inlineTaskChevron: { marginLeft: 0 },
   inlineLockTag: {
     fontSize: 11, fontWeight: '700', color: C.error, marginLeft: 8,
-    backgroundColor: 'rgba(224,107,107,0.12)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8,
+    backgroundColor: C.errorBg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS,
   },
   inlineTaskItem: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg,
-    borderRadius: 12, padding: 10, marginBottom: 6,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.surfaceContainerLow, borderRadius: RADIUS, padding: 10, marginBottom: 6, borderWidth: 1, borderColor: C.border,
   },
   inlineLockHint: {
     fontSize: 12, color: C.error, fontWeight: '600', textAlign: 'center', marginTop: 4,
@@ -662,7 +696,7 @@ const st = StyleSheet.create({
   recitationCard: {
     flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 12,
     padding: 14, borderRadius: RADIUS, backgroundColor: C.cardWhite,
-    borderLeftWidth: 4, borderLeftColor: '#9C27B0',
+    borderLeftWidth: 4, borderLeftColor: '#9C27B0', ...SHADOW,
   },
   recitationLeft: { marginRight: 12 },
 });

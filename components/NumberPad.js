@@ -1,5 +1,6 @@
 import { useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { C, RADIUS } from '../lib/theme';
 
 const KEYS = [
@@ -29,9 +30,13 @@ function PadKey({ k, disabled, onPress }) {
       onPressOut={disabled ? undefined : handlePressOut}
     >
       <Animated.View style={[st.key, act && st.keyAct, disabled && st.keyOff, { transform: [{ scale }] }]}>
-        <Text style={[st.keyTxt, act && st.keyActTxt, disabled && st.keyOffTxt]}>
-          {k === 'C' ? '清空' : k}
-        </Text>
+        {k === '⌫' ? (
+          <MaterialIcons name="backspace" size={24} color={disabled ? C.textLight : C.textMid} />
+        ) : (
+          <Text style={[st.keyTxt, act && st.keyActTxt, disabled && st.keyOffTxt]}>
+            {k === 'C' ? 'C' : k}
+          </Text>
+        )}
       </Animated.View>
     </TouchableOpacity>
   );
@@ -56,9 +61,10 @@ const st = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'center', marginBottom: 8 },
   key: {
     width: 90, height: 52, marginHorizontal: 4, borderRadius: RADIUS,
-    backgroundColor: C.card, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: C.cardWhite, borderWidth: 1, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center',
   },
-  keyAct: { backgroundColor: 'rgba(229,229,229,0.8)' },
+  keyAct: { backgroundColor: C.surfaceContainerLow, borderColor: C.outlineVariant },
   keyOff: { opacity: 0.35 },
   keyTxt: { fontSize: 24, fontWeight: '700', color: C.text },
   keyActTxt: { fontSize: 15, fontWeight: '700', color: C.textMid },

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { C, SUBJECTS, DIFFICULTIES, OP_SYMBOL, SUBJECT_COLORS } from '../lib/theme';
+import { C, SHADOW, RADIUS, SUBJECTS, DIFFICULTIES, OP_SYMBOL, SUBJECT_COLORS } from '../lib/theme';
 import { generateQuestions, getMaxQuestions } from '../lib/questions';
 import { useApp } from '../lib/AppContext';
 import NumberPad from '../components/NumberPad';
@@ -38,13 +39,14 @@ function SetupPhase({ subject, onStart, onBack, allowedDiffs }) {
 
   return (
     <ScrollView style={st.setupScroll} contentContainerStyle={st.setupRoot} showsVerticalScrollIndicator={false}>
-      <TouchableOpacity style={st.backBtn} onPress={onBack}>
-        <Text style={st.backTxt}>← 返回</Text>
+      <TouchableOpacity style={st.backBtn} onPress={onBack} activeOpacity={0.7}>
+        <MaterialIcons name="arrow-back" size={22} color={C.primary} />
+        <Text style={st.backTxt}>返回</Text>
       </TouchableOpacity>
       <Text style={st.setupIcon}>{sub.icon}</Text>
       <Text style={st.setupTitle}>{sub.label}</Text>
 
-      <View style={st.setupCard}>
+      <View style={[st.setupCard, SHADOW]}>
         <Text style={st.setupLabel}>选择难度</Text>
         <View style={st.diffRow}>
           {Object.values(DIFFICULTIES).filter((d) => diffs.includes(d.key)).map((d) => (
@@ -188,7 +190,6 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
   const hasStem = !!q?.stem && !isMCQ;
   const answered = answers[idx] !== null;
   const allDone = answers.every((a) => a !== null) || timeUp;
-  const sub = SUBJECTS[subject] || { icon: '📝', label: '错题练习', color: C.primary };
   const opSym = OP_SYMBOL[q?.op] || '?';
   const isCountdown = timerMode === 'countdown';
 
@@ -428,15 +429,18 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
   return (
     <View style={st.quizRoot}>
       <View style={st.qHeader}>
-        <TouchableOpacity onPress={onBack}><Text style={st.backTxt}>←</Text></TouchableOpacity>
-        <View style={[st.timerBox, timerDanger && st.timerDanger]}>
-          <Text style={[st.timerTxt, timerDanger && st.timerTxtDanger]}>{fmt(displayTime)}</Text>
-        </View>
+        <TouchableOpacity onPress={onBack} style={st.qHeaderBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
+          <MaterialIcons name="arrow-back" size={24} color={C.text} />
+        </TouchableOpacity>
         <View style={st.progBadge}>
           <Text style={st.progBadgeTxt}>{allDone ? questions.length : idx + 1}/{questions.length}</Text>
         </View>
+        <View style={[st.timerBox, timerDanger && st.timerDanger]}>
+          <MaterialIcons name="timer" size={20} color={timerDanger ? C.error : C.primary} style={st.timerIcon} />
+          <Text style={[st.timerTxt, timerDanger && st.timerTxtDanger]}>{fmt(displayTime)}</Text>
+        </View>
       </View>
-      <View style={st.bar}><View style={[st.barFill, { width: `${pct}%`, backgroundColor: sub.color }]} /></View>
+      <View style={st.bar}><View style={[st.barFill, { width: `${pct}%`, backgroundColor: C.primary }]} /></View>
 
       {showCombo && (
         <Animated.View style={[st.comboBox, { transform: [{ scale: comboAnim }] }]}>
@@ -451,7 +455,8 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
             <Text style={st.doneTxt}>{timeUp ? '时间到!' : '全部答完了!'}</Text>
           </View>
         ) : isMCQ ? (
-          <View style={st.qCard}>
+          <View style={[st.qCard, SHADOW]}>
+            <MaterialIcons name="calculate" size={32} color={C.primary} style={st.qCardIcon} />
             <Text style={st.qIdx}>第 {idx + 1} 题</Text>
             <Text style={st.stemTxt}>{q.stem}</Text>
             <View style={st.mcqGrid}>
@@ -480,7 +485,8 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
             )}
           </View>
         ) : hasStem ? (
-          <View style={st.qCard}>
+          <View style={[st.qCard, SHADOW]}>
+            <MaterialIcons name="calculate" size={32} color={C.primary} style={st.qCardIcon} />
             <Text style={st.qIdx}>第 {idx + 1} 题</Text>
             <Text style={st.stemTxt}>{q.stem}</Text>
             <View style={st.qRow}>
@@ -497,7 +503,8 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
             )}
           </View>
         ) : (
-          <View style={st.qCard}>
+          <View style={[st.qCard, SHADOW]}>
+            <MaterialIcons name="calculate" size={32} color={C.primary} style={st.qCardIcon} />
             <Text style={st.qIdx}>第 {idx + 1} 题</Text>
             {isMulti && (
               <Text style={st.qHint}>
@@ -545,7 +552,7 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
             disabled={isMulti ? (!inputA || !inputB || !!fb || answered) : (!inputA || !!fb || answered)}
             activeOpacity={0.8}
           >
-            <Text style={[st.subBtnTxt, (isMulti ? (!inputA || !inputB || !!fb) : (!inputA || !!fb)) && st.subBtnTxtOff]}>确认</Text>
+            <Text style={[st.subBtnTxt, (isMulti ? (!inputA || !inputB || !!fb) : (!inputA || !!fb)) && st.subBtnTxtOff]}>提交答案</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -626,21 +633,21 @@ export default function QuizScreen() {
 const st = StyleSheet.create({
   setupScroll: { flex: 1, backgroundColor: C.bg },
   setupRoot: { alignItems: 'center', paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
-  backBtn: { alignSelf: 'flex-start', marginBottom: 12 },
-  backTxt: { fontSize: 16, fontWeight: '600', color: C.primary },
+  backBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 12, paddingVertical: 4, paddingRight: 8 },
+  backTxt: { fontSize: 16, fontWeight: '600', color: C.primary, marginLeft: 2 },
   setupIcon: { fontSize: 48, marginBottom: 4 },
   setupTitle: { fontSize: 24, fontWeight: '800', color: C.text, marginBottom: 20 },
-  setupCard: { width: '100%', backgroundColor: C.card, borderRadius: 20, padding: 24, alignItems: 'center' },
+  setupCard: { width: '100%', backgroundColor: C.cardWhite, borderRadius: RADIUS, padding: 24, alignItems: 'center' },
   setupLabel: { fontSize: 15, fontWeight: '600', color: C.textMid, marginBottom: 12 },
   diffRow: { flexDirection: 'row' },
   diffBtn: {
-    flex: 1, height: 42, borderRadius: 12, marginHorizontal: 4,
+    flex: 1, height: 42, borderRadius: RADIUS, marginHorizontal: 4,
     backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center',
   },
   diffTxt: { fontSize: 15, fontWeight: '700', color: C.textMid },
   countRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   cBtn: {
-    width: 40, height: 40, borderRadius: 10, backgroundColor: C.primaryBg,
+    width: 40, height: 40, borderRadius: RADIUS, backgroundColor: C.primaryBg,
     alignItems: 'center', justifyContent: 'center', marginHorizontal: 3,
   },
   cBtnTxt: { fontSize: 15, fontWeight: '700', color: C.primary },
@@ -648,21 +655,21 @@ const st = StyleSheet.create({
   countNum: { fontSize: 36, fontWeight: '800', color: C.primary },
   countUnit: { fontSize: 12, color: C.textMid, marginTop: -4 },
   presetRow: { flexDirection: 'row' },
-  presetBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: C.bg, marginHorizontal: 3 },
-  presetOn: { backgroundColor: C.primary },
+  presetBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: RADIUS, backgroundColor: C.bg, marginHorizontal: 3, borderWidth: 1, borderColor: C.border },
+  presetOn: { backgroundColor: C.primary, borderColor: C.primary },
   presetTxt: { fontSize: 13, fontWeight: '600', color: C.textMid },
   presetTxtOn: { color: '#fff' },
   cdInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
   cdInputWrap: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 6 },
   cdInput: {
-    width: 64, height: 40, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1.5, borderColor: C.error,
+    width: 64, height: 40, borderRadius: RADIUS, backgroundColor: C.cardWhite, borderWidth: 1.5, borderColor: C.error,
     textAlign: 'center', fontSize: 20, fontWeight: '800', color: C.error,
   },
   cdUnit: { fontSize: 14, fontWeight: '600', color: C.textMid, marginLeft: 4 },
   cdHint: { fontSize: 11, color: C.textLight, marginTop: 6 },
 
   goBtn: {
-    marginTop: 28, width: '100%', height: 54, borderRadius: 16,
+    marginTop: 28, width: '100%', height: 54, borderRadius: RADIUS,
     backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center',
   },
   goBtnTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
@@ -673,20 +680,23 @@ const st = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6,
   },
-  timerBox: { backgroundColor: C.primaryBg, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 16 },
+  timerBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.primaryBg, paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS },
   timerDanger: { backgroundColor: C.errorBg },
-  timerTxt: { fontSize: 18, fontWeight: '700', color: C.primary, fontVariant: ['tabular-nums'] },
+  timerIcon: { marginRight: 4 },
+  qHeaderBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  timerTxt: { fontSize: 16, fontWeight: '700', color: C.primary, fontVariant: ['tabular-nums'] },
   timerTxtDanger: { color: C.error },
-  progBadge: { backgroundColor: C.primaryBg, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 14 },
-  progBadgeTxt: { fontSize: 14, fontWeight: '700', color: C.primary },
-  bar: { height: 6, backgroundColor: 'rgba(196,196,196,0.4)', marginHorizontal: 16, borderRadius: 30, overflow: 'hidden' },
-  barFill: { height: 6, borderRadius: 30 },
+  progBadge: { paddingHorizontal: 4, paddingVertical: 2 },
+  progBadgeTxt: { fontSize: 16, fontWeight: '800', color: C.primary, fontVariant: ['tabular-nums'] },
+  bar: { height: 6, backgroundColor: C.card, marginHorizontal: 16, borderRadius: RADIUS, overflow: 'hidden' },
+  barFill: { height: 6, borderRadius: RADIUS },
 
-  comboBox: { alignSelf: 'center', marginTop: 8, paddingHorizontal: 14, paddingVertical: 4, borderRadius: 16, backgroundColor: C.accentBg },
+  comboBox: { alignSelf: 'center', marginTop: 6, marginBottom: 4, paddingHorizontal: 16, paddingVertical: 8, borderRadius: RADIUS, backgroundColor: C.accentBg },
   comboTxt: { fontSize: 15, fontWeight: '800', color: C.accent },
 
   qArea: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
-  qCard: { width: '100%', backgroundColor: C.card, borderRadius: 20, paddingVertical: 24, paddingHorizontal: 16, alignItems: 'center' },
+  qCard: { width: '100%', backgroundColor: C.cardWhite, borderRadius: RADIUS, paddingVertical: 28, paddingHorizontal: 16, alignItems: 'center' },
+  qCardIcon: { marginBottom: 8 },
   qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 6 },
   qHint: { fontSize: 12, color: C.primary, fontWeight: '600', marginBottom: 10, backgroundColor: C.primaryBg, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
   qRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' },
@@ -694,8 +704,8 @@ const st = StyleSheet.create({
   qOp: { fontSize: 26, fontWeight: '600', color: C.textMid, marginHorizontal: 6 },
   qDots: { fontSize: 26, fontWeight: '800', color: C.textMid, marginHorizontal: 4, letterSpacing: 2 },
   qInput: {
-    minWidth: 56, height: 62, borderRadius: 14, borderWidth: 2.5,
-    borderColor: C.border, borderStyle: 'dashed', backgroundColor: 'rgba(229,229,229,0.3)',
+    minWidth: 56, height: 62, borderRadius: RADIUS, borderWidth: 2.5,
+    borderColor: C.border, borderStyle: 'dashed', backgroundColor: C.surfaceContainerLow,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8,
   },
   qInputFilled: { borderStyle: 'solid', backgroundColor: '#fff' },
@@ -714,7 +724,7 @@ const st = StyleSheet.create({
   mcqGrid: { width: '100%' },
   mcqOpt: {
     width: '100%', paddingVertical: 14, paddingHorizontal: 18,
-    borderRadius: 16, borderWidth: 2, borderColor: C.border,
+    borderRadius: RADIUS, borderWidth: 1, borderColor: C.border,
     backgroundColor: C.cardWhite, marginBottom: 10,
   },
   mcqSelected: { borderColor: C.primary, backgroundColor: C.primaryBg },
@@ -726,11 +736,11 @@ const st = StyleSheet.create({
   doneEmoji: { fontSize: 56, marginBottom: 10 },
   doneTxt: { fontSize: 22, fontWeight: '700', color: C.success },
 
-  qBottom: { paddingHorizontal: 16, paddingBottom: 10 },
-  subBtn: { height: 52, borderRadius: 14, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' },
+  qBottom: { width: '100%', paddingHorizontal: 16, paddingBottom: 10 },
+  subBtn: { width: '100%', height: 52, marginTop: 8, borderRadius: RADIUS, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' },
   subBtnOff: { backgroundColor: C.border },
   subBtnTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
   subBtnTxtOff: { color: C.textLight },
-  finishBtn: { height: 54, borderRadius: 14, backgroundColor: C.success, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  finishBtn: { width: '100%', height: 54, borderRadius: RADIUS, backgroundColor: C.success, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
   finishTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
 });
