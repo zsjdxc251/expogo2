@@ -72,6 +72,7 @@ export default function MainTabs() {
         tabBarIcon: ({ focused }) => <TabIcon routeName={route.name} focused={focused} />,
         sceneStyle: { paddingBottom: 120 },
         tabBarItemStyle: st.tabBarItem,
+        tabBarBackground: () => null,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} listeners={otherListeners} />
@@ -104,12 +105,14 @@ const st = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.92)',
     borderRadius: 24,
     borderWidth: 2,
+    borderTopWidth: 2,
     borderColor: 'rgba(0,206,209,0.12)',
     shadowColor: 'rgba(51,143,155,0.15)',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 1,
     shadowRadius: 24,
     elevation: 8,
+    overflow: 'hidden',
   },
   tabBarItem: { justifyContent: 'center' },
   tabItem: {
