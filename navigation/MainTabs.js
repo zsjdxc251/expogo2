@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Text, StyleSheet, View } from 'react-native';
+
+const TransparentBg = () => <View style={StyleSheet.absoluteFill} />;
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { C } from '../lib/theme';
@@ -72,7 +74,7 @@ export default function MainTabs() {
         tabBarIcon: ({ focused }) => <TabIcon routeName={route.name} focused={focused} />,
         sceneStyle: { paddingBottom: 120 },
         tabBarItemStyle: st.tabBarItem,
-        tabBarBackground: () => null,
+        tabBarBackground: () => <TransparentBg />,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} listeners={otherListeners} />
@@ -109,21 +111,21 @@ const st = StyleSheet.create({
     borderColor: 'rgba(0,206,209,0.15)',
     elevation: 0,
     shadowOpacity: 0,
+    borderTopColor: 'rgba(0,206,209,0.15)',
   },
-  tabBarItem: { justifyContent: 'center' },
+  tabBarItem: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    minHeight: 56,
+    paddingHorizontal: 20,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   tabItemActive: {
     backgroundColor: '#E0F7FA',
-    borderRadius: 16,
   },
-  tabLabel: { fontSize: 12, color: '#94a3b8', marginTop: 4, fontWeight: '500' },
-  tabLabelOn: { color: C.titleAccent, fontWeight: '500' },
+  tabLabel: { fontSize: 12, color: '#94a3b8', marginTop: 2, fontWeight: '500' },
+  tabLabelOn: { color: C.titleAccent, fontWeight: '600' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg, gap: 12 },
   emptyTxt: { fontSize: 16, color: C.textMid, fontWeight: '600' },
 });
