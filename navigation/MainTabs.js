@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Text, StyleSheet, View } from 'react-native';
-
-const TransparentBg = () => <View style={StyleSheet.absoluteFill} />;
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import { C } from '../lib/theme';
@@ -16,7 +14,7 @@ const Tab = createBottomTabNavigator();
 const TAB_META = {
   Home:     { icon: 'home',            label: '主页' },
   History:  { icon: 'history',         label: '历史' },
-  Settings: { icon: 'manage-accounts',  label: '设置' },
+  Settings: { icon: 'manage-accounts', label: '设置' },
 };
 
 function TabIcon({ routeName, focused }) {
@@ -25,7 +23,7 @@ function TabIcon({ routeName, focused }) {
     <View style={[st.tabItem, focused && st.tabItemActive]}>
       <MaterialIcons
         name={meta.icon}
-        size={24}
+        size={22}
         color={focused ? C.titleAccent : '#94a3b8'}
       />
       <Text style={[st.tabLabel, focused && st.tabLabelOn]}>{meta.label}</Text>
@@ -69,12 +67,10 @@ export default function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: st.bar,
         tabBarShowLabel: false,
+        tabBarStyle: st.bar,
         tabBarIcon: ({ focused }) => <TabIcon routeName={route.name} focused={focused} />,
-        sceneStyle: { paddingBottom: 120 },
         tabBarItemStyle: st.tabBarItem,
-        tabBarBackground: () => <TransparentBg />,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} listeners={otherListeners} />
@@ -100,32 +96,53 @@ function EmptySettings() {
 const st = StyleSheet.create({
   bar: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 16,
     left: '5%',
     right: '5%',
-    height: 80,
+    height: 64,
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 2,
-    borderTopWidth: 2,
-    borderColor: 'rgba(0,206,209,0.15)',
+    borderRadius: 32,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0,206,209,0.12)',
     elevation: 0,
     shadowOpacity: 0,
-    borderTopColor: 'rgba(0,206,209,0.15)',
+    paddingBottom: 0,
   },
-  tabBarItem: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  tabBarItem: {
+    height: 64,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderRadius: 14,
   },
   tabItemActive: {
     backgroundColor: '#E0F7FA',
   },
-  tabLabel: { fontSize: 12, color: '#94a3b8', marginTop: 2, fontWeight: '500' },
-  tabLabelOn: { color: C.titleAccent, fontWeight: '600' },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg, gap: 12 },
-  emptyTxt: { fontSize: 16, color: C.textMid, fontWeight: '600' },
+  tabLabel: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginTop: 1,
+    fontWeight: '500',
+  },
+  tabLabelOn: {
+    color: C.titleAccent,
+    fontWeight: '600',
+  },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.bg,
+    gap: 12,
+  },
+  emptyTxt: {
+    fontSize: 16,
+    color: C.textMid,
+    fontWeight: '600',
+  },
 });
