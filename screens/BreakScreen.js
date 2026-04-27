@@ -1,17 +1,28 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { C, RADIUS, SHADOW, SHADOW_SM } from '../lib/theme';
+import { RADIUS } from '../lib/theme';
+
+const GREEN = '#4CAF50';
+const GREEN_BG = '#E8F5E9';
+const GREEN_LIGHT = 'rgba(76,175,80,0.15)';
+const GREEN_BORDER = 'rgba(76,175,80,0.20)';
+const GREEN_DASH = 'rgba(76,175,80,0.40)';
+const GREEN_10 = 'rgba(76,175,80,0.10)';
+const TEXT_DARK = '#181c1d';
+const TEXT_MID = '#3e494a';
+const AMBER_BG = '#ffb05a';
+const AMBER_TEXT = '#744300';
 
 const EYE_STEPS = [
-  { label: '向上看', icon: 'north', story: '小兔子抬头看天空的白云～', dx: 0, dy: -1 },
-  { label: '向右看', icon: 'east', story: '哇，右边有一只蝴蝶飞过！', dx: 1, dy: 0 },
-  { label: '向下看', icon: 'south', story: '低头看看地上的小花朵～', dx: 0, dy: 1 },
-  { label: '向左看', icon: 'west', story: '左边传来小鸟的歌声～', dx: -1, dy: 0 },
-  { label: '看远处', icon: 'landscape', story: '远处的山好美啊，眺望远方～', dx: 0, dy: 0, scale: 0.3 },
-  { label: '看近处', icon: 'center-focus-strong', story: '近处有一颗亮晶晶的露珠！', dx: 0, dy: 0, scale: 1.5 },
-  { label: '转圈看', icon: 'sync', story: '转个圈，看看四周的风景～', dx: 0, dy: 0, rotate: true },
-  { label: '闭眼休息', icon: 'visibility-off', story: '闭上眼睛，听听风的声音...', dx: 0, dy: 0, close: true },
+  { label: 'Step 1: Look up 👆', story: '小兔子抬头看天空的白云～', dx: 0, dy: -1 },
+  { label: 'Step 2: Look right 👉', story: '哇，右边有一只蝴蝶飞过！', dx: 1, dy: 0 },
+  { label: 'Step 3: Look down 👇', story: '低头看看地上的小花朵～', dx: 0, dy: 1 },
+  { label: 'Step 4: Look left 👈', story: '左边传来小鸟的歌声～', dx: -1, dy: 0 },
+  { label: 'Step 5: Look far 🔭', story: '远处的山好美啊，眺望远方～', dx: 0, dy: 0, scale: 0.3 },
+  { label: 'Step 6: Look close 👁️', story: '近处有一颗亮晶晶的露珠！', dx: 0, dy: 0, scale: 1.5 },
+  { label: 'Step 7: Circle 🔄', story: '转个圈，看看四周的风景～', dx: 0, dy: 0, rotate: true },
+  { label: 'Step 8: Close eyes 😌', story: '闭上眼睛，听听风的声音...', dx: 0, dy: 0, close: true },
 ];
 
 const STEP_DURATION = 8000;
@@ -26,17 +37,6 @@ export default function BreakScreen({ breakMinutes, onDone, onParentUnlock }) {
   const dotX = useRef(new Animated.Value(0)).current;
   const dotY = useRef(new Animated.Value(0)).current;
   const dotScale = useRef(new Animated.Value(1)).current;
-  const bounceAnim = useRef(new Animated.Value(0)).current;
-  const progressAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(bounceAnim, { toValue: -6, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(bounceAnim, { toValue: 0, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ]),
-    ).start();
-  }, []);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -48,14 +48,6 @@ export default function BreakScreen({ breakMinutes, onDone, onParentUnlock }) {
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: remaining / totalSec,
-      duration: 800,
-      useNativeDriver: false,
-    }).start();
-  }, [remaining, totalSec]);
-
   const animateStep = useCallback((step) => {
     dotX.stopAnimation();
     dotY.stopAnimation();
@@ -66,9 +58,8 @@ export default function BreakScreen({ breakMinutes, onDone, onParentUnlock }) {
       dotY.setValue(0);
       dotScale.setValue(1);
       const radius = 70;
-      const dur = STEP_DURATION;
       const frames = 60;
-      const perFrame = dur / frames;
+      const perFrame = STEP_DURATION / frames;
       let frame = 0;
       const interval = setInterval(() => {
         frame++;
@@ -125,27 +116,22 @@ export default function BreakScreen({ breakMinutes, onDone, onParentUnlock }) {
   };
 
   const step = EYE_STEPS[stepIdx % EYE_STEPS.length];
-  const stepNum = (stepIdx % EYE_STEPS.length) + 1;
 
   return (
     <View style={st.root}>
-      {/* Header */}
-      <View style={st.headerArea}>
-        <View style={st.iconRow}>
-          <View style={st.iconCircle}>
-            <MaterialIcons name="visibility" size={28} color={C.primary} />
-          </View>
+      <View style={st.content}>
+        {/* Header */}
+        <View style={st.headerArea}>
+          <Text style={st.mainTitle}>休息一下，保护眼睛！</Text>
+          <Text style={st.subTitle}>跟着小兔子做眼保健操</Text>
         </View>
-        <Text style={st.mainTitle}>休息一下，保护眼睛！</Text>
-        <Text style={st.subTitle}>跟着小兔子做眼保健操</Text>
-      </View>
 
-      {/* Eye Exercise Area */}
-      <View style={st.eyeCard}>
-        <View style={st.eyeBox}>
+        {/* Eye Exercise Circle */}
+        <View style={st.eyeCircle}>
+          {/* Carrot target */}
           <Animated.View
             style={[
-              st.dot,
+              st.carrotTarget,
               {
                 transform: [
                   { translateX: dotX },
@@ -155,80 +141,51 @@ export default function BreakScreen({ breakMinutes, onDone, onParentUnlock }) {
               },
             ]}
           >
-            <Animated.View style={{ transform: [{ translateY: bounceAnim }] }}>
-              <MaterialIcons name="nutrition" size={32} color={C.primary} />
-            </Animated.View>
+            <View style={st.carrotBubble}>
+              <MaterialIcons name="nutrition" size={28} color={AMBER_TEXT} />
+            </View>
           </Animated.View>
-          <View style={st.crossH} />
-          <View style={st.crossV} />
-        </View>
 
-        {/* Step Indicator */}
-        <View style={st.stepRow}>
-          <View style={st.stepBadge}>
-            <Text style={st.stepBadgeTxt}>Step {stepNum}</Text>
-          </View>
-          <MaterialIcons name={step.icon} size={20} color={C.primary} style={{ marginLeft: 8 }} />
-          <Text style={st.stepLabel}>{step.label}</Text>
-        </View>
-
-        <View style={st.storyBox}>
-          <Text style={st.storyTxt}>{step.story}</Text>
-        </View>
-      </View>
-
-      {/* Timer & Bottom */}
-      <View style={st.bottomArea}>
-        <View style={st.timerCard}>
-          <View style={st.timerIconRow}>
-            <MaterialIcons name="timer" size={20} color={C.primary} />
-            <Text style={st.timerLabel}>{canClose ? '休息完毕！' : '剩余时间'}</Text>
-          </View>
-          <Text style={st.timerVal}>{fmtTime(remaining)}</Text>
-
-          {/* Progress Bar */}
-          <View style={st.progressTrack}>
-            <Animated.View
-              style={[
-                st.progressFill,
-                {
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
-                },
-              ]}
-            />
+          {/* Inner dashed circle */}
+          <View style={st.innerDashed}>
+            <MaterialIcons name="visibility" size={48} color={GREEN_DASH} />
           </View>
         </View>
 
-        {canClose ? (
+        {/* Instruction Card */}
+        <View style={st.instrCard}>
+          <View style={st.instrBar} />
+          <Text style={st.instrTitle}>{step.label}</Text>
+          <Text style={st.instrDesc}>{step.story}</Text>
+        </View>
+
+        {/* Timer Pill */}
+        <View style={st.timerPill}>
+          <MaterialIcons name="timer" size={22} color={GREEN} />
+          <Text style={st.timerTxt}>{fmtTime(remaining)}</Text>
+        </View>
+
+        {canClose && (
           <View style={st.finishArea}>
             <View style={st.rewardBox}>
-              <MaterialIcons name="stars" size={20} color={C.secondary} />
+              <MaterialIcons name="stars" size={20} color={AMBER_TEXT} />
               <Text style={st.rewardTxt}>休息奖励 +{BREAK_REWARD} 积分</Text>
             </View>
             <TouchableOpacity style={st.doneBtn} activeOpacity={0.8} onPress={() => onDone(BREAK_REWARD)}>
               <Text style={st.doneTxt}>继续学习</Text>
-              <MaterialIcons name="arrow-forward" size={20} color={C.onPrimary} />
+              <MaterialIcons name="arrow-forward" size={20} color="#fff" />
             </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={st.lockCard}>
-            <View style={st.lockRow}>
-              <MaterialIcons name="lock" size={18} color={C.textLight} />
-              <Text style={st.lockTxt}>休息期间不可关闭</Text>
-            </View>
-            <Text style={st.lockSub}>完成休息可获得 {BREAK_REWARD} 积分奖励哦！</Text>
-            {onParentUnlock && (
-              <TouchableOpacity style={st.unlockBtn} onPress={onParentUnlock} activeOpacity={0.7}>
-                <MaterialIcons name="lock-open" size={16} color={C.primary} />
-                <Text style={st.unlockTxt}>家长解锁</Text>
-              </TouchableOpacity>
-            )}
           </View>
         )}
       </View>
+
+      {/* Parent Unlock - fixed bottom */}
+      {!canClose && onParentUnlock && (
+        <TouchableOpacity style={st.unlockBtn} onPress={onParentUnlock} activeOpacity={0.7}>
+          <MaterialIcons name="lock" size={20} color={TEXT_MID} />
+          <Text style={st.unlockTxt}>家长解锁</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -236,180 +193,159 @@ export default function BreakScreen({ breakMinutes, onDone, onParentUnlock }) {
 const st = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: C.bg,
+    backgroundColor: GREEN_BG,
+  },
+  content: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 32,
+    justifyContent: 'center',
     paddingHorizontal: 20,
+    paddingBottom: 80,
   },
 
-  headerArea: { alignItems: 'center', paddingTop: 8 },
-  iconRow: { marginBottom: 12 },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: C.primaryBg,
+  headerArea: { alignItems: 'center', marginBottom: 32 },
+  mainTitle: {
+    fontSize: 40,
+    fontWeight: '700',
+    color: GREEN,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+    lineHeight: 52,
+    marginBottom: 8,
+  },
+  subTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: TEXT_MID,
+    lineHeight: 28,
+  },
+
+  eyeCircle: {
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: GREEN_BORDER,
+    shadowColor: 'rgba(76,175,80,0.15)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 24,
+    elevation: 6,
+    marginBottom: 24,
+  },
+
+  carrotTarget: {
+    position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mainTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: C.text,
-    marginBottom: 4,
-    letterSpacing: 0.3,
-  },
-  subTitle: {
-    fontSize: 14,
-    color: C.textLight,
-    textAlign: 'center',
-  },
-
-  eyeCard: {
-    width: '100%',
-    backgroundColor: C.cardWhite,
-    borderRadius: RADIUS,
-    alignItems: 'center',
-    paddingVertical: 24,
-    paddingHorizontal: 16,
-    ...SHADOW,
-  },
-  eyeBox: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: C.primaryBg,
+  carrotBubble: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: AMBER_BG,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(0,102,112,0.15)',
+    borderColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  dot: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'transparent',
+
+  innerDashed: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: GREEN_DASH,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'absolute',
-  },
-  crossH: {
-    position: 'absolute',
-    width: 160,
-    height: 1,
-    backgroundColor: 'rgba(0,102,112,0.08)',
-  },
-  crossV: {
-    position: 'absolute',
-    width: 1,
-    height: 160,
-    backgroundColor: 'rgba(0,102,112,0.08)',
   },
 
-  stepRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  stepBadge: {
-    backgroundColor: C.primary,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  stepBadgeTxt: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: C.onPrimary,
-    letterSpacing: 0.3,
-  },
-  stepLabel: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: C.text,
-    marginLeft: 6,
-  },
-
-  storyBox: {
-    marginTop: 10,
-    backgroundColor: C.primaryBg,
-    borderRadius: RADIUS,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  storyTxt: {
-    fontSize: 13,
-    color: C.primary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-
-  bottomArea: { alignItems: 'center', width: '100%' },
-
-  timerCard: {
+  instrCard: {
     width: '100%',
-    backgroundColor: C.cardWhite,
-    borderRadius: RADIUS,
-    padding: 16,
+    maxWidth: 400,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 24,
     alignItems: 'center',
-    marginBottom: 12,
-    ...SHADOW_SM,
-  },
-  timerIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  timerLabel: {
-    fontSize: 13,
-    color: C.textLight,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  timerVal: {
-    fontSize: 40,
-    fontWeight: '800',
-    color: C.text,
-    fontVariant: ['tabular-nums'],
-    letterSpacing: 1,
-  },
-  progressTrack: {
-    width: '100%',
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: C.surfaceContainerHigh,
-    marginTop: 10,
+    shadowColor: 'rgba(76,175,80,0.10)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    elevation: 4,
+    marginBottom: 24,
     overflow: 'hidden',
   },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
-    backgroundColor: C.primary,
+  instrBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: GREEN,
+  },
+  instrTitle: {
+    fontSize: 28,
+    fontWeight: '600',
+    color: TEXT_DARK,
+    lineHeight: 36,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  instrDesc: {
+    fontSize: 18,
+    fontWeight: '400',
+    color: TEXT_MID,
+    lineHeight: 28,
+    textAlign: 'center',
   },
 
-  finishArea: { width: '100%', alignItems: 'center' },
+  timerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: GREEN_10,
+    borderRadius: 999,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    gap: 12,
+    marginBottom: 24,
+  },
+  timerTxt: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: GREEN,
+    fontVariant: ['tabular-nums'],
+  },
+
+  finishArea: { width: '100%', maxWidth: 400, alignItems: 'center' },
   rewardBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: C.secondaryBg,
+    backgroundColor: 'rgba(255,176,90,0.15)',
     borderRadius: RADIUS,
     paddingHorizontal: 16,
     paddingVertical: 10,
     marginBottom: 12,
+    gap: 8,
   },
   rewardTxt: {
     fontSize: 15,
     fontWeight: '700',
-    color: C.secondary,
-    marginLeft: 8,
+    color: AMBER_TEXT,
   },
-
   doneBtn: {
     width: '100%',
     height: 52,
     borderRadius: RADIUS,
-    backgroundColor: C.primary,
+    backgroundColor: GREEN,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -418,47 +354,34 @@ const st = StyleSheet.create({
   doneTxt: {
     fontSize: 16,
     fontWeight: '700',
-    color: C.onPrimary,
+    color: '#ffffff',
   },
 
-  lockCard: {
-    width: '100%',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: RADIUS,
-    backgroundColor: C.surfaceContainerLow,
-    alignItems: 'center',
-  },
-  lockRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  lockTxt: {
-    fontSize: 14,
-    color: C.textLight,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  lockSub: {
-    fontSize: 12,
-    color: C.textLight,
-    marginTop: 2,
-  },
   unlockBtn: {
-    marginTop: 12,
+    position: 'absolute',
+    bottom: 32,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: RADIUS,
-    borderWidth: 1.5,
-    borderColor: C.primary,
-    gap: 6,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#e0e3e4',
+    borderRadius: 999,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    gap: 8,
+    minHeight: 48,
+    shadowColor: 'rgba(0,0,0,0.05)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 2,
   },
   unlockTxt: {
-    fontSize: 13,
-    color: C.primary,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT_MID,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
 });
