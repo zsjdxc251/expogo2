@@ -11,11 +11,11 @@ export const FONT_OPTIONS = [
   { key: 'default', label: '默认字体', desc: '系统默认', family: undefined },
   {
     key: 'kaiti', label: '楷体', desc: '适合识字学习',
-    family: Platform.select({ ios: 'Kaiti SC', android: 'serif', default: 'serif' }),
+    family: Platform.select({ ios: 'STKaiti', android: 'serif', default: '"STKaiti", "KaiTi", serif' }),
   },
   {
     key: 'songti', label: '宋体', desc: '经典印刷体',
-    family: Platform.select({ ios: 'Songti SC', android: 'serif', default: 'serif' }),
+    family: Platform.select({ ios: 'STSong', android: 'serif', default: '"STSong", "SimSun", serif' }),
   },
   {
     key: 'rounded', label: '圆体', desc: '圆润可爱',
@@ -28,7 +28,7 @@ export function getFontFamily(fontKey) {
   return opt?.family;
 }
 
-function FontApplier() {
+function AppContent() {
   const { settings } = useApp();
   const fontKey = settings?.fontKey || 'default';
 
@@ -42,7 +42,12 @@ function FontApplier() {
     }
   }, [fontKey]);
 
-  return null;
+  return (
+    <NavigationContainer key={`nav-${fontKey}`}>
+      <RootNavigator />
+      <StatusBar style="auto" />
+    </NavigationContainer>
+  );
 }
 
 export default function App() {
@@ -50,11 +55,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AppProvider>
-          <FontApplier />
-          <NavigationContainer>
-            <RootNavigator />
-            <StatusBar style="auto" />
-          </NavigationContainer>
+          <AppContent />
         </AppProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
