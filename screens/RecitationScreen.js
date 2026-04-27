@@ -307,7 +307,7 @@ function ReciteItemScreen({ item, onNext, onBack, isLast, levelTitle, lessonSour
 
   return (
     <View style={st.root}>
-      <View style={[st.reciteHeader, { paddingTop: Math.max(insets.top, 8) }]}>
+      <View style={[st.reciteHeader, { paddingTop: 8 }]}>
         <TouchableOpacity onPress={onBack} style={st.headerBackBtnRound} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <MaterialIcons name="arrow-back" size={24} color={C.titleAccent} />
         </TouchableOpacity>
