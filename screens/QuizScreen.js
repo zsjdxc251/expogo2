@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Easing } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { C, SHADOW, RADIUS, SUBJECTS, DIFFICULTIES, OP_SYMBOL, SUBJECT_COLORS } from '../lib/theme';
+import { C, SHADOW, SHADOW_SM, RADIUS, SUBJECTS, DIFFICULTIES, OP_SYMBOL, SUBJECT_COLORS } from '../lib/theme';
 import { generateQuestions, getMaxQuestions } from '../lib/questions';
 import { useApp } from '../lib/AppContext';
 import NumberPad from '../components/NumberPad';
@@ -183,6 +183,7 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
   const tick = useRef(null);
   const autoRef = useRef(null);
   const comboAnim = useRef(new Animated.Value(1)).current;
+  const cursorPulse = useRef(new Animated.Value(0.6)).current;
 
   const q = questions[idx];
   const isMulti = !!q?.multiInput;
@@ -190,6 +191,18 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
   const hasStem = !!q?.stem && !isMCQ;
   const answered = answers[idx] !== null;
   const allDone = answers.every((a) => a !== null) || timeUp;
+
+  useEffect(() => {
+    if (allDone) return undefined;
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(cursorPulse, { toValue: 0.25, duration: 650, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(cursorPulse, { toValue: 1, duration: 650, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [allDone, cursorPulse]);
   const opSym = OP_SYMBOL[q?.op] || '?';
   const isCountdown = timerMode === 'countdown';
 
@@ -366,21 +379,38 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
   const renderInputBox = (field, label) => {
     const val = field === 'a' ? inputA : inputB;
     const isFocused = focus === field;
+    const showPulse = !val && isFocused && !fb;
     return (
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={() => setFocus(field)}
-        style={[st.qInput, val ? st.qInputFilled : null, isFocused && st.qInputFocus]}
+        style={[st.answerBox, val ? st.answerBoxFilled : null, isFocused && st.answerBoxFocus]}
       >
         <Text style={st.qInputLabel}>{label}</Text>
-        <Text style={val ? st.qInputTxt : st.qInputPh}>{val || '?'}</Text>
+        {val ? (
+          <Text style={st.answerTxt}>{val}</Text>
+        ) : (
+          <>
+            {showPulse ? (
+              <Animated.View style={[st.cursorBar, { opacity: cursorPulse }]} />
+            ) : null}
+            <Text style={st.answerPh}>?</Text>
+          </>
+        )}
       </TouchableOpacity>
     );
   };
 
-  const SingleInputBox = (
-    <TouchableOpacity activeOpacity={1} style={[st.qInput, inputA ? st.qInputFilled : null, st.qInputFocus]}>
-      <Text style={inputA ? st.qInputTxt : st.qInputPh}>{inputA || '?'}</Text>
+  const renderSingleAnswerBox = () => (
+    <TouchableOpacity activeOpacity={1} style={[st.answerBox, inputA ? st.answerBoxFilled : null, st.answerBoxFocus]}>
+      {inputA ? (
+        <Text style={st.answerTxt}>{inputA}</Text>
+      ) : (
+        <>
+          {!fb ? <Animated.View style={[st.cursorBar, { opacity: cursorPulse }]} /> : null}
+          <Text style={st.answerPh}>?</Text>
+        </>
+      )}
     </TouchableOpacity>
   );
 
@@ -417,11 +447,11 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
 
     return (
       <View style={st.qRow}>
-        {q.missingPos === 'left' ? SingleInputBox : <Text style={st.qNum}>{q.display.left}</Text>}
+        {q.missingPos === 'left' ? renderSingleAnswerBox() : <Text style={st.qNum}>{q.display.left}</Text>}
         <Text style={st.qOp}>{opSym}</Text>
-        {q.missingPos === 'right' ? SingleInputBox : <Text style={st.qNum}>{q.display.right}</Text>}
+        {q.missingPos === 'right' ? renderSingleAnswerBox() : <Text style={st.qNum}>{q.display.right}</Text>}
         <Text style={st.qOp}>=</Text>
-        {q.missingPos === 'result' ? SingleInputBox : <Text style={st.qNum}>{q.display.result}</Text>}
+        {q.missingPos === 'result' ? renderSingleAnswerBox() : <Text style={st.qNum}>{q.display.result}</Text>}
       </View>
     );
   };
@@ -429,21 +459,35 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
   return (
     <View style={st.quizRoot}>
       <View style={st.qHeader}>
-        <TouchableOpacity onPress={onBack} style={st.qHeaderBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
-          <MaterialIcons name="arrow-back" size={24} color={C.text} />
+        <TouchableOpacity onPress={onBack} style={st.hBack} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
+          <MaterialIcons name="arrow-back" size={24} color={C.titleAccent} />
         </TouchableOpacity>
-        <View style={st.progBadge}>
+        <View style={st.progCenter}>
           <Text style={st.progBadgeTxt}>{allDone ? questions.length : idx + 1}/{questions.length}</Text>
         </View>
-        <View style={[st.timerBox, timerDanger && st.timerDanger]}>
-          <MaterialIcons name="timer" size={20} color={timerDanger ? C.error : C.primary} style={st.timerIcon} />
-          <Text style={[st.timerTxt, timerDanger && st.timerTxtDanger]}>{fmt(displayTime)}</Text>
+        <View style={st.capsuleSpacer} />
+      </View>
+      <View style={st.progressBlock}>
+        <View style={st.barTrack}>
+          <View style={[st.barFill, { width: `${pct}%` }]}>
+            <View style={st.barStripe} />
+          </View>
+        </View>
+        <View style={[st.timerPill, timerDanger && st.timerPillDanger, SHADOW_SM]}>
+          <MaterialIcons name="timer" size={18} color={timerDanger ? C.error : C.textLight} style={st.timerPillIcon} />
+          <Text style={[st.timerPillTxt, timerDanger && st.timerPillTxtDanger]}>{fmt(displayTime)}</Text>
         </View>
       </View>
-      <View style={st.bar}><View style={[st.barFill, { width: `${pct}%`, backgroundColor: C.primary }]} /></View>
 
       {showCombo && (
-        <Animated.View style={[st.comboBox, { transform: [{ scale: comboAnim }] }]}>
+        <Animated.View
+          style={[
+            st.comboBox,
+            {
+              transform: [{ scale: comboAnim }, { rotate: '-2deg' }],
+            },
+          ]}
+        >
           <Text style={st.comboTxt}>🔥 连击 x{combo}!</Text>
         </Animated.View>
       )}
@@ -455,8 +499,12 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
             <Text style={st.doneTxt}>{timeUp ? '时间到!' : '全部答完了!'}</Text>
           </View>
         ) : isMCQ ? (
-          <View style={[st.qCard, SHADOW]}>
-            <MaterialIcons name="calculate" size={32} color={C.primary} style={st.qCardIcon} />
+          <View style={[st.qCard, st.qCardShadow]}>
+            <View style={st.qDecoWrap} pointerEvents="none">
+              <View style={st.qDecoCircle}>
+                <MaterialIcons name="calculate" size={28} color={C.text} />
+              </View>
+            </View>
             <Text style={st.qIdx}>第 {idx + 1} 题</Text>
             <Text style={st.stemTxt}>{q.stem}</Text>
             <View style={st.mcqGrid}>
@@ -485,13 +533,17 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
             )}
           </View>
         ) : hasStem ? (
-          <View style={[st.qCard, SHADOW]}>
-            <MaterialIcons name="calculate" size={32} color={C.primary} style={st.qCardIcon} />
+          <View style={[st.qCard, st.qCardShadow]}>
+            <View style={st.qDecoWrap} pointerEvents="none">
+              <View style={st.qDecoCircle}>
+                <MaterialIcons name="calculate" size={28} color={C.text} />
+              </View>
+            </View>
             <Text style={st.qIdx}>第 {idx + 1} 题</Text>
             <Text style={st.stemTxt}>{q.stem}</Text>
             <View style={st.qRow}>
-              <Text style={st.qOp}>答案:</Text>
-              {SingleInputBox}
+              <Text style={st.qStemLabel}>答案:</Text>
+              {renderSingleAnswerBox()}
             </View>
             {fb === 'wrong' && hint && (
               <View style={st.hintBox}><Text style={st.hintTxt}>💡 {hint}</Text></View>
@@ -503,9 +555,12 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
             )}
           </View>
         ) : (
-          <View style={[st.qCard, SHADOW]}>
-            <MaterialIcons name="calculate" size={32} color={C.primary} style={st.qCardIcon} />
-            <Text style={st.qIdx}>第 {idx + 1} 题</Text>
+          <View style={[st.qCard, st.qCardShadow]}>
+            <View style={st.qDecoWrap} pointerEvents="none">
+              <View style={st.qDecoCircle}>
+                <MaterialIcons name="calculate" size={28} color={C.text} />
+              </View>
+            </View>
             {isMulti && (
               <Text style={st.qHint}>
                 {q.op === 'divReverse' ? '求最大被除数和余数' : '填写商和余数'}
@@ -539,23 +594,31 @@ function QuizPhase({ questions, subject, settings, timerMode, countdownSec, onFi
         />
       </View>
 
-      <View style={st.qBottom}>
-        {!allDone && !isMCQ && <NumberPad onPress={onKey} disabled={!!fb || answered} />}
-        {allDone ? (
+      {allDone ? (
+        <View style={st.qBottom}>
           <TouchableOpacity style={st.finishBtn} onPress={handleFinish} activeOpacity={0.8}>
             <Text style={st.finishTxt}>查看结果</Text>
           </TouchableOpacity>
-        ) : !settings?.autoSubmit ? (
-          <TouchableOpacity
-            style={[st.subBtn, (isMulti ? (!inputA || !inputB || !!fb) : (!inputA || !!fb)) && st.subBtnOff]}
-            onPress={onSubmit}
-            disabled={isMulti ? (!inputA || !inputB || !!fb || answered) : (!inputA || !!fb || answered)}
-            activeOpacity={0.8}
-          >
-            <Text style={[st.subBtnTxt, (isMulti ? (!inputA || !inputB || !!fb) : (!inputA || !!fb)) && st.subBtnTxtOff]}>提交答案</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
+        </View>
+      ) : !isMCQ || !settings?.autoSubmit ? (
+        <View style={st.keypadSheet}>
+          {!isMCQ && <NumberPad onPress={onKey} disabled={!!fb || answered} />}
+          {!settings?.autoSubmit && (
+            <TouchableOpacity
+              style={[
+                st.subBtn,
+                isMCQ && st.subBtnMcqSolo,
+                (isMulti ? (!inputA || !inputB || !!fb) : (!inputA || !!fb)) && st.subBtnOff,
+              ]}
+              onPress={onSubmit}
+              disabled={isMulti ? (!inputA || !inputB || !!fb || answered) : (!inputA || !!fb || answered)}
+              activeOpacity={0.8}
+            >
+              <Text style={[st.subBtnTxt, (isMulti ? (!inputA || !inputB || !!fb) : (!inputA || !!fb)) && st.subBtnTxtOff]}>提交答案</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -677,57 +740,72 @@ const st = StyleSheet.create({
 
   quizRoot: { flex: 1, backgroundColor: C.bg },
   qHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.headerBg, borderBottomWidth: 1, borderBottomColor: '#e2e8f0',
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8,
   },
-  timerBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.primaryBg, paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS },
-  timerDanger: { backgroundColor: C.errorBg },
-  timerIcon: { marginRight: 4 },
-  qHeaderBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  timerTxt: { fontSize: 16, fontWeight: '700', color: C.primary, fontVariant: ['tabular-nums'] },
-  timerTxtDanger: { color: C.error },
-  progBadge: { paddingHorizontal: 4, paddingVertical: 2 },
-  progBadgeTxt: { fontSize: 16, fontWeight: '800', color: C.primary, fontVariant: ['tabular-nums'] },
-  bar: { height: 6, backgroundColor: C.card, marginHorizontal: 16, borderRadius: RADIUS, overflow: 'hidden' },
-  barFill: { height: 6, borderRadius: RADIUS },
+  hBack: { padding: 8, borderRadius: 9999, alignItems: 'center', justifyContent: 'center' },
+  progCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  progBadgeTxt: { fontSize: 18, fontWeight: '800', color: C.titleAccent, fontVariant: ['tabular-nums'] },
+  capsuleSpacer: { width: 87, height: 1 },
 
-  comboBox: { alignSelf: 'center', marginTop: 6, marginBottom: 4, paddingHorizontal: 16, paddingVertical: 8, borderRadius: RADIUS, backgroundColor: C.accentBg },
-  comboTxt: { fontSize: 15, fontWeight: '800', color: C.accent },
+  progressBlock: { backgroundColor: C.headerBg, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, alignItems: 'center' },
+  barTrack: { width: '100%', height: 12, backgroundColor: C.surfaceContainer, borderRadius: 999, overflow: 'hidden' },
+  barFill: { height: 12, maxWidth: '100%', backgroundColor: '#2e7f89', borderRadius: 999, overflow: 'hidden' },
+  barStripe: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.2)' },
 
-  qArea: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
-  qCard: { width: '100%', backgroundColor: C.cardWhite, borderRadius: RADIUS, paddingVertical: 28, paddingHorizontal: 16, alignItems: 'center' },
-  qCardIcon: { marginBottom: 8 },
+  timerPill: {
+    marginTop: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: C.surfaceContainerHigh, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: C.outlineVariant,
+  },
+  timerPillDanger: { borderColor: C.error, backgroundColor: C.errorContainer },
+  timerPillIcon: { marginRight: 4 },
+  timerPillTxt: { fontSize: 14, fontWeight: '600', color: C.textLight, fontVariant: ['tabular-nums'] },
+  timerPillTxtDanger: { color: C.error },
+
+  comboBox: {
+    alignSelf: 'center', marginTop: 8, marginBottom: 6, paddingHorizontal: 24, paddingVertical: 8, borderRadius: 999, backgroundColor: '#fdb15f', borderWidth: 2, borderColor: '#fff', shadowColor: 'rgba(255,176,90,0.4)', shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, shadowOpacity: 1, elevation: 4,
+  },
+  comboTxt: { fontSize: 14, fontWeight: '800', color: '#744300' },
+
+  qArea: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 8 },
+  qCard: { width: '100%', position: 'relative', backgroundColor: C.surfaceContainerLowest, borderRadius: 32, padding: 24, alignItems: 'center', borderWidth: 4, borderColor: C.surfaceContainer },
+  qCardShadow: {
+    shadowColor: 'rgba(0,102,112,0.08)', shadowOffset: { width: 0, height: 8 }, shadowRadius: 24, shadowOpacity: 1, elevation: 4,
+  },
+  qDecoWrap: { position: 'absolute', top: -20, right: -12, zIndex: 2 },
+  qDecoCircle: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: C.primaryFixedDim, borderWidth: 4, borderColor: C.surfaceContainerLowest, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '12deg' }], shadowColor: 'rgba(0,0,0,0.12)', shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 3,
+  },
   qIdx: { fontSize: 13, fontWeight: '600', color: C.textLight, marginBottom: 6 },
-  qHint: { fontSize: 12, color: C.primary, fontWeight: '600', marginBottom: 10, backgroundColor: C.primaryBg, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
-  qRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' },
-  qNum: { fontSize: 40, fontWeight: '800', color: C.text },
-  qOp: { fontSize: 26, fontWeight: '600', color: C.textMid, marginHorizontal: 6 },
-  qDots: { fontSize: 26, fontWeight: '800', color: C.textMid, marginHorizontal: 4, letterSpacing: 2 },
-  qInput: {
-    minWidth: 56, height: 62, borderRadius: RADIUS, borderWidth: 2.5,
-    borderColor: C.border, borderStyle: 'dashed', backgroundColor: C.surfaceContainerLow,
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8,
+  qHint: { fontSize: 12, color: C.titleAccent, fontWeight: '600', marginBottom: 12, backgroundColor: 'rgba(51,143,155,0.1)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
+  qRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', paddingVertical: 12, gap: 6 },
+  qStemLabel: { fontSize: 20, fontWeight: '700', color: '#2e7f89', marginRight: 4 },
+  qNum: { fontSize: 48, lineHeight: 56, fontWeight: '900', color: C.text, fontVariant: ['tabular-nums'] },
+  qOp: { fontSize: 48, lineHeight: 56, fontWeight: '900', color: '#2e7f89', marginHorizontal: 4, fontVariant: ['tabular-nums'] },
+  qDots: { fontSize: 30, fontWeight: '800', color: C.textLight, marginHorizontal: 4, letterSpacing: 2 },
+  answerBox: {
+    width: 72, minHeight: 72, borderRadius: 16, borderWidth: 4, borderColor: '#2e7f89', backgroundColor: 'rgba(163, 239, 250, 0.3)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
-  qInputFilled: { borderStyle: 'solid', backgroundColor: '#fff' },
-  qInputFocus: { borderColor: C.primary, borderStyle: 'solid', backgroundColor: C.primaryBg },
-  qInputLabel: { fontSize: 9, color: C.textLight, fontWeight: '600', position: 'absolute', top: 2 },
-  qInputTxt: { fontSize: 38, fontWeight: '800', color: C.primary },
-  qInputPh: { fontSize: 28, fontWeight: '700', color: C.textLight },
+  answerBoxFilled: { backgroundColor: 'rgba(163, 239, 250, 0.45)' },
+  answerBoxFocus: { },
+  qInputLabel: { fontSize: 9, color: C.textLight, fontWeight: '600', position: 'absolute', top: 4, zIndex: 1 },
+  answerTxt: { fontSize: 32, fontWeight: '900', color: C.text, fontVariant: ['tabular-nums'] },
+  answerPh: { fontSize: 24, fontWeight: '800', color: C.textLight, opacity: 0.4 },
+  cursorBar: { position: 'absolute', bottom: 14, width: 32, height: 4, borderRadius: 2, backgroundColor: '#2e7f89' },
   focusHint: { marginTop: 10 },
   focusHintTxt: { fontSize: 11, color: C.textLight },
-  hintBox: { marginTop: 10, backgroundColor: C.accentBg, borderRadius: 10, padding: 10 },
+  hintBox: { marginTop: 10, backgroundColor: C.accentBg, borderRadius: 10, padding: 10, width: '100%' },
   hintTxt: { fontSize: 13, color: C.accent, lineHeight: 20 },
-  encourageBox: { marginTop: 8, backgroundColor: C.successBg, borderRadius: 10, padding: 8 },
+  encourageBox: { marginTop: 8, backgroundColor: C.successBg, borderRadius: 10, padding: 8, width: '100%' },
   encourageTxt: { fontSize: 13, color: C.success, fontWeight: '600', textAlign: 'center' },
 
-  stemTxt: { fontSize: 20, fontWeight: '700', color: C.text, textAlign: 'center', lineHeight: 30, marginBottom: 16 },
+  stemTxt: { fontSize: 20, fontWeight: '700', color: C.text, textAlign: 'center', lineHeight: 30, marginBottom: 16, width: '100%' },
   mcqGrid: { width: '100%' },
   mcqOpt: {
     width: '100%', paddingVertical: 14, paddingHorizontal: 18,
-    borderRadius: RADIUS, borderWidth: 1, borderColor: C.border,
+    borderRadius: 24, borderWidth: 1, borderColor: C.border,
     backgroundColor: C.cardWhite, marginBottom: 10,
   },
-  mcqSelected: { borderColor: C.primary, backgroundColor: C.primaryBg },
+  mcqSelected: { borderColor: C.titleAccent, backgroundColor: 'rgba(51,143,155,0.1)' },
   mcqCorrect: { borderColor: C.success, backgroundColor: C.success },
   mcqWrong: { borderColor: C.error, backgroundColor: C.error },
   mcqOptTxt: { fontSize: 17, fontWeight: '600', color: C.text, textAlign: 'center' },
@@ -736,11 +814,15 @@ const st = StyleSheet.create({
   doneEmoji: { fontSize: 56, marginBottom: 10 },
   doneTxt: { fontSize: 22, fontWeight: '700', color: C.success },
 
-  qBottom: { width: '100%', paddingHorizontal: 16, paddingBottom: 10 },
-  subBtn: { width: '100%', height: 52, marginTop: 8, borderRadius: RADIUS, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' },
-  subBtnOff: { backgroundColor: C.border },
-  subBtnTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  keypadSheet: {
+    width: '100%', backgroundColor: C.surfaceContainerLowest, borderTopLeftRadius: 40, borderTopRightRadius: 40, borderTopWidth: 2, borderColor: C.surfaceContainer, paddingTop: 24, paddingBottom: 32, paddingHorizontal: 20, shadowColor: 'rgba(0,102,112,0.1)', shadowOffset: { width: 0, height: -8 }, shadowRadius: 32, shadowOpacity: 1, elevation: 8,
+  },
+  qBottom: { width: '100%', paddingHorizontal: 20, paddingBottom: 10 },
+  subBtn: { width: '100%', height: 64, marginTop: 24, borderRadius: 24, backgroundColor: C.titleAccent, alignItems: 'center', justifyContent: 'center', shadowColor: '#28717B', shadowOffset: { width: 0, height: 4 }, shadowRadius: 0, shadowOpacity: 1, elevation: 3 },
+  subBtnMcqSolo: { marginTop: 0 },
+  subBtnOff: { backgroundColor: C.surfaceContainerHighest, shadowColor: C.surfaceContainerHighest, shadowOffset: { width: 0, height: 0 } },
+  subBtnTxt: { fontSize: 24, lineHeight: 32, fontWeight: '600', color: '#fff' },
   subBtnTxtOff: { color: C.textLight },
-  finishBtn: { width: '100%', height: 54, borderRadius: RADIUS, backgroundColor: C.success, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  finishBtn: { width: '100%', height: 54, borderRadius: 24, backgroundColor: C.success, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
   finishTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
 });

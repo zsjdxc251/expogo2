@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { C } from '../lib/theme';
 
 export default function ProgressRing({
-  size = 80, strokeWidth = 8, progress = 0, color = C.primary, children,
+  size = 80, strokeWidth = 8, progress = 0, color = C.primary, trackColor = 'rgba(0,0,0,0.06)', children,
 }) {
   const radius = size / 2;
   const clamp = Math.min(100, Math.max(0, progress));
@@ -13,7 +13,7 @@ export default function ProgressRing({
     height: size,
     borderRadius: radius,
     borderWidth: strokeWidth,
-    borderColor: 'rgba(0,0,0,0.06)',
+    borderColor: trackColor,
   };
 
   const half = {
