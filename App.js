@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React from 'react';
 import { Text, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -28,19 +28,28 @@ export function getFontFamily(fontKey) {
   return opt?.family;
 }
 
+// Monkey-patch Text.render to inject fontFamily into every Text component.
+// Text.defaultProps.style doesn't work because explicit style props override it entirely.
+let _globalFontFamily;
+const _originalTextRender = Text.render;
+if (_originalTextRender) {
+  Text.render = function (props, ref) {
+    if (_globalFontFamily) {
+      const patched = {
+        ...props,
+        style: [{ fontFamily: _globalFontFamily }, props.style],
+      };
+      return _originalTextRender.call(this, patched, ref);
+    }
+    return _originalTextRender.call(this, props, ref);
+  };
+}
+
 function AppContent() {
   const { settings } = useApp();
   const fontKey = settings?.fontKey || 'default';
 
-  useEffect(() => {
-    const family = getFontFamily(fontKey);
-    if (!Text.defaultProps) Text.defaultProps = {};
-    if (family) {
-      Text.defaultProps.style = { fontFamily: family };
-    } else {
-      Text.defaultProps.style = {};
-    }
-  }, [fontKey]);
+  _globalFontFamily = getFontFamily(fontKey);
 
   return (
     <NavigationContainer key={`nav-${fontKey}`}>
