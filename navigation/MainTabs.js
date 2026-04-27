@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Text, StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
-import { C, SHADOW } from '../lib/theme';
+import { C } from '../lib/theme';
 import { useApp } from '../lib/AppContext';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -70,7 +70,7 @@ export default function MainTabs() {
         tabBarStyle: st.bar,
         tabBarShowLabel: false,
         tabBarIcon: ({ focused }) => <TabIcon routeName={route.name} focused={focused} />,
-        sceneStyle: { paddingBottom: 80 },
+        sceneStyle: { paddingBottom: 120 },
         tabBarItemStyle: st.tabBarItem,
       })}
     >
@@ -96,16 +96,15 @@ function EmptySettings() {
 
 const st = StyleSheet.create({
   bar: {
-    backgroundColor: C.navBg,
+    position: 'absolute',
+    bottom: 24,
+    left: '5%',
+    right: '5%',
     height: 80,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderRightWidth: 2,
-    borderBottomWidth: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 2,
     borderColor: '#E0F7FA',
-    ...SHADOW,
     shadowColor: 'rgba(51,143,155,0.15)',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 1,
