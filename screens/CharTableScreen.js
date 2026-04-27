@@ -827,7 +827,13 @@ export default function CharTableScreen() {
           <Text style={st.headerTitleLit} numberOfLines={1}>
             {getScreenTitle(tableType, lessonKeys)}
           </Text>
-          <View style={st.headerSpacer48} />
+          <TouchableOpacity
+            onPress={() => setMode('card')}
+            style={st.headerBackCircle}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <MaterialIcons name="style" size={24} color={C.primary} />
+          </TouchableOpacity>
         </View>
         <GridMode
           chars={allChars}
