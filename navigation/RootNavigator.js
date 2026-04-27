@@ -19,6 +19,7 @@ import TextbookLearnScreen from '../screens/TextbookLearnScreen';
 import TextbookDictationScreen from '../screens/TextbookDictationScreen';
 import CharTableScreen from '../screens/CharTableScreen';
 import CharPracticeScreen from '../screens/CharPracticeScreen';
+import TextbookEnglishScreen from '../screens/TextbookEnglishScreen';
 import RecitationScreen from '../screens/RecitationScreen';
 import BattleScreen from '../screens/BattleScreen';
 import BreakScreen from '../screens/BreakScreen';
@@ -69,6 +70,7 @@ export default function RootNavigator() {
             <Stack.Screen name="TextbookLearn" component={TextbookLearnScreen} />
             <Stack.Screen name="TextbookDictation" component={TextbookDictationScreen} />
             <Stack.Screen name="CharTable" component={CharTableScreen} />
+            <Stack.Screen name="EngTextbook" component={TextbookEnglishScreen} />
             <Stack.Screen name="CharPractice" component={CharPracticeScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="Recitation" component={RecitationScreen} />
             <Stack.Screen name="Battle" component={BattleScreen} options={{ animation: 'slide_from_bottom' }} />

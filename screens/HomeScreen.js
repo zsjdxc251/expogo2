@@ -375,7 +375,23 @@ export default function HomeScreen() {
 
       {activeTab === 'english' && (
         <>
-          <Text style={[st.secTitle, { color: sc.dark }]}>英语学习</Text>
+          <Text style={[st.secTitle, { color: sc.dark }]}>课文朗读</Text>
+          <TouchableOpacity
+            style={[st.textbookBanner, { backgroundColor: SUBJECT_COLORS.english.bg, borderColor: SUBJECT_COLORS.english.primary }]}
+            onPress={() => nav.navigate('EngTextbook')}
+            activeOpacity={0.85}
+          >
+            <View style={[st.textbookBannerIcon, { backgroundColor: '#FFF3E0' }]}>
+              <MaterialIcons name="menu-book" size={28} color={SUBJECT_COLORS.english.primary} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 14 }}>
+              <Text style={[st.textbookBannerTitle, { color: SUBJECT_COLORS.english.primary }]}>二年级下册 · 英语课贴</Text>
+              <Text style={st.textbookBannerDesc}>6 个单元 · 点击每句话朗读</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={24} color={SUBJECT_COLORS.english.primary} />
+          </TouchableOpacity>
+
+          <Text style={[st.secTitle, { color: sc.dark, marginTop: 12 }]}>英语语法</Text>
           {ENG_LEVELS.map((lvl) => {
             const isOpen = openLevel === lvl.key;
             const topicKeys = LEVEL_TOPIC_KEYS[lvl.key] || [];
@@ -836,6 +852,17 @@ const st = StyleSheet.create({
   levelTitle: { fontSize: 16, fontWeight: '700', color: C.text },
   levelDesc: { fontSize: 11, color: C.textMid, marginTop: 1 },
   arrow: { fontSize: 16, color: C.textMid, fontWeight: '600', marginLeft: 8 },
+
+  textbookBanner: {
+    flexDirection: 'row', alignItems: 'center',
+    borderRadius: RADIUS, padding: 16, marginBottom: 8,
+    borderWidth: 1.5, ...SHADOW_SM,
+  },
+  textbookBannerIcon: {
+    width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
+  },
+  textbookBannerTitle: { fontSize: 16, fontWeight: '800' },
+  textbookBannerDesc: { fontSize: 12, color: C.textMid, marginTop: 2 },
 
   topicCardTile: {
     backgroundColor: C.cardWhite,
