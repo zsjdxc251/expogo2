@@ -31,6 +31,8 @@ function TabIcon({ routeName, focused }) {
   );
 }
 
+const EmptyBg = () => <View style={StyleSheet.absoluteFill} />;
+
 export default function MainTabs() {
   const { user, isParent, requestPin, exitParent } = useApp();
   const tabNavRef = useRef(null);
@@ -69,8 +71,13 @@ export default function MainTabs() {
         headerShown: false,
         tabBarShowLabel: false,
         tabBarStyle: st.bar,
-        tabBarIcon: ({ focused }) => <TabIcon routeName={route.name} focused={focused} />,
+        tabBarIcon: ({ focused }) => (
+          <TabIcon routeName={route.name} focused={focused} />
+        ),
+        tabBarIconStyle: st.tabBarIcon,
         tabBarItemStyle: st.tabBarItem,
+        tabBarBackground: () => <EmptyBg />,
+        sceneStyle: st.scene,
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} listeners={otherListeners} />
@@ -93,31 +100,46 @@ function EmptySettings() {
   );
 }
 
+const NAV_H = 60;
+const NAV_BOTTOM = 20;
+
 const st = StyleSheet.create({
+  scene: {
+    paddingBottom: NAV_H + NAV_BOTTOM + 16,
+  },
   bar: {
     position: 'absolute',
-    bottom: 16,
+    bottom: NAV_BOTTOM,
     left: '5%',
     right: '5%',
-    height: 64,
+    height: NAV_H,
     backgroundColor: '#FFFFFF',
-    borderRadius: 32,
+    borderRadius: NAV_H / 2,
     borderWidth: 1.5,
-    borderColor: 'rgba(0,206,209,0.12)',
+    borderColor: 'rgba(0,206,209,0.15)',
     elevation: 0,
     shadowOpacity: 0,
     paddingBottom: 0,
+    paddingTop: 0,
+    overflow: 'visible',
   },
   tabBarItem: {
-    height: 64,
+    flex: 1,
+    height: NAV_H,
     paddingTop: 0,
     paddingBottom: 0,
+  },
+  tabBarIcon: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 6,
     borderRadius: 14,
   },
   tabItemActive: {
@@ -128,6 +150,7 @@ const st = StyleSheet.create({
     color: '#94a3b8',
     marginTop: 1,
     fontWeight: '500',
+    lineHeight: 14,
   },
   tabLabelOn: {
     color: C.titleAccent,
