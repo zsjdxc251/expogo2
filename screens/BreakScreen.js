@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { RADIUS } from '../lib/theme';
+
+const rabbitImg = require('../assets/rabbit_eye_rest.png');
 
 const GREEN = '#4CAF50';
 const GREEN_BG = '#E8F5E9';
@@ -128,6 +130,9 @@ export default function BreakScreen({ breakMinutes, onDone, onParentUnlock }) {
 
         {/* Eye Exercise Circle */}
         <View style={st.eyeCircle}>
+          {/* Rabbit background image */}
+          <Image source={rabbitImg} style={st.rabbitBg} resizeMode="cover" />
+
           {/* Carrot target */}
           <Animated.View
             style={[
@@ -142,7 +147,7 @@ export default function BreakScreen({ breakMinutes, onDone, onParentUnlock }) {
             ]}
           >
             <View style={st.carrotBubble}>
-              <MaterialIcons name="nutrition" size={28} color={AMBER_TEXT} />
+              <Text style={st.carrotEmoji}>🥕</Text>
             </View>
           </Animated.View>
 
@@ -235,12 +240,21 @@ const st = StyleSheet.create({
     shadowRadius: 24,
     elevation: 6,
     marginBottom: 24,
+    overflow: 'hidden',
+  },
+  rabbitBg: {
+    position: 'absolute',
+    width: 272,
+    height: 272,
+    borderRadius: 136,
+    opacity: 0.35,
   },
 
   carrotTarget: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
   },
   carrotBubble: {
     width: 48,
@@ -256,6 +270,9 @@ const st = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
+  },
+  carrotEmoji: {
+    fontSize: 24,
   },
 
   innerDashed: {
