@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Image } fro
 import { MaterialIcons } from '@expo/vector-icons';
 import { RADIUS } from '../lib/theme';
 
-const rabbitImg = require('../assets/rabbit_eye_rest.png');
+const rabbitImg = require('../assets/rabbit_eye_rest.jpg');
 
 const GREEN = '#4CAF50';
 const GREEN_BG = '#E8F5E9';
