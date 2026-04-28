@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Image } fro
 import { MaterialIcons } from '@expo/vector-icons';
 import { RADIUS } from '../lib/theme';
 
-const rabbitImg = require('../assets/rabbit_eye_rest.jpg');
+const RABBIT_URI = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCaSnmCMTi5c5RDIYGgdRGek9ZCRlX4u4Mib7bUGTJtZF2b9is2C0TocECg-gbhQYOl_QPzdlnU-r8gaNuCzEPjEidy4oGBiJNt6jdCeIZRjqGsycVkAayIssQ1B8KdniXbOg8eU4J0_d2lwKbrNeIw_aDBMRpCtZ0xwSQNVJtdr7LN7xATk1qLkTYLNA9ipPR354NZy-PQtkTAAfD1yTZiLejlf8fSVzKa3HW3gMIQWsv-OTAAHw2IeNGw2WRa-ty2Ol5VQUd9Ms_t=s300';
 
 const GREEN = '#4CAF50';
 const GREEN_BG = '#E8F5E9';
@@ -131,7 +131,7 @@ export default function BreakScreen({ breakMinutes, onDone, onParentUnlock }) {
         {/* Eye Exercise Circle */}
         <View style={st.eyeCircle}>
           {/* Rabbit background image */}
-          <Image source={rabbitImg} style={st.rabbitBg} resizeMode="cover" />
+          <Image source={{ uri: RABBIT_URI }} style={st.rabbitBg} resizeMode="cover" />
 
           {/* Carrot target */}
           <Animated.View
