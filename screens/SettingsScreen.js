@@ -272,7 +272,7 @@ export default function SettingsScreen() {
                         {f.desc}
                       </Text>
                       {active && (
-                        <MaterialIcons name="check-circle" size={16} color={C.primary} style={{ position: 'absolute', top: 6, right: 6 }} />
+                        <MaterialIcons name="check-circle" size={13} color={C.primary} style={{ position: 'absolute', top: 3, right: 3 }} />
                       )}
                     </TouchableOpacity>
                   );
@@ -868,18 +868,18 @@ const st = StyleSheet.create({
   bodyMdMed: { fontSize: 16, fontWeight: '500', color: C.text },
   rowDesc: { fontSize: 13, color: C.textLight, marginTop: 2 },
   fontSection: { paddingTop: 4 },
-  fontGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  fontGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   fontChip: {
     width: '31%', position: 'relative',
-    backgroundColor: C.surfaceContainerLow, borderRadius: 10,
-    paddingVertical: 10, paddingHorizontal: 8,
-    borderWidth: 2, borderColor: C.border,
+    backgroundColor: C.surfaceContainerLow, borderRadius: 8,
+    paddingVertical: 6, paddingHorizontal: 6,
+    borderWidth: 1.5, borderColor: C.border,
     alignItems: 'center',
   },
   fontChipActive: { borderColor: C.primary, backgroundColor: C.primaryBg },
-  fontChipLabel: { fontSize: 14, fontWeight: '700', color: C.text, textAlign: 'center' },
+  fontChipLabel: { fontSize: 12, fontWeight: '700', color: C.text, textAlign: 'center' },
   fontChipLabelActive: { color: C.primary },
-  fontChipDesc: { fontSize: 10, color: C.textLight, marginTop: 2, textAlign: 'center' },
+  fontChipDesc: { fontSize: 9, color: C.textLight, marginTop: 1, textAlign: 'center' },
   fontChipDescActive: { color: C.primary },
   fontPreview: {
     fontSize: 15, color: C.textMid, marginTop: 10,
