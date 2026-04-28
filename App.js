@@ -8,7 +8,7 @@ import { AppProvider, useApp } from './lib/AppContext';
 import RootNavigator from './navigation/RootNavigator';
 
 export const FONT_OPTIONS = [
-  { key: 'default', label: '默认字体', desc: '系统默认', family: undefined },
+  { key: 'default', label: '默认', desc: '系统默认', family: undefined },
   {
     key: 'kaiti', label: '楷体', desc: '规范书写',
     family: Platform.select({ ios: 'STKaiti', android: 'serif', default: '"STKaiti", "KaiTi", serif' }),
