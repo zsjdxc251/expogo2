@@ -219,7 +219,7 @@ const st = StyleSheet.create({
 
   scroll: { flex: 1 },
 
-  unitListContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40 },
+  unitListContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
   unitListTipRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: C.primaryBg, paddingHorizontal: 16, paddingVertical: 10,
@@ -242,7 +242,7 @@ const st = StyleSheet.create({
   unitCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   unitCardCount: { fontSize: 12, fontWeight: '600', color: C.outline },
 
-  detailContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
+  detailContent: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 40 },
 
   sectionBlock: { marginBottom: 20 },
   sectionHeader: {
